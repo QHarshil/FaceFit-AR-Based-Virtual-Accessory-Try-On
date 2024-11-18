@@ -1,1 +1,5 @@
+com\arvirtualtryon\models\Customization.class
 com\arvirtualtryon\Application.class
+com\arvirtualtryon\models\Product.class
+com\arvirtualtryon\models\User.class
+com\arvirtualtryon\models\ProductCategory.class
