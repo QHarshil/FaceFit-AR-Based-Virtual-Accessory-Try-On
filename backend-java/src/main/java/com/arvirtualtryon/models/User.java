@@ -1,32 +1,35 @@
 package com.arvirtualtryon.models;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 @Entity
-@Table(name = "products")
-public class Product {
+@Table(name = "users")
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
-    @Size(max = 100)
-    @Column(nullable = false)
-    private String name;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ProductCategory category; // Enum for predefined categories
+    @Size(max = 50)
+    @Column(nullable = false, unique = true)
+    private String username;
 
     @NotBlank
+    @Email
     @Column(nullable = false, unique = true)
-    private String modelUrl; // URL or path to the 3D model
+    private String email;
 
-    @Column(nullable = true)
-    private String textureUrl; // Optional texture file URL
+    @NotBlank
+    @Column(nullable = false)
+    private String password;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Customization> customizations;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -45,36 +48,36 @@ public class Product {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public String getUsername() {
+        return username;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public ProductCategory getCategory() {
-        return category;
+    public String getEmail() {
+        return email;
     }
 
-    public void setCategory(ProductCategory category) {
-        this.category = category;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public String getModelUrl() {
-        return modelUrl;
+    public String getPassword() {
+        return password;
     }
 
-    public void setModelUrl(String modelUrl) {
-        this.modelUrl = modelUrl;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
-    public String getTextureUrl() {
-        return textureUrl;
+    public List<Customization> getCustomizations() {
+        return customizations;
     }
 
-    public void setTextureUrl(String textureUrl) {
-        this.textureUrl = textureUrl;
+    public void setCustomizations(List<Customization> customizations) {
+        this.customizations = customizations;
     }
 
     public LocalDateTime getCreatedAt() {
