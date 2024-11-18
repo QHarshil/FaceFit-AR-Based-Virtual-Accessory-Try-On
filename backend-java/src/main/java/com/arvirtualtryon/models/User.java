@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import java.util.List;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -27,9 +29,6 @@ public class User {
     @NotBlank
     @Column(nullable = false)
     private String password;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Customization> customizations;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -70,14 +69,6 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public List<Customization> getCustomizations() {
-        return customizations;
-    }
-
-    public void setCustomizations(List<Customization> customizations) {
-        this.customizations = customizations;
     }
 
     public LocalDateTime getCreatedAt() {
