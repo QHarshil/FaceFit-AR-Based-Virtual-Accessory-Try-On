@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import java.time.LocalDateTime;
+
+
 @Entity
 @Table(name = "products")
 public class Product {
