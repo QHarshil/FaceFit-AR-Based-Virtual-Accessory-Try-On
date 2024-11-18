@@ -68,7 +68,7 @@ src/main/java/com/arvirtualtryon/
 1. Clone the repository:
    ```bash
    git clone
-   cd ar-virtual-tryon-backend
+   cd to-project
 
  2. Configure the database in application.properties:
     ```bash
@@ -86,22 +86,23 @@ src/main/java/com/arvirtualtryon/
 
 ## API Endpoints
 
-  User Endpoints
+  **User Endpoints**
+  | HTTP Method  | Endpoint      | Description              |
+|--------------|---------------|--------------------------|
+| GET          | /users        | Get all users.           |
+| GET          | /users/{id}   | Get a user by ID.        |
+| POST         | /users        | Create a new user.       |
+| PUT          | /users/{id}   | Update an existing user. |
+| DELETE       | /users/{id}   | Delete a user by ID.     |
 
-    HTTP Method	Endpoint	Description
-    GET	/users	Get all users.
-    GET	/users/{id}	Get a user by ID.
-    POST	/users	Create a new user.
-    PUT	/users/{id}	Update an existing user.
-    DELETE	/users/{id}	Delete a user by ID.
-    
-  Product Endpoints
-  
-    HTTP Method	Endpoint	Description
-    GET	/products	Get all products.
-    GET	/products/{id}	Get a product by ID.
-    GET	/products/category/{category}	Get products by category.
-    POST	/products	Create a new product.
-    PUT	/products/{id}	Update an existing product.
-    DELETE	/products/{id}	Delete a product by ID.
+  **Product Endpoints**
+  | HTTP Method  | Endpoint                     | Description                  |
+  |--------------|------------------------------|------------------------------|
+  | GET          | /products                    | Get all products.            |
+  | GET          | /products/{id}               | Get a product by ID.         |
+  | GET          | /products/category/{category} | Get products by category.    |
+  | POST         | /products                    | Create a new product.        |
+  | PUT          | /products/{id}               | Update an existing product.  |
+  | DELETE       | /products/{id}               | Delete a product by ID.      |
+
 
