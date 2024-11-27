@@ -159,7 +159,51 @@ import React, {
     }, [modelPath]);
   
     const updateHat = (landmarks) => {
-      // Add hat-specific positioning logic here
+        if (!model) return;
+
+  // Key landmarks for hat positioning
+  const foreheadCenter = landmarks[10];    // Top of forehead
+  const leftTemple = landmarks[234];       // Left side of head
+  const rightTemple = landmarks[454];      // Right side of head
+  const topHead = landmarks[10];           // Top of head
+
+  // Calculate head width for scaling
+  const headWidth = Math.sqrt(
+    Math.pow(rightTemple.x - leftTemple.x, 2) +
+    Math.pow(rightTemple.y - leftTemple.y, 2) +
+    Math.pow(rightTemple.z - leftTemple.z, 2)
+  );
+
+  // Calculate scaling
+  const desiredWidth = headWidth * 12; // Slightly wider than the head
+  const widthScaleFactor = desiredWidth / model.userData.originalWidth;
+
+  // Update model visibility and scale
+  model.visible = true;
+  model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
+
+  // Position the hat slightly above the head
+  model.position.set(
+    (foreheadCenter.x - 0.5) * 3,
+    -(topHead.y - 0.65) * 3, // Moved up slightly
+    -foreheadCenter.z * 3 - 1
+  );
+
+  // Calculate rotation based on head orientation
+  const leftEar = landmarks[234];
+  const rightEar = landmarks[454];
+  const headVector = {
+    x: rightEar.x - leftEar.x,
+    y: rightEar.y - leftEar.y,
+    z: rightEar.z - leftEar.z
+  };
+
+  // Apply rotation
+  model.rotation.y = Math.atan2(headVector.z, headVector.x);
+  model.rotation.x = Math.atan2(-headVector.y, Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z)) + 0.2;
+  model.rotation.z = Math.atan2(headVector.y, headVector.x) * 0.5;
+
+  model.updateWorldMatrix();
     };
   
     return (
