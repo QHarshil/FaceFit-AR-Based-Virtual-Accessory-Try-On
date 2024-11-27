@@ -37,8 +37,15 @@ function FaceMeshComponent() {
         animations: gltf.animations,
       });
        const model = gltf.scene;
-       model.scale.set(0.4, 0.4, 0.4);
-       model.position.set(0, 0, -2);
+      //  model.scale.set(0.4, 0.4, 0.4);
+      //  model.position.set(0, 0, -2);
+
+      // Calculate the original width of the glasses model
+      const boundingBox = new THREE.Box3().setFromObject(model);
+      const glassesWidth = boundingBox.max.x - boundingBox.min.x;
+      model.userData.originalWidth = glassesWidth; // Store for reference
+      model.visible = false;
+
        scene.add(model);
        setGlasses(model);
        // Initial render after model is loaded
@@ -141,36 +148,104 @@ function FaceMeshComponent() {
       return;
     }
     const landmarks = results.multiFaceLandmarks[0];
-   if (!landmarks) return;
-    const nose = landmarks[6];
+    if (!landmarks) {
+      glasses.visible = false;
+      return;
+    }
+    glasses.visible = true;
    const leftEye = landmarks[33];
-   const rightEye = landmarks[263];
-    if (glasses) {
-    //   // Log positions for debugging
-    //  console.log('Face landmarks:', {
-    //   nose: { x: nose.x, y: nose.y, z: nose.z },
-    //   leftEye: { x: leftEye.x, y: leftEye.y, z: leftEye.z },
-    //   rightEye: { x: rightEye.x, y: rightEye.y, z: rightEye.z }
-    // });
-     glasses.position.set(
-       (nose.x - 0.5) * 3,
-       -(nose.y - 0.5) * 3,
-       -nose.z * 3
-     );
-      const eyeDistance = Math.sqrt(
-       Math.pow(rightEye.x - leftEye.x, 2) +
-       Math.pow(rightEye.y - leftEye.y, 2) +
-       Math.pow(rightEye.z - leftEye.z, 2)
-     );
-      glasses.rotation.y = Math.asin((rightEye.z - leftEye.z) / eyeDistance);
-     glasses.rotation.x = Math.asin((rightEye.y - leftEye.y) / eyeDistance);
-     glasses.rotation.z = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
-      // // Log glasses transform for debugging
-      // console.log('Glasses transform:', {
-      //   position: glasses.position,
-      //   rotation: glasses.rotation
-      // });
-   }
+    const rightEye = landmarks[263];
+    const nose = landmarks[168];  // Center point
+
+    const leftTemple = landmarks[234];  // Left temple
+    const rightTemple = landmarks[454];  // Right temple
+    const topHead = landmarks[10];      // Top of head
+    const bottomHead = landmarks[152];  // Bottom of head
+
+    // Calculate face width and height
+    const faceWidth = Math.sqrt(
+      Math.pow(rightTemple.x - leftTemple.x, 2) +
+      Math.pow(rightTemple.y - leftTemple.y, 2) +
+      Math.pow(rightTemple.z - leftTemple.z, 2)
+    );
+  
+    const faceHeight = Math.sqrt(
+      Math.pow(topHead.x - bottomHead.x, 2) +
+      Math.pow(topHead.y - bottomHead.y, 2) +
+      Math.pow(topHead.z - bottomHead.z, 2)
+    );
+  
+    // Calculate ideal glasses size
+  const desiredGlassesWidth = faceWidth * 10; // Adjust multiplier as needed
+  const originalGlassesWidth = glasses.userData.originalWidth;
+  const widthScaleFactor = desiredGlassesWidth / originalGlassesWidth;
+
+      // Apply different scale factors for each dimension
+  glasses.scale.set(
+    widthScaleFactor,
+    widthScaleFactor * 0.8,  // Slightly smaller vertical scale
+    widthScaleFactor * 1.35  // Deeper scale for better fit
+  );
+
+  
+  // Calculate base position using nose and depth offset
+  const basePosition = {
+    x: (nose.x - 0.5) * 3,
+    y: -(landmarks[1].y - 0.5) * 3,  // Using upper face point for Y
+    z: -nose.z * 3 - 1.6  // Added depth offset
+  };
+  
+
+  // Adjust position based on face size
+  glasses.position.set(
+    basePosition.x,
+    basePosition.y + (faceHeight * 0.1),  // Slight vertical adjustment
+    basePosition.z
+  );
+
+  // Calculate rotation based on eye positions
+  const eyeVector = {
+    x: rightEye.x - leftEye.x,
+    y: rightEye.y - leftEye.y,
+    z: rightEye.z - leftEye.z
+  };
+
+  // Apply rotations with dampening factors
+  glasses.rotation.y = Math.atan2(eyeVector.z, eyeVector.x) * 0.75;
+  glasses.rotation.x = (Math.atan2(-eyeVector.y, Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.75) + 0.1;
+  glasses.rotation.z = Math.atan2(eyeVector.y, eyeVector.x) * 0.5;
+
+  // Update world matrix
+  glasses.updateWorldMatrix();
+  //   const nose = landmarks[6];
+  //  const leftEye = landmarks[33];
+  //  const rightEye = landmarks[263];
+  //  const eyeMidpoint = {
+  //   x: (leftEye.x + rightEye.x) / 2,
+  //   y: (leftEye.y + rightEye.y) / 2,
+  //   z: (leftEye.z + rightEye.z) / 2
+  // };
+  //   if (glasses) {
+  //   //  glasses.position.set(
+  //   //    (nose.x - 0.5) * 3,
+  //   //    -(nose.y - 0.5) * 3,
+  //   //    -nose.z * 3
+  //   //  );
+  //    glasses.position.set(
+  //     (eyeMidpoint.x - 0.5) * 3,
+  //     -(eyeMidpoint.y - 0.5) * 3,
+  //     -eyeMidpoint.z * 3
+  //   );
+  //     const eyeDistance = Math.sqrt(
+  //      Math.pow(rightEye.x - leftEye.x, 2) +
+  //      Math.pow(rightEye.y - leftEye.y, 2) +
+  //      Math.pow(rightEye.z - leftEye.z, 2)
+  //    );
+  //     glasses.rotation.y = Math.asin((rightEye.z - leftEye.z) / eyeDistance);
+  //    glasses.rotation.x = Math.asin((rightEye.y - leftEye.y) / eyeDistance);
+  //    glasses.rotation.z = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
+
+  //  }
  }
   return (
    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100vh' }}>
