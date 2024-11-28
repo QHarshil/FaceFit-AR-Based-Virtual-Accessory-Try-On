@@ -7,6 +7,7 @@ import ARTryOn from './ARTryOn';
 function FaceMeshComponent() {
   const webcamRef = useRef(null);
   const arRef = useRef(null);
+  const hatRef = useRef(null);
   const cameraRef = useRef(null);
 
   const videoConstraints = {
@@ -57,6 +58,9 @@ function FaceMeshComponent() {
     if (arRef.current?.updateModel) {
       arRef.current.updateModel(results.multiFaceLandmarks?.[0]);
     }
+    if (hatRef.current?.updateModel) {
+      hatRef.current.updateModel(results.multiFaceLandmarks?.[0]);
+    }
   }
 
   return (
@@ -87,6 +91,11 @@ function FaceMeshComponent() {
         ref={arRef}
         modelPath="/models/glasses2.glb"
         type="glasses"
+      />
+      <ARTryOn
+        ref={hatRef}
+        modelPath="/models/hat2.glb"  // Make sure to use your hat model path
+        type="hat"
       />
     </div>
   );
