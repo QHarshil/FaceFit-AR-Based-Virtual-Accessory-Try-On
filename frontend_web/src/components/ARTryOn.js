@@ -12,7 +12,6 @@ const ARTryOn = forwardRef((props, ref) => {
   const { modelPath, type = 'glasses' } = props;
   const [model, setModel] = useState(null);
   const sceneRef = useRef(new THREE.Scene());
-  // Adjust camera FOV and clipping planes for better depth perception
   const cameraRef = useRef(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10));
   const rendererRef = useRef(null);
   const containerRef = useRef(null);
@@ -36,32 +35,28 @@ const ARTryOn = forwardRef((props, ref) => {
     const rightTemple = landmarks[454];
     const nose = landmarks[168];
   
-    // Increase face width calculation
     const faceWidth = Math.sqrt(
       Math.pow(rightTemple.x - leftTemple.x, 2) +
       Math.pow(rightTemple.y - leftTemple.y, 2)
     );
   
-    // Significantly increase the scaling factor
-    const desiredWidth = faceWidth * 8;  // Increased from 0.95 to 8
+    const desiredWidth = faceWidth * 8;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
     model.scale.set(
       widthScaleFactor,
-      widthScaleFactor * 0.85,  // Maintain aspect ratio
+      widthScaleFactor * 0.85,
       widthScaleFactor
     );
   
-    // Adjust position for the larger scale
     const centerX = (rightTemple.x + leftTemple.x) / 2;
     model.position.set(
-      (centerX - 0.5) * 3,    // Increased multiplier
-      -(nose.y - 0.48) * 3,   // Increased Y position multiplier
-      -nose.z * 3 - 0.8       // Adjusted depth for larger model
+      (centerX - 0.5) * 3,
+      -(nose.y - 0.48) * 3,
+      -nose.z * 3 - 0.8
     );
   
-    // Keep rotation calculations
     const leftEye = landmarks[33];
     const rightEye = landmarks[263];
     const eyeVector = {
@@ -90,21 +85,18 @@ const ARTryOn = forwardRef((props, ref) => {
       Math.pow(rightTemple.y - leftTemple.y, 2)
     );
   
-    // Increase hat scaling significantly
-    const desiredWidth = headWidth * 10;  // Increased from 1.0 to 10
+    const desiredWidth = headWidth * 10;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
     model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
   
-    // Adjust position for larger hat
     model.position.set(
-      (foreheadCenter.x - 0.5) * 3,    // Increased X multiplier
-      -(foreheadCenter.y - 0.62) * 3,  // Adjusted Y position for larger hat
-      -foreheadCenter.z * 3 - 0.6      // Adjusted depth
+      (foreheadCenter.x - 0.5) * 3,
+      -(foreheadCenter.y - 0.62) * 3,
+      -foreheadCenter.z * 3 - 0.6
     );
   
-    // Keep rotation calculations with slight adjustments
     const leftEar = landmarks[234];
     const rightEar = landmarks[454];
     const headVector = {
@@ -121,39 +113,59 @@ const ARTryOn = forwardRef((props, ref) => {
     model.updateWorldMatrix();
   };
 
+  const removeCurrentModel = () => {
+    if (model) {
+      sceneRef.current.remove(model);
+      model.traverse((object) => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
+      setModel(null);
+    }
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     const renderer = new THREE.WebGLRenderer({ 
       alpha: true,
-      antialias: true  // Enable antialiasing for smoother edges
+      antialias: true
     });
     rendererRef.current = renderer;
     const scene = sceneRef.current;
     const camera = cameraRef.current;
     
-    // Enhanced renderer setup
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(window.devicePixelRatio); // Improve rendering quality
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
     renderer.domElement.style.zIndex = '2';
     containerRef.current.appendChild(renderer.domElement);
 
-    // Load 3D model with improved error handling
+    removeCurrentModel(); // Remove the current model before loading a new one
+
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
       (gltf) => {
         const loadedModel = gltf.scene;
-        // Calculate original model dimensions
         const boundingBox = new THREE.Box3().setFromObject(loadedModel);
         loadedModel.userData.originalWidth = boundingBox.max.x - boundingBox.min.x;
         loadedModel.visible = false;
         
-        // Center model pivot point
+        // Reset position, scale, and rotation
+        loadedModel.position.set(0, 0, 0);
+        loadedModel.scale.set(1, 1, 1);
+        loadedModel.rotation.set(0, 0, 0);
+        
         boundingBox.getCenter(loadedModel.position);
         loadedModel.position.multiplyScalar(-1);
         
@@ -169,7 +181,6 @@ const ARTryOn = forwardRef((props, ref) => {
       (error) => console.error('Model loading error:', error)
     );
 
-    // Enhanced lighting setup
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
     
@@ -177,7 +188,6 @@ const ARTryOn = forwardRef((props, ref) => {
     directionalLight.position.set(0, 1, 1);
     scene.add(directionalLight);
 
-    // Position camera
     camera.position.z = 2;
 
     const animate = () => {
@@ -186,7 +196,6 @@ const ARTryOn = forwardRef((props, ref) => {
     };
     animate();
 
-    // Improved resize handler with debouncing
     let resizeTimeout;
     const handleResize = () => {
       clearTimeout(resizeTimeout);
@@ -206,7 +215,6 @@ const ARTryOn = forwardRef((props, ref) => {
       if (containerRef.current?.contains(renderer.domElement)) {
         containerRef.current.removeChild(renderer.domElement);
       }
-      // Cleanup resources
       scene.traverse((object) => {
         if (object.geometry) object.geometry.dispose();
         if (object.material) {
