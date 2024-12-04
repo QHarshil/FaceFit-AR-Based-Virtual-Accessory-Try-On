@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Register = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -9,18 +10,18 @@ const Register = () => {
     confirmPassword: ''
   });
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    console.log('Form submitted:', formData); // 调试用
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
     try {
-      const response = await fetch('/api/users', {
+      const response = await fetch('http://localhost:8080/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,23 +33,28 @@ const Register = () => {
         }),
       });
 
+      console.log('Response:', response); // 调试用
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('Success:', data); // 调试用
         navigate('/login');
       } else {
-        const data = await response.json();
-        setError(data.message || 'Registration failed');
+        const errorData = await response.json();
+        console.error('Error data:', errorData); // 调试用
+        setError(errorData.message || 'Registration failed');
       }
     } catch (err) {
-      setError('Failed to register. Please try again.');
+      console.error('Registration error:', err);
+      setError('Failed to connect to server. Please try again.');
     }
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   return (

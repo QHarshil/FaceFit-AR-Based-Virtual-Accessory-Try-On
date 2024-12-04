@@ -1,6 +1,8 @@
 package com.arvirtualtryon.repositories;
 
 import com.arvirtualtryon.models.Product;
+import com.arvirtualtryon.models.ProductCategory;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,5 +19,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * @param category The category to search for.
      * @return A list of products belonging to the specified category.
      */
-    List<Product> findByCategory(String category);
+    List<Product> findByCategory(ProductCategory category);
 }

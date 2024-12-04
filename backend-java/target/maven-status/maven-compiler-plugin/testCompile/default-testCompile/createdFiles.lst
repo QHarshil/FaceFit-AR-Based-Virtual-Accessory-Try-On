@@ -1,0 +1,8 @@
+com/arvirtualtryon/integration/ProcuctRepositoryIntegrationTest.class
+com/arvirtualtryon/e2e/ProductE2ETest.class
+com/arvirtualtryon/services/impl/ProductServiceImplTest.class
+com/arvirtualtryon/integration/ProductServiceIntegrationTest.class
+com/arvirtualtryon/models/ProductCatagoryTest.class
+com/arvirtualtryon/repositories/ProductRepositoryTest.class
+com/arvirtualtryon/models/ProductTest.class
+com/arvirtualtryon/integration/ProductControllerIntegrationTest.class

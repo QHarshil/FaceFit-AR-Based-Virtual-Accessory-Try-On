@@ -9,21 +9,34 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    try {
-      const success = await login(email, password);
-      if (success) {
-        navigate('/products');
-      } else {
-        setError('Invalid email or password');
-      }
-    } catch (err) {
-      setError('Failed to login. Please try again.');
+  // src/pages/Login.jsx
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  
+  try {
+    const response = await fetch('http://localhost:8080/api/users/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      await login(data);
+      navigate('/products');
+    } else {
+      setError('Invalid email or password');
     }
-  };
+  } catch (err) {
+    setError('Failed to login. Please try again.');
+  }
+};
 
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
