@@ -31,44 +31,58 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateGlasses = (landmarks) => {
     if (!model) return;
   
-    const leftTemple = landmarks[234];
-    const rightTemple = landmarks[454];
+    const leftEye = landmarks[33];
+    const rightEye = landmarks[263];
+    const leftIris = landmarks[468];
+    const rightIris = landmarks[473];
     const nose = landmarks[168];
   
-    const faceWidth = Math.sqrt(
-      Math.pow(rightTemple.x - leftTemple.x, 2) +
-      Math.pow(rightTemple.y - leftTemple.y, 2)
+    // 使用眼睛实际宽度作为基准
+    const eyeWidth = Math.sqrt(
+      Math.pow(rightEye.x - leftEye.x, 2) +
+      Math.pow(rightEye.y - leftEye.y, 2)
     );
   
-    const desiredWidth = faceWidth * 8;
+    // 调整缩放基准
+    const desiredWidth = eyeWidth * 6.2;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
     model.scale.set(
       widthScaleFactor,
-      widthScaleFactor * 0.85,
+      widthScaleFactor,
       widthScaleFactor
     );
   
-    const centerX = (rightTemple.x + leftTemple.x) / 2;
+    // 使用眼睛中心点定位
+    const eyeCenterX = (rightEye.x + leftEye.x) / 2;
+    const eyeCenterY = (rightEye.y + leftEye.y) / 2;
+    const eyeDepth = (rightEye.z + leftEye.z) / 2;
+  
+    // 应用更精确的位置偏移
     model.position.set(
-      (centerX - 0.5) * 3,
-      -(nose.y - 0.48) * 3,
-      -nose.z * 3 - 0.8
+      (eyeCenterX - 0.5) * 2.4,           // 减小水平偏移
+      -(eyeCenterY - 0.45) * 2.4,         // 调整垂直位置
+      -nose.z * 2.4 - 0.15                // 优化深度位置
     );
   
-    const leftEye = landmarks[33];
-    const rightEye = landmarks[263];
+    // 计算更准确的旋转角度
     const eyeVector = {
       x: rightEye.x - leftEye.x,
       y: rightEye.y - leftEye.y,
       z: rightEye.z - leftEye.z
     };
   
-    model.rotation.y = Math.atan2(eyeVector.z, eyeVector.x) * 0.6;
-    model.rotation.x = (Math.atan2(-eyeVector.y, 
-      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.6);
-    model.rotation.z = Math.atan2(eyeVector.y, eyeVector.x) * 0.4;
+    // 限制旋转范围
+    const clampRotation = (value, min = -0.3, max = 0.3) => {
+      return Math.min(Math.max(value, min), max);
+    };
+  
+    // 应用有限的旋转
+    model.rotation.y = clampRotation(Math.atan2(eyeVector.z, eyeVector.x) * 0.3);
+    model.rotation.x = clampRotation(Math.atan2(-eyeVector.y, 
+      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.3);
+    model.rotation.z = clampRotation(Math.atan2(eyeVector.y, eyeVector.x) * 0.15);
   
     model.updateWorldMatrix();
   };
@@ -76,39 +90,52 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateHat = (landmarks) => {
     if (!model) return;
   
-    const foreheadCenter = landmarks[10];
+    const topHead = landmarks[10];    // 头顶
+    const foreheadCenter = landmarks[151];  // 使用更低的前额点
     const leftTemple = landmarks[234];
     const rightTemple = landmarks[454];
   
+    // 计算头部宽度
     const headWidth = Math.sqrt(
       Math.pow(rightTemple.x - leftTemple.x, 2) +
       Math.pow(rightTemple.y - leftTemple.y, 2)
     );
   
-    const desiredWidth = headWidth * 10;
+    // 调整缩放
+    const desiredWidth = headWidth * 5.8;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
     model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
   
+    // 固定帽子在头顶位置
+    const yOffset = 0.62; // 微调垂直位置
     model.position.set(
-      (foreheadCenter.x - 0.5) * 3,
-      -(foreheadCenter.y - 0.62) * 3,
-      -foreheadCenter.z * 3 - 0.6
+      (topHead.x - 0.5) * 2.4,
+      -(topHead.y - yOffset) * 2.4,
+      -topHead.z * 2.4 - 0.1
     );
   
-    const leftEar = landmarks[234];
-    const rightEar = landmarks[454];
+    // 计算头部方向
     const headVector = {
-      x: rightEar.x - leftEar.x,
-      y: rightEar.y - leftEar.y,
-      z: rightEar.z - leftEar.z
+      x: rightTemple.x - leftTemple.x,
+      y: rightTemple.y - leftTemple.y,
+      z: rightTemple.z - leftTemple.z
     };
   
-    model.rotation.y = Math.atan2(headVector.z, headVector.x) * 0.7;
-    model.rotation.x = (Math.atan2(-headVector.y, 
-      Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z)) * 0.7) + 0.1;
-    model.rotation.z = Math.atan2(headVector.y, headVector.x) * 0.4;
+    // 限制旋转范围的函数
+    const clampRotation = (value, min = -0.2, max = 0.2) => {
+      return Math.min(Math.max(value, min), max);
+    };
+  
+    // 计算基础旋转角度
+    let rotationY = Math.atan2(headVector.z, headVector.x);
+    let rotationX = Math.atan2(headVector.y, Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z));
+  
+    // 应用受限的旋转，移除额外的旋转补偿
+    model.rotation.y = clampRotation(rotationY * 0.3);
+    model.rotation.x = clampRotation(rotationX * 0.3);
+    model.rotation.z = clampRotation(Math.atan2(headVector.y, headVector.x) * 0.15);
   
     model.updateWorldMatrix();
   };
