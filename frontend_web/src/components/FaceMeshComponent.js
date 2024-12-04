@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Webcam from "react-webcam";
 import { FaceMesh } from '@mediapipe/face_mesh';
 import * as cam from '@mediapipe/camera_utils';
@@ -9,7 +9,8 @@ function FaceMeshComponent() {
   const arRef = useRef(null);
   const hatRef = useRef(null);
   const cameraRef = useRef(null);
-
+  const [selectedGlasses, setSelectedGlasses] = useState("/models/glasses2.glb");
+  const [selectedHat, setSelectedHat] = useState("/models/hat2.glb");
   const videoConstraints = {
     width: 1280,
     height: 720,
@@ -62,6 +63,25 @@ function FaceMeshComponent() {
       hatRef.current.updateModel(results.multiFaceLandmarks?.[0]);
     }
   }
+  const glassesImages = [
+    { src: "/models/glasses1.png", model: "/models/glasses1.glb" },
+    { src: "/models/glasses2.png", model: "/models/glasses2.glb" },
+    { src: "/models/glasses3.png", model: "/models/glasses3.glb" }
+  ];
+
+  const hatImages = [
+    { src: "/models/hat1.png", model: "/models/hat1.glb" },
+    { src: "/models/hat2.png", model: "/models/hat2.glb" },
+    { src: "/models/hat3.png", model: "/models/hat3.glb" }
+  ];
+
+  const getImageStyle = (isSelected) => ({
+    cursor: 'pointer',
+    width: '100px',
+    height: '100px',
+    border: isSelected ? '5px solid pink' : '3px solid white',
+    borderRadius: '5px'
+  });
 
   return (
     <div 
@@ -89,14 +109,36 @@ function FaceMeshComponent() {
       />
       <ARTryOn
         ref={arRef}
-        modelPath="/models/glasses2.glb"
+        modelPath={selectedGlasses}
         type="glasses"
       />
       <ARTryOn
         ref={hatRef}
-        modelPath="/models/hat2.glb"  // Make sure to use your hat model path
+        modelPath={selectedHat}  // Make sure to use your hat model path
         type="hat"
       />
+      <div style={{ position: 'absolute', bottom: '25%', left: '5%', display: 'flex', gap: '20px' }}>
+        {glassesImages.map((glasses, index) => (
+          <img
+            key={index}
+            src={glasses.src}
+            alt={`Glasses ${index + 1}`}
+            onClick={() => setSelectedGlasses(glasses.model)}
+            style={getImageStyle(selectedGlasses === glasses.model)}
+          />
+        ))}
+      </div>
+      <div style={{ position: 'absolute', bottom: '5%', left: '5%', display: 'flex', gap: '20px' }}>
+        {hatImages.map((hat, index) => (
+          <img
+            key={index}
+            src={hat.src}
+            alt={`Hat ${index + 1}`}
+            onClick={() => setSelectedHat(hat.model)}
+            style={getImageStyle(selectedHat === hat.model)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
