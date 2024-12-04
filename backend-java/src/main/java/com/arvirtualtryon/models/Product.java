@@ -5,8 +5,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
-import java.time.LocalDateTime;
 
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -23,14 +24,22 @@ public class Product {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProductCategory category; // Enum for predefined categories
+    private ProductCategory category;
 
     @NotBlank
     @Column(nullable = false, unique = true)
-    private String modelUrl; // URL or path to the 3D model
+    private String modelUrl; // Relative path to the GLTF file
 
     @Column(nullable = true)
-    private String textureUrl; // Optional texture file URL
+    private String textureUrl; // Optional texture file path
+
+    @ElementCollection
+    @CollectionTable(name = "product_tags", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "tag")
+    private List<String> tags; // Tags for filtering/search
+
+    @Column(nullable = true)
+    private String dimensions; // Dimensions metadata, e.g., "width: 10, height: 15"
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -79,6 +88,22 @@ public class Product {
 
     public void setTextureUrl(String textureUrl) {
         this.textureUrl = textureUrl;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
+
+    public String getDimensions() {
+        return dimensions;
+    }
+
+    public void setDimensions(String dimensions) {
+        this.dimensions = dimensions;
     }
 
     public LocalDateTime getCreatedAt() {
