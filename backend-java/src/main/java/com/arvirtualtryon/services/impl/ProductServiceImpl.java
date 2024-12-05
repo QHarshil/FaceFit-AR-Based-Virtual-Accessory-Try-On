@@ -13,17 +13,30 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of the ProductService interface for managing products.
+ */
 @Service
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private static final String BASE_URL = "http://localhost:8080/api/resources/";
 
+    /**
+     * Constructor for injecting the ProductRepository dependency.
+     *
+     * @param productRepository Repository for accessing product data.
+     */
     @Autowired
     public ProductServiceImpl(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
 
+    /**
+     * Retrieve all products and convert them into response DTOs.
+     *
+     * @return List of ProductResponseDTOs for all products.
+     */
     @Override
     public List<ProductResponseDTO> getAllProducts() {
         return productRepository.findAll()
@@ -32,6 +45,13 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieve a product by its ID and convert it into a response DTO.
+     *
+     * @param id Product ID.
+     * @return ProductResponseDTO for the product.
+     * @throws EntityNotFoundException If the product is not found.
+     */
     @Override
     public ProductResponseDTO getProductById(Long id) {
         Product product = productRepository.findById(id)
@@ -39,6 +59,12 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponseDTO(product);
     }
 
+    /**
+     * Retrieve products by category and convert them into response DTOs.
+     *
+     * @param category ProductCategory to filter by.
+     * @return List of ProductResponseDTOs in the specified category.
+     */
     @Override
     public List<ProductResponseDTO> getProductsByCategory(ProductCategory category) {
         return productRepository.findByCategory(category)
@@ -47,6 +73,12 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Create a new product using a request DTO and return the response DTO.
+     *
+     * @param productRequestDTO Data for creating the product.
+     * @return ProductResponseDTO for the created product.
+     */
     @Override
     public ProductResponseDTO createProduct(ProductRequestDTO productRequestDTO) {
         Product product = mapToEntity(productRequestDTO);
@@ -54,6 +86,14 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponseDTO(savedProduct);
     }
 
+    /**
+     * Update an existing product by ID using a request DTO and return the response DTO.
+     *
+     * @param id                Product ID.
+     * @param productRequestDTO Updated product details.
+     * @return ProductResponseDTO for the updated product.
+     * @throws EntityNotFoundException If the product is not found.
+     */
     @Override
     public ProductResponseDTO updateProduct(Long id, ProductRequestDTO productRequestDTO) {
         Product existingProduct = productRepository.findById(id)
@@ -69,6 +109,12 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponseDTO(updatedProduct);
     }
 
+    /**
+     * Delete a product by its ID.
+     *
+     * @param id Product ID.
+     * @throws EntityNotFoundException If the product is not found.
+     */
     @Override
     public void deleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
@@ -77,6 +123,12 @@ public class ProductServiceImpl implements ProductService {
         productRepository.deleteById(id);
     }
 
+    /**
+     * Map a Product entity to a ProductResponseDTO with dynamic URL generation.
+     *
+     * @param product Product entity to map.
+     * @return Corresponding ProductResponseDTO.
+     */
     private ProductResponseDTO mapToResponseDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
@@ -88,6 +140,12 @@ public class ProductServiceImpl implements ProductService {
         return dto;
     }
 
+    /**
+     * Map a ProductRequestDTO to a Product entity.
+     *
+     * @param dto ProductRequestDTO to map.
+     * @return Corresponding Product entity.
+     */
     private Product mapToEntity(ProductRequestDTO dto) {
         Product product = new Product();
         product.setName(dto.getName());
