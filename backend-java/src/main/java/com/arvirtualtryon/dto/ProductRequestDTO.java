@@ -1,27 +1,15 @@
 package com.arvirtualtryon.dtos;
 
 import com.arvirtualtryon.models.ProductCategory;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
-/**
- * Data Transfer Object for creating or updating Product information.
- * Helps decouple the API layer from the database model.
- */
+import java.util.List;
+
 public class ProductRequestDTO {
-
-    @NotBlank
-    @Size(max = 100, message = "Product name must not exceed 100 characters.")
     private String name;
-
-    @NotNull(message = "Category is required.")
     private ProductCategory category;
-
-    @NotBlank(message = "Model URL cannot be blank.")
     private String modelUrl;
-
-    private String textureUrl;
+    private List<String> textureUrls;
+    private String binUrl;
 
     // Getters and Setters
     public String getName() {
@@ -48,11 +36,19 @@ public class ProductRequestDTO {
         this.modelUrl = modelUrl;
     }
 
-    public String getTextureUrl() {
-        return textureUrl;
+    public List<String> getTextureUrls() {
+        return textureUrls;
     }
 
-    public void setTextureUrl(String textureUrl) {
-        this.textureUrl = textureUrl;
+    public void setTextureUrls(List<String> textureUrls) {
+        this.textureUrls = textureUrls;
+    }
+
+    public String getBinUrl() {
+        return binUrl;
+    }
+
+    public void setBinUrl(String binUrl) {
+        this.binUrl = binUrl;
     }
 }
