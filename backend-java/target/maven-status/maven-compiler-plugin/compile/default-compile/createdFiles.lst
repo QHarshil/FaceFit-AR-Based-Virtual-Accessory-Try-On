@@ -1,10 +1,3 @@
-com/arvirtualtryon/Application.class
-com/arvirtualtryon/repositories/UserRepository.class
-com/arvirtualtryon/services/IUserService.class
-com/arvirtualtryon/models/User.class
-com/arvirtualtryon/services/impl/UserServiceImpl.class
-com/arvirtualtryon/models/ProductCategory.class
-com/arvirtualtryon/repositories/ProductRepository.class
-com/arvirtualtryon/models/Product.class
-com/arvirtualtryon/services/impl/ProductServiceImpl.class
-com/arvirtualtryon/services/ProductService.class
+com\arvirtualtryon\models\ProductCategory.class
+com\arvirtualtryon\config\WebConfig.class
+com\arvirtualtryon\dtos\ProductResponseDTO.class
