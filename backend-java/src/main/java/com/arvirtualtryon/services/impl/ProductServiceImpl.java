@@ -1,15 +1,5 @@
 package com.arvirtualtryon.services.impl;
 
-import com.arvirtualtryon.models.Product;
-import com.arvirtualtryon.models.ProductCategory;
-import com.arvirtualtryon.repositories.ProductRepository;
-import com.arvirtualtryon.services.ProductService;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;package com.arvirtualtryon.services.impl;
-
 import com.arvirtualtryon.dtos.ProductRequestDTO;
 import com.arvirtualtryon.dtos.ProductResponseDTO;
 import com.arvirtualtryon.models.Product;
@@ -24,18 +14,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service class for managing products.
- * Provides implementation for product-related business logic.
+ * Implementation of the ProductService interface for managing products.
+ * Provides business logic for handling product operations.
  */
 @Service
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private static final String BASE_URL = "http://localhost:8080/api/resources/";
 
     /**
-     * Constructor for injecting dependencies.
+     * Constructor for injecting the ProductRepository dependency.
      *
-     * @param productRepository The repository for product data access.
+     * @param productRepository Repository for accessing product data.
      */
     @Autowired
     public ProductServiceImpl(ProductRepository productRepository) {
@@ -43,9 +34,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Retrieve all products as response DTOs.
+     * Retrieve all products and convert them into response DTOs.
      *
-     * @return A list of all product response DTOs.
+     * @return List of ProductResponseDTOs for all products.
      */
     @Override
     public List<ProductResponseDTO> getAllProducts() {
@@ -56,10 +47,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Retrieve a product by its ID as a response DTO.
+     * Retrieve a product by its ID and convert it into a response DTO.
      *
-     * @param id The ID of the product.
-     * @return The product response DTO with the specified ID.
+     * @param id Product ID.
+     * @return ProductResponseDTO for the product.
      * @throws EntityNotFoundException If the product is not found.
      */
     @Override
@@ -70,10 +61,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Retrieve products by category as response DTOs.
+     * Retrieve products by category and convert them into response DTOs.
      *
-     * @param category The category of the products.
-     * @return A list of product response DTOs in the specified category.
+     * @param category ProductCategory to filter by.
+     * @return List of ProductResponseDTOs in the specified category.
      */
     @Override
     public List<ProductResponseDTO> getProductsByCategory(ProductCategory category) {
@@ -84,10 +75,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Create a new product using a request DTO.
+     * Create a new product using a request DTO and return the response DTO.
      *
-     * @param productRequestDTO The product request DTO with creation details.
-     * @return The newly created product response DTO.
+     * @param productRequestDTO Data for creating the product.
+     * @return ProductResponseDTO for the created product.
      */
     @Override
     public ProductResponseDTO createProduct(ProductRequestDTO productRequestDTO) {
@@ -97,11 +88,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Update an existing product using a request DTO.
+     * Update an existing product by ID using a request DTO and return the response DTO.
      *
-     * @param id The ID of the product to update.
-     * @param productRequestDTO The updated product details.
-     * @return The updated product response DTO.
+     * @param id                Product ID.
+     * @param productRequestDTO Updated product details.
+     * @return ProductResponseDTO for the updated product.
      * @throws EntityNotFoundException If the product is not found.
      */
     @Override
@@ -121,7 +112,7 @@ public class ProductServiceImpl implements ProductService {
     /**
      * Delete a product by its ID.
      *
-     * @param id The ID of the product to delete.
+     * @param id Product ID.
      * @throws EntityNotFoundException If the product is not found.
      */
     @Override
@@ -133,26 +124,27 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Map a Product entity to a ProductResponseDTO.
+     * Map a Product entity to a ProductResponseDTO with dynamic URL generation.
      *
-     * @param product The Product entity to map.
-     * @return The corresponding ProductResponseDTO.
+     * @param product Product entity to map.
+     * @return Corresponding ProductResponseDTO.
      */
     private ProductResponseDTO mapToResponseDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());
         dto.setCategory(product.getCategory());
-        dto.setModelUrl(product.getModelUrl());
-        dto.setTextureUrl(product.getTextureUrl());
+        dto.setModelUrl(BASE_URL + product.getModelUrl()); // Generate dynamic URL for model
+        dto.setTextureUrl(
+                product.getTextureUrl() != null ? BASE_URL + product.getTextureUrl() : null); // Handle optional textures
         return dto;
     }
 
     /**
      * Map a ProductRequestDTO to a Product entity.
      *
-     * @param dto The ProductRequestDTO to map.
-     * @return The corresponding Product entity.
+     * @param dto ProductRequestDTO to map.
+     * @return Corresponding Product entity.
      */
     private Product mapToEntity(ProductRequestDTO dto) {
         Product product = new Product();
@@ -161,120 +153,5 @@ public class ProductServiceImpl implements ProductService {
         product.setModelUrl(dto.getModelUrl());
         product.setTextureUrl(dto.getTextureUrl());
         return product;
-    }
-}
-
-
-/**
- * Service class for managing products.
- * Provides implementation for product-related business logic.
- */
-@Service
-public class ProductServiceImpl implements ProductService {
-
-    private final ProductRepository productRepository;
-
-    /**
-     * Constructor for injecting dependencies.
-     *
-     * @param productRepository The repository for product data access.
-     */
-    @Autowired
-    public ProductServiceImpl(ProductRepository productRepository) {
-        this.productRepository = productRepository;
-    }
-
-    /**
-     * Retrieve all products.
-     *
-     * @return A list of all products.
-     */
-    @Override
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
-    }
-
-    /**
-     * Retrieve a product by its ID.
-     *
-     * @param id The ID of the product.
-     * @return The product with the specified ID.
-     * @throws EntityNotFoundException If the product is not found.
-     */
-    @Override
-    public Product getProductById(Long id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product with ID " + id + " not found"));
-    }
-
-    /**
-     * Retrieve products by category.
-     *
-     * @param category The category of the products.
-     * @return A list of products in the specified category.
-     */
-    @Override
-    public List<Product> getProductsByCategory(ProductCategory category) {
-        return productRepository.findByCategory(category);
-    }
-
-    /**
-     * Retrieve products by a specific tag.
-     *
-     * @param tag The tag to search for.
-     * @return A list of products with the specified tag.
-     */
-    @Override
-    public List<Product> getProductsByTag(String tag) {
-        return productRepository.findByTagsContaining(tag);
-    }
-
-    /**
-     * Create a new product.
-     *
-     * @param product The product to create.
-     * @return The created product.
-     */
-    @Override
-    public Product createProduct(Product product) {
-        return productRepository.save(product);
-    }
-
-    /**
-     * Update an existing product.
-     *
-     * @param id The ID of the product to update.
-     * @param updatedProduct The updated product details.
-     * @return The updated product.
-     * @throws EntityNotFoundException If the product is not found.
-     */
-    @Override
-    public Product updateProduct(Long id, Product updatedProduct) {
-        Product existingProduct = productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product with ID " + id + " not found"));
-
-        // Update fields
-        existingProduct.setName(updatedProduct.getName());
-        existingProduct.setCategory(updatedProduct.getCategory());
-        existingProduct.setModelUrl(updatedProduct.getModelUrl());
-        existingProduct.setTextureUrl(updatedProduct.getTextureUrl());
-        existingProduct.setTags(updatedProduct.getTags());
-        existingProduct.setDimensions(updatedProduct.getDimensions());
-
-        return productRepository.save(existingProduct);
-    }
-
-    /**
-     * Delete a product by its ID.
-     *
-     * @param id The ID of the product to delete.
-     * @throws EntityNotFoundException If the product is not found.
-     */
-    @Override
-    public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new EntityNotFoundException("Product with ID " + id + " not found");
-        }
-        productRepository.deleteById(id);
     }
 }

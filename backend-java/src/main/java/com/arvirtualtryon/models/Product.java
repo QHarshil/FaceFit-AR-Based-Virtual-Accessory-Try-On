@@ -18,20 +18,25 @@ public class Product {
     private Long id;
 
     @NotBlank
-    @Size(max = 100)
+    @Size(max = 100, message = "Product name must not exceed 100 characters.")
     @Column(nullable = false)
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProductCategory category;
+    private ProductCategory category; // Enum for product categories
 
     @NotBlank
     @Column(nullable = false, unique = true)
-    private String modelUrl; // Relative path to the GLTF file
+    private String modelUrl; // Path to the GLTF file
+
+    @ElementCollection
+    @CollectionTable(name = "product_textures", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "texture_url")
+    private List<String> textureUrls; // Paths to texture files
 
     @Column(nullable = true)
-    private String textureUrl; // Optional texture file path
+    private String binFileUrl; // Optional path to the .bin file
 
     @ElementCollection
     @CollectionTable(name = "product_tags", joinColumns = @JoinColumn(name = "product_id"))
@@ -82,12 +87,20 @@ public class Product {
         this.modelUrl = modelUrl;
     }
 
-    public String getTextureUrl() {
-        return textureUrl;
+    public List<String> getTextureUrls() {
+        return textureUrls;
     }
 
-    public void setTextureUrl(String textureUrl) {
-        this.textureUrl = textureUrl;
+    public void setTextureUrls(List<String> textureUrls) {
+        this.textureUrls = textureUrls;
+    }
+
+    public String getBinFileUrl() {
+        return binFileUrl;
+    }
+
+    public void setBinFileUrl(String binFileUrl) {
+        this.binFileUrl = binFileUrl;
     }
 
     public List<String> getTags() {

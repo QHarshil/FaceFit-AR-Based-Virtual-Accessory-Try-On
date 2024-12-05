@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * REST Controller for managing products.
- * Exposes endpoints to perform CRUD operations on products.
+ * Provides endpoints for CRUD operations and product retrieval by category.
  */
 @RestController
 @RequestMapping("/api/products")
@@ -22,9 +22,9 @@ public class ProductController {
     private final ProductService productService;
 
     /**
-     * Constructor to inject the ProductService dependency.
+     * Constructor for injecting the ProductService dependency.
      *
-     * @param productService Service layer for product operations.
+     * @param productService Service layer for handling product operations.
      */
     @Autowired
     public ProductController(ProductService productService) {
@@ -32,7 +32,7 @@ public class ProductController {
     }
 
     /**
-     * Get all products.
+     * Retrieve all products.
      *
      * @return List of all products as ProductResponseDTOs.
      */
@@ -43,10 +43,10 @@ public class ProductController {
     }
 
     /**
-     * Get a product by ID.
+     * Retrieve a product by its ID.
      *
-     * @param id The ID of the product.
-     * @return The ProductResponseDTO with the specified ID.
+     * @param id The ID of the product to retrieve.
+     * @return ProductResponseDTO with the specified ID.
      */
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable Long id) {
@@ -55,9 +55,9 @@ public class ProductController {
     }
 
     /**
-     * Get products by category.
+     * Retrieve products by their category.
      *
-     * @param category The category of the products (e.g., GLASSES, HATS).
+     * @param category The category to filter products by (e.g., GLASSES, HATS).
      * @return List of products in the specified category as ProductResponseDTOs.
      */
     @GetMapping("/category/{category}")
@@ -70,7 +70,7 @@ public class ProductController {
     /**
      * Create a new product.
      *
-     * @param productRequestDTO The details of the product to create.
+     * @param productRequestDTO Data for creating the new product.
      * @return The newly created product as a ProductResponseDTO.
      */
     @PostMapping
@@ -80,10 +80,10 @@ public class ProductController {
     }
 
     /**
-     * Update an existing product.
+     * Update an existing product by its ID.
      *
      * @param id                The ID of the product to update.
-     * @param productRequestDTO The updated product details.
+     * @param productRequestDTO Updated data for the product.
      * @return The updated product as a ProductResponseDTO.
      */
     @PutMapping("/{id}")
@@ -93,10 +93,10 @@ public class ProductController {
     }
 
     /**
-     * Delete a product by ID.
+     * Delete a product by its ID.
      *
      * @param id The ID of the product to delete.
-     * @return HTTP 200 OK response on successful deletion.
+     * @return HTTP 200 OK response if the deletion is successful.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
