@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import ProductList from './pages/ProductList';
 import VirtualTryOn from './pages/VirtualTryOn';
 import PrivateRoute from './components/PrivateRoute';
+import FaceMeshComponent from './components/FaceMeshComponent';
 
 export default function App() {
   return (
@@ -22,11 +23,11 @@ export default function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/products" element={<ProductList />} />
               <Route 
-                path="/try-on/:productId" 
+                path="/try-on" 
                 element={
-                  <PrivateRoute>
+                  // <PrivateRoute>
                     <VirtualTryOn />
-                  </PrivateRoute>
+                  // </PrivateRoute>
                 } 
               />
             </Routes>

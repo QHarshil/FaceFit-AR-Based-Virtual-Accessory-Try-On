@@ -10,7 +10,7 @@ const Home = () => {
       </p>
       <div className="space-x-4">
         <Link
-          to="/products"
+          to="/try-on"
           className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600"
         >
           Try Products

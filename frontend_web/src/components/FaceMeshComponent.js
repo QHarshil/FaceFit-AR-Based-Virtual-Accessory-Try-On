@@ -66,19 +66,26 @@ function FaceMeshComponent() {
   const glassesImages = [
     { src: "/models/glasses1.png", model: "/models/glasses1.glb" },
     { src: "/models/glasses2.png", model: "/models/glasses2.glb" },
-    { src: "/models/glasses3.png", model: "/models/glasses3.glb" }
+    { src: "/models/glasses3.png", model: "/models/glasses3.glb" },
+    { src: "/models/glasses4.png", model: "/models/glasses4.glb" },
+    { src: "/models/glasses5.png", model: "/models/glasses5.glb" },
+    { src: "/models/glasses6.png", model: "/models/glasses6.glb" },
+    // { src: "/models/glasses7.png", model: "/models/glasses7.glb" },
   ];
 
   const hatImages = [
     { src: "/models/hat1.png", model: "/models/hat1.glb" },
     { src: "/models/hat2.png", model: "/models/hat2.glb" },
-    { src: "/models/hat3.png", model: "/models/hat3.glb" }
+    { src: "/models/hat3.png", model: "/models/hat3.glb" },
+    { src: "/models/hat4.png", model: "/models/hat4.glb" },
+    { src: "/models/hat5.png", model: "/models/hat5.glb" },
+    { src: "/models/hat6.png", model: "/models/hat6.glb" },
   ];
 
   const getImageStyle = (isSelected) => ({
     cursor: 'pointer',
-    width: '100px',
-    height: '100px',
+    width: '80px',
+    height: '80px',
     border: isSelected ? '5px solid pink' : '3px solid white',
     borderRadius: '5px'
   });
@@ -86,11 +93,9 @@ function FaceMeshComponent() {
   return (
     <div 
       style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        position: 'relative',
+        width: '100%',
+        height: 'calc(100vh - 64px)', // Adjust height to account for Navbar
         overflow: 'hidden'
       }}
     >
@@ -117,27 +122,31 @@ function FaceMeshComponent() {
         modelPath={selectedHat}  // Make sure to use your hat model path
         type="hat"
       />
-      <div style={{ position: 'absolute', bottom: '25%', left: '5%', display: 'flex', gap: '20px' }}>
-        {glassesImages.map((glasses, index) => (
-          <img
-            key={index}
-            src={glasses.src}
-            alt={`Glasses ${index + 1}`}
-            onClick={() => setSelectedGlasses(glasses.model)}
-            style={getImageStyle(selectedGlasses === glasses.model)}
-          />
-        ))}
-      </div>
       <div style={{ position: 'absolute', bottom: '5%', left: '5%', display: 'flex', gap: '20px' }}>
-        {hatImages.map((hat, index) => (
-          <img
-            key={index}
-            src={hat.src}
-            alt={`Hat ${index + 1}`}
-            onClick={() => setSelectedHat(hat.model)}
-            style={getImageStyle(selectedHat === hat.model)}
-          />
-        ))}
+      {/* <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '200px', overflowY: 'auto' }}> */}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {glassesImages.map((glasses, index) => (
+            <img
+              key={index}
+              src={glasses.src}
+              alt={`Glasses ${index + 1}`}
+              onClick={() => setSelectedGlasses(glasses.model)}
+              style={getImageStyle(selectedGlasses === glasses.model)}
+            />
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {hatImages.map((hat, index) => (
+            <img
+              key={index}
+              src={hat.src}
+              alt={`Hat ${index + 1}`}
+              onClick={() => setSelectedHat(hat.model)}
+              style={getImageStyle(selectedHat === hat.model)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
