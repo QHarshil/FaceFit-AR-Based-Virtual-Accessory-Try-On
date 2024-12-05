@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 const ARTryOn = forwardRef((props, ref) => {
-  const { modelPath, type = 'glasses' } = props;
+  const { modelPath, type } = props;
   const [model, setModel] = useState(null);
   const sceneRef = useRef(new THREE.Scene());
   const cameraRef = useRef(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10));
@@ -51,11 +51,26 @@ const ARTryOn = forwardRef((props, ref) => {
     );
   
     const centerX = (rightTemple.x + leftTemple.x) / 2;
+    const glassesType = model.userData.glassesType;
+    if (glassesType === 'glasses1' | glassesType === 'glasses4') {
     model.position.set(
-      (centerX - 0.5) * 3,
-      -(nose.y - 0.48) * 3,
+      (centerX - 0.57) * 3,
+      -(nose.y - 0.52) * 3,
       -nose.z * 3 - 0.8
     );
+    } else if (glassesType === 'glasses2') {
+      model.position.set(
+        (centerX - 0.57) * 3,    // Increased multiplier
+        -(nose.y - 0.48) * 3,   // Increased Y position multiplier
+        -nose.z * 3 - 1.6    
+      );
+    }else {
+      model.position.set(
+        (centerX - 0.55) * 3,    // Increased multiplier
+        -(nose.y - 0.48) * 3,   // Increased Y position multiplier
+        -nose.z * 3 - 0.8    
+      );
+    }
   
     const leftEye = landmarks[33];
     const rightEye = landmarks[263];
@@ -64,11 +79,12 @@ const ARTryOn = forwardRef((props, ref) => {
       y: rightEye.y - leftEye.y,
       z: rightEye.z - leftEye.z
     };
+    
   
-    model.rotation.y = Math.atan2(eyeVector.z, eyeVector.x) * 0.6;
-    model.rotation.x = (Math.atan2(-eyeVector.y, 
+    model.rotation.y = -Math.atan2(eyeVector.z, eyeVector.x) * 0.6;
+    model.rotation.x = -(Math.atan2(-eyeVector.y, 
       Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.6);
-    model.rotation.z = Math.atan2(eyeVector.y, eyeVector.x) * 0.4;
+    model.rotation.z = -Math.atan2(eyeVector.y, eyeVector.x) * 0.4;
   
     model.updateWorldMatrix();
   };
@@ -90,13 +106,44 @@ const ARTryOn = forwardRef((props, ref) => {
   
     model.visible = true;
     model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
-  
+    const hatType = model.userData.hatType;
+    if (hatType === 'hat1' | hatType === 'hat6') {
     model.position.set(
-      (foreheadCenter.x - 0.5) * 3,
-      -(foreheadCenter.y - 0.62) * 3,
-      -foreheadCenter.z * 3 - 0.6
+      (foreheadCenter.x - 0.55) * 3,
+      -(foreheadCenter.y - 0.6) * 3,
+      -foreheadCenter.z * 3 - 0.5
     );
-  
+  } else if (hatType === 'hat2') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.74) * 3,
+        -foreheadCenter.z * 3 - 1
+      );
+    } else if (hatType === 'hat3') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.8) * 3,
+        -foreheadCenter.z * 3 - 1.2
+      );
+    } else if (hatType === 'hat4') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.6) * 3,
+        -foreheadCenter.z * 3 - 0.9
+      );
+    } else if (hatType === 'hat5') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.7) * 3,
+        -foreheadCenter.z * 3 - 0.8
+      );
+    } else {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.62) * 3,
+        -foreheadCenter.z * 3 - 0.6
+      );
+    }
     const leftEar = landmarks[234];
     const rightEar = landmarks[454];
     const headVector = {
@@ -105,10 +152,10 @@ const ARTryOn = forwardRef((props, ref) => {
       z: rightEar.z - leftEar.z
     };
   
-    model.rotation.y = Math.atan2(headVector.z, headVector.x) * 0.7;
-    model.rotation.x = (Math.atan2(-headVector.y, 
+    model.rotation.y = -Math.atan2(headVector.z, headVector.x) * 0.7;
+    model.rotation.x = -(Math.atan2(-headVector.y, 
       Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z)) * 0.7) + 0.1;
-    model.rotation.z = Math.atan2(headVector.y, headVector.x) * 0.4;
+    model.rotation.z = -Math.atan2(headVector.y, headVector.x) * 0.4;
   
     model.updateWorldMatrix();
   };
@@ -144,7 +191,33 @@ const ARTryOn = forwardRef((props, ref) => {
         
         boundingBox.getCenter(loadedModel.position);
         loadedModel.position.multiplyScalar(-1);
-        
+
+            // Add glassesType property based on the modelPath or other criteria
+    if (modelPath.includes('glasses1')) {
+      loadedModel.userData.glassesType = 'glasses1';
+    } else if (modelPath.includes('glasses2')) {
+      loadedModel.userData.glassesType = 'glasses2';
+    } else if (modelPath.includes('glasses3')) {
+      loadedModel.userData.glassesType = 'glasses3';
+    } else if (modelPath.includes('glasses4')) {
+      loadedModel.userData.glassesType = 'glasses4';
+    } else if (modelPath.includes('glasses5')) {
+      loadedModel.userData.glassesType = 'glasses5';
+    } else if (modelPath.includes('glasses6')) {
+      loadedModel.userData.glassesType = 'glasses6';
+    } else if (modelPath.includes('hat1')) {
+      loadedModel.userData.hatType = 'hat1';
+    } else if (modelPath.includes('hat2')) {
+      loadedModel.userData.hatType = 'hat2';
+    } else if (modelPath.includes('hat3')) {
+      loadedModel.userData.hatType = 'hat3';
+    } else if (modelPath.includes('hat4')) {
+      loadedModel.userData.hatType = 'hat4';
+    } else if (modelPath.includes('hat5')) {
+      loadedModel.userData.hatType = 'hat5';
+    } else if (modelPath.includes('hat6')) {
+      loadedModel.userData.hatType = 'hat6';
+    }
         scene.add(loadedModel);
         setModel(loadedModel);
       },
