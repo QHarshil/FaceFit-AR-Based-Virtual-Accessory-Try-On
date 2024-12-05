@@ -9,8 +9,8 @@ function FaceMeshComponent() {
   const arRef = useRef(null);
   const hatRef = useRef(null);
   const cameraRef = useRef(null);
-  const [selectedGlasses, setSelectedGlasses] = useState("/models/glasses2.glb");
-  const [selectedHat, setSelectedHat] = useState("/models/hat2.glb");
+  const [selectedGlasses, setSelectedGlasses] = useState(null);
+  const [selectedHat, setSelectedHat] = useState(null);
   const videoConstraints = {
     width: 1280,
     height: 720,
@@ -86,10 +86,19 @@ function FaceMeshComponent() {
     cursor: 'pointer',
     width: '80px',
     height: '80px',
-    border: isSelected ? '5px solid pink' : '3px solid white',
-    borderRadius: '5px'
+    border: isSelected ? '4px solid orange' : '2px solid white',
+    borderRadius: '5px',
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', // Add shadow
+    transition: 'transform 0.2s', // Add transition for smooth effect
+    transform: isSelected ? 'scale(1.1)' : 'scale(1)' // Slightly enlarge selected item
   });
+  const handleGlassesClick = (model) => {
+    setSelectedGlasses(prevModel => prevModel === model ? null : model);
+  };
 
+  const handleHatClick = (model) => {
+    setSelectedHat(prevModel => prevModel === model ? null : model);
+  };
   return (
     <div 
       style={{ 
@@ -112,16 +121,20 @@ function FaceMeshComponent() {
           // transform: "scaleX(-1)" // Mirror the webcam
         }}
       />
-      <ARTryOn
-        ref={arRef}
-        modelPath={selectedGlasses}
-        type="glasses"
-      />
-      <ARTryOn
-        ref={hatRef}
-        modelPath={selectedHat}  // Make sure to use your hat model path
-        type="hat"
-      />
+      {selectedGlasses && (
+        <ARTryOn
+          ref={arRef}
+          modelPath={selectedGlasses}
+          type="glasses"
+        />
+      )}
+      {selectedHat && (
+        <ARTryOn
+          ref={hatRef}
+          modelPath={selectedHat}  // Make sure to use your hat model path
+          type="hat"
+        />
+      )}
       <div style={{ position: 'absolute', bottom: '5%', left: '5%', display: 'flex', gap: '20px' }}>
       {/* <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '200px', overflowY: 'auto' }}> */}
 
@@ -131,7 +144,7 @@ function FaceMeshComponent() {
               key={index}
               src={glasses.src}
               alt={`Glasses ${index + 1}`}
-              onClick={() => setSelectedGlasses(glasses.model)}
+              onClick={() => handleGlassesClick(glasses.model)}
               style={getImageStyle(selectedGlasses === glasses.model)}
             />
           ))}
@@ -142,7 +155,7 @@ function FaceMeshComponent() {
               key={index}
               src={hat.src}
               alt={`Hat ${index + 1}`}
-              onClick={() => setSelectedHat(hat.model)}
+              onClick={() => handleHatClick(hat.model)}
               style={getImageStyle(selectedHat === hat.model)}
             />
           ))}
