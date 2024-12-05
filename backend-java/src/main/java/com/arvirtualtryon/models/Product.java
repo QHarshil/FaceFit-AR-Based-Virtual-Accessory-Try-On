@@ -9,6 +9,9 @@ import org.springframework.data.annotation.LastModifiedDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Represents a product in the AR Virtual Try-On application.
+ */
 @Entity
 @Table(name = "products")
 public class Product {
@@ -24,7 +27,7 @@ public class Product {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ProductCategory category; // Enum for product categories
+    private ProductCategory category;
 
     @NotBlank
     @Column(nullable = false, unique = true)
@@ -36,7 +39,7 @@ public class Product {
     private List<String> textureUrls; // Paths to texture files
 
     @Column(nullable = true)
-    private String binFileUrl; // Optional path to the .bin file
+    private String binUrl; // Optional path to the .bin file
 
     @ElementCollection
     @CollectionTable(name = "product_tags", joinColumns = @JoinColumn(name = "product_id"))
@@ -95,12 +98,12 @@ public class Product {
         this.textureUrls = textureUrls;
     }
 
-    public String getBinFileUrl() {
-        return binFileUrl;
+    public String getBinUrl() {
+        return binUrl;
     }
 
-    public void setBinFileUrl(String binFileUrl) {
-        this.binFileUrl = binFileUrl;
+    public void setBinUrl(String binUrl) {
+        this.binUrl = binUrl;
     }
 
     public List<String> getTags() {

@@ -48,7 +48,7 @@ public class ModelMetadataParser {
                 category = ProductCategory.valueOf(categoryName);
             } catch (IllegalArgumentException e) {
                 System.out.println("Skipping unknown category: " + categoryName);
-                continue; // Skip unknown categories
+                continue;
             }
 
             for (File modelDir : categoryDir.listFiles(File::isDirectory)) {
@@ -74,7 +74,7 @@ public class ModelMetadataParser {
 
                 if (modelUrl == null) {
                     System.out.println("Skipping model folder without .gltf file: " + modelName);
-                    continue; // Skip if no .gltf file is found
+                    continue;
                 }
 
                 // Save product to the database
@@ -85,7 +85,11 @@ public class ModelMetadataParser {
                 product.setBinUrl(binUrl);
                 product.setTextureUrls(textureUrls);
 
-                productService.createProduct(product);
+                try {
+                    productService.createProduct(product);
+                } catch (Exception e) {
+                    System.out.println("Error saving product " + modelName + ": " + e.getMessage());
+                }
             }
         }
     }
