@@ -63,6 +63,15 @@ public class ModelMetadataParser {
                     continue;
                 }
 
+                final String finalModelUrl = modelUrl; // Declare a final variable for lambda
+                boolean exists = productService.getAllProducts().stream()
+                        .anyMatch(product -> product.getModelUrl().equals(finalModelUrl));
+
+                if (exists) {
+                    System.out.println("Product already exists for modelUrl: " + modelUrl + ", skipping.");
+                    continue;
+                }
+
                 ProductRequestDTO productRequest = new ProductRequestDTO();
                 productRequest.setName(modelName);
                 productRequest.setCategory(category);
@@ -70,7 +79,11 @@ public class ModelMetadataParser {
                 productRequest.setBinUrl(binUrl);
                 productRequest.setTextureUrls(textureUrls);
 
-                productService.createProduct(productRequest);
+                try {
+                    productService.createProduct(productRequest);
+                } catch (Exception e) {
+                    System.out.println("Failed to save product: " + modelName + " - " + e.getMessage());
+                }
             }
         }
     }
