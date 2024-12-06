@@ -7,53 +7,50 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    setError('');
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      const response = await fetch('http://localhost:8081/api/users/register', {
+      const response = await fetch('http://localhost:8081/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
         }),
       });
 
-      console.log('Response:', response);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Success:', data);
-        navigate('/login');
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error data:', errorData);
         setError(errorData.message || 'Registration failed');
+      } else {
+        navigate('/login'); // Redirect to login page
       }
     } catch (err) {
-      console.error('Registration error:', err);
       setError('Failed to connect to server. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -130,9 +127,10 @@ const Register = () => {
         
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600"
+          className={`w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isLoading}
         >
-          Register
+          {isLoading ? 'Registering...' : 'Register'}
         </button>
       </form>
     </div>

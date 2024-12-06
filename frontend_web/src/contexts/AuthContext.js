@@ -1,19 +1,25 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+// Create AuthContext
 const AuthContext = createContext();
 
+// Custom hook for accessing AuthContext
 export const useAuth = () => useContext(AuthContext);
 
+// AuthProvider component
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // User state
+  const [user, setUser] = useState(null); // Store user data
+  const [token, setToken] = useState(null); // Store JWT token
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for stored user token on mount
+    // Retrieve user session on app mount
     const storedUser = JSON.parse(localStorage.getItem('user'));
-    if (storedUser) {
+    const storedToken = localStorage.getItem('token');
+    if (storedUser && storedToken) {
       setUser(storedUser);
+      setToken(storedToken);
     }
   }, []);
 
@@ -24,24 +30,45 @@ export const AuthProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
       });
-      if (!response.ok) throw new Error('Login failed');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
       const data = await response.json();
       setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user)); // Save user to localStorage
+      setToken(data.token);
+
+      // Persist user and token in localStorage
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
+
       return data;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login error:', error.message);
       throw error;
     }
   };
 
   const logout = () => {
+    // Clear user session
     setUser(null);
-    localStorage.removeItem('user'); // Clear user from localStorage
+    setToken(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
     navigate('/login');
   };
 
-  const value = { user, login, logout };
+  const isAuthenticated = () => !!token; // Check if user is logged in
+
+  const value = {
+    user,
+    token,
+    login,
+    logout,
+    isAuthenticated,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

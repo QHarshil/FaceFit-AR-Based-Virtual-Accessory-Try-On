@@ -23,12 +23,6 @@ public class ProductController {
     private final ProductService productService;
     private final CategoryService categoryService;
 
-    /**
-     * Constructor for injecting dependencies.
-     *
-     * @param productService  Service layer for handling product operations.
-     * @param categoryService Service layer for handling category operations.
-     */
     @Autowired
     public ProductController(ProductService productService, CategoryService categoryService) {
         this.productService = productService;
@@ -54,6 +48,9 @@ public class ProductController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable Long id) {
+        if (id <= 0) {
+            return ResponseEntity.badRequest().body(null); // Simple validation
+        }
         ProductResponseDTO product = productService.getProductById(id);
         return ResponseEntity.ok(product);
     }
@@ -66,7 +63,13 @@ public class ProductController {
      */
     @GetMapping("/category/{categoryName}")
     public ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(@PathVariable String categoryName) {
+        if (categoryName == null || categoryName.isBlank()) {
+            return ResponseEntity.badRequest().body(null);
+        }
         Category category = categoryService.getCategoryByName(categoryName);
+        if (category == null) {
+            return ResponseEntity.notFound().build();
+        }
         List<ProductResponseDTO> products = productService.getProductsByCategory(category);
         return ResponseEntity.ok(products);
     }
@@ -80,7 +83,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductResponseDTO> createProduct(@RequestBody ProductRequestDTO productRequestDTO) {
         ProductResponseDTO createdProduct = productService.createProduct(productRequestDTO);
-        return ResponseEntity.ok(createdProduct);
+        return ResponseEntity.status(201).body(createdProduct); // HTTP 201 for resource creation
     }
 
     /**
@@ -91,7 +94,8 @@ public class ProductController {
      * @return The updated product as a ProductResponseDTO.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id, @RequestBody ProductRequestDTO productRequestDTO) {
+    public ResponseEntity<ProductResponseDTO> updateProduct(
+            @PathVariable Long id, @RequestBody ProductRequestDTO productRequestDTO) {
         ProductResponseDTO updatedProduct = productService.updateProduct(id, productRequestDTO);
         return ResponseEntity.ok(updatedProduct);
     }
@@ -100,12 +104,12 @@ public class ProductController {
      * Delete a product by its ID.
      *
      * @param id The ID of the product to delete.
-     * @return HTTP 200 OK response if the deletion is successful.
+     * @return HTTP 204 No Content response if the deletion is successful.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build(); // HTTP 204 for successful deletion
     }
 
     /**
