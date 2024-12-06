@@ -18,7 +18,7 @@ const VirtualTryOn = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Page Header */}
-      <header className="bg-white shadow-md py-4">
+      {/* <header className="bg-white shadow-md py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">Virtual Try-On</h1>
           <Link
@@ -28,7 +28,7 @@ const VirtualTryOn = () => {
             Back to Products
           </Link>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">

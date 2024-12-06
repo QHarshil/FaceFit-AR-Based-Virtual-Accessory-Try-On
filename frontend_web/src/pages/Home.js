@@ -2,6 +2,24 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Home = () => {
+  const products = [
+    {
+      image: 'models/image1.png',
+      name: 'Red glasses',
+      // description: 'Description for product 1',
+    },
+    {
+      image: 'models/image2.png',
+      name: 'Wood glasses',
+      // description: 'Description for product 2',
+    },
+    {
+      image: 'models/image3.png',
+      name: 'Top hat',
+      // description: 'Description for product 3',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-50 to-gray-100">
       {/* Hero Section */}
@@ -34,20 +52,18 @@ const Home = () => {
           Featured Products
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Dynamically render product cards here */}
-          {[1, 2, 3].map((_, index) => (
+          {products.map((product, index) => (
             <div
               key={index}
               className="bg-white rounded-lg shadow-lg p-6 text-center"
             >
               <div className="h-40 bg-gray-200 rounded-md mb-4">
-                {/* Placeholder for product image */}
-                <span className="text-gray-500 text-sm">Product Image</span>
+                <img src={product.image} alt={product.name} className="h-full w-full object-cover rounded-md" />
               </div>
               <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Product Name
+                {product.name}
               </h3>
-              <p className="text-gray-600 text-sm mb-4">Product Description</p>
+              {/* <p className="text-gray-600 text-sm mb-4">{product.description}</p> */}
               <Link
                 to="/try-on"
                 className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300"

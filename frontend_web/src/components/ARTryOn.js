@@ -9,22 +9,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 const ARTryOn = forwardRef((props, ref) => {
-  const { modelPath, type = 'glasses' } = props;
+  const { modelPath, type } = props;
   const [model, setModel] = useState(null);
   const sceneRef = useRef(new THREE.Scene());
   const cameraRef = useRef(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10));
   const rendererRef = useRef(null);
   const containerRef = useRef(null);
   const animationFrameId = useRef(null);
-
-  // Precise positioning utility functions
-  const calculateDistance = (point1, point2) => {
-    return Math.sqrt(
-      Math.pow(point2.x - point1.x, 2) +
-      Math.pow(point2.y - point1.y, 2) +
-      Math.pow(point2.z - point1.z, 2)
-    );
-  };
 
   useImperativeHandle(ref, () => ({
     updateModel: (landmarks) => {
@@ -40,52 +31,60 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateGlasses = (landmarks) => {
     if (!model) return;
   
-    // More precise landmarks for glasses positioning
-    const leftEyeOuter = landmarks[33];
-    const rightEyeOuter = landmarks[263];
-    const leftEyeInner = landmarks[133];
-    const rightEyeInner = landmarks[362];
-    const noseTip = landmarks[168];
-    const nose = {
-      x: (leftEyeInner.x + rightEyeInner.x) / 2,
-      y: (leftEyeInner.y + rightEyeInner.y) / 2,
-      z: (leftEyeInner.z + rightEyeInner.z) / 2
-    };
+    const leftTemple = landmarks[234];
+    const rightTemple = landmarks[454];
+    const nose = landmarks[168];
   
-    // Calculate precise face width and proportions
-    const eyeDistance = calculateDistance(leftEyeOuter, rightEyeOuter);
-    const desiredWidth = eyeDistance * 3.5; // Adjusted multiplier for better proportions
+    const faceWidth = Math.sqrt(
+      Math.pow(rightTemple.x - leftTemple.x, 2) +
+      Math.pow(rightTemple.y - leftTemple.y, 2)
+    );
+  
+    const desiredWidth = faceWidth * 8;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
-    // More nuanced scaling
     model.visible = true;
     model.scale.set(
-      widthScaleFactor * 1.9,
-      widthScaleFactor * 1.9,  // Slight vertical compression
-      widthScaleFactor * 1.5
+      widthScaleFactor,
+      widthScaleFactor * 0.85,
+      widthScaleFactor
     );
   
-    // Advanced positioning calculation
+    const centerX = (rightTemple.x + leftTemple.x) / 2;
+    const glassesType = model.userData.glassesType;
+    if (glassesType === 'glasses1' | glassesType === 'glasses4') {
     model.position.set(
-      (nose.x - 0.55) * 3,           // Horizontal centering
-      -(noseTip.y - 0.45) * 3,        // Vertical positioning
-      -noseTip.z * 3 - eyeDistance   // Depth positioning
+      (centerX - 0.57) * 3,
+      -(nose.y - 0.52) * 3,
+      -nose.z * 3 - 0.8
     );
+    } else if (glassesType === 'glasses2') {
+      model.position.set(
+        (centerX - 0.57) * 3,    // Increased multiplier
+        -(nose.y - 0.48) * 3,   // Increased Y position multiplier
+        -nose.z * 3 - 1.6    
+      );
+    }else {
+      model.position.set(
+        (centerX - 0.55) * 3,    // Increased multiplier
+        -(nose.y - 0.48) * 3,   // Increased Y position multiplier
+        -nose.z * 3 - 0.8    
+      );
+    }
   
-    // Sophisticated rotation calculation
-    const eyeAxis = {
-      x: rightEyeOuter.x - leftEyeOuter.x,
-      y: rightEyeOuter.y - leftEyeOuter.y,
-      z: rightEyeOuter.z - leftEyeOuter.z
+    const leftEye = landmarks[33];
+    const rightEye = landmarks[263];
+    const eyeVector = {
+      x: rightEye.x - leftEye.x,
+      y: rightEye.y - leftEye.y,
+      z: rightEye.z - leftEye.z
     };
+    
   
-    // Fine-tuned rotation for natural placement
-    model.rotation.y = Math.atan2(eyeAxis.z, eyeAxis.x) * 0.7;
-    model.rotation.x = Math.atan2(
-      -eyeAxis.y, 
-      Math.sqrt(eyeAxis.x * eyeAxis.x + eyeAxis.z * eyeAxis.z)
-    ) * 0.5;
-    model.rotation.z = Math.atan2(eyeAxis.y, eyeAxis.x) * 0.3;
+    model.rotation.y = -Math.atan2(eyeVector.z, eyeVector.x) * 0.6;
+    model.rotation.x = -(Math.atan2(-eyeVector.y, 
+      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.6);
+    model.rotation.z = -Math.atan2(eyeVector.y, eyeVector.x) * 0.4;
   
     model.updateWorldMatrix();
   };
@@ -93,49 +92,70 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateHat = (landmarks) => {
     if (!model) return;
   
-    // More precise landmarks for hat positioning
     const foreheadCenter = landmarks[10];
-    const leftCheek = landmarks[93];
-    const rightCheek = landmarks[323];
-    const noseTip = landmarks[168];
-    const leftTemple = landmarks[227];
-    const rightTemple = landmarks[447];
+    const leftTemple = landmarks[234];
+    const rightTemple = landmarks[454];
   
-    // Calculate head width with more precision
-    const headWidth = calculateDistance(leftTemple, rightTemple);
-    const desiredWidth = headWidth * 4; // Adjusted multiplier
+    const headWidth = Math.sqrt(
+      Math.pow(rightTemple.x - leftTemple.x, 2) +
+      Math.pow(rightTemple.y - leftTemple.y, 2)
+    );
+  
+    const desiredWidth = headWidth * 10;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
-    model.scale.set(
-      widthScaleFactor * 1.3, 
-      widthScaleFactor * 1, // Slight vertical compression
-      widthScaleFactor
-    );
-  
-    // More precise positioning
+    model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
+    const hatType = model.userData.hatType;
+    if (hatType === 'hat1' | hatType === 'hat6') {
     model.position.set(
-      (foreheadCenter.x - 0.55) * 3,     // Horizontal centering
-      -(foreheadCenter.y - 0.58) * 3,   // Vertical positioning
-      -(foreheadCenter.z)* 3 - headWidth // Depth positioning
+      (foreheadCenter.x - 0.55) * 3,
+      -(foreheadCenter.y - 0.6) * 3,
+      -foreheadCenter.z * 3 - 0.5
     );
-  
-    // Advanced head orientation calculation
-    const headAxis = {
-      x: rightTemple.x - leftTemple.x,
-      y: rightTemple.y - leftTemple.y,
-      z: rightTemple.z - leftTemple.z
+  } else if (hatType === 'hat2') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.74) * 3,
+        -foreheadCenter.z * 3 - 1
+      );
+    } else if (hatType === 'hat3') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.8) * 3,
+        -foreheadCenter.z * 3 - 1.2
+      );
+    } else if (hatType === 'hat4') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.6) * 3,
+        -foreheadCenter.z * 3 - 0.9
+      );
+    } else if (hatType === 'hat5') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.7) * 3,
+        -foreheadCenter.z * 3 - 0.8
+      );
+    } else {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.62) * 3,
+        -foreheadCenter.z * 3 - 0.6
+      );
+    }
+    const leftEar = landmarks[234];
+    const rightEar = landmarks[454];
+    const headVector = {
+      x: rightEar.x - leftEar.x,
+      y: rightEar.y - leftEar.y,
+      z: rightEar.z - leftEar.z
     };
   
-    // Fine-tuned rotation for natural hat placement
-    model.rotation.y = Math.atan2(headAxis.z, headAxis.x) * 0.8;
-    model.rotation.x = (
-      Math.atan2(
-        -headAxis.y, 
-        Math.sqrt(headAxis.x * headAxis.x + headAxis.z * headAxis.z)
-      ) * 0.6
-    ) + 0.1;  // Slight upward tilt
-    model.rotation.z = Math.atan2(headAxis.y, headAxis.x) * 0.5;
+    model.rotation.y = -Math.atan2(headVector.z, headVector.x) * 0.7;
+    model.rotation.x = -(Math.atan2(-headVector.y, 
+      Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z)) * 0.7) + 0.1;
+    model.rotation.z = -Math.atan2(headVector.y, headVector.x) * 0.4;
   
     model.updateWorldMatrix();
   };
@@ -151,36 +171,14 @@ const ARTryOn = forwardRef((props, ref) => {
     const scene = sceneRef.current;
     const camera = cameraRef.current;
     
-    // Set fixed renderer size to match window
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(window.devicePixelRatio);
-    
-    // Absolute positioning to prevent movement
     renderer.domElement.style.position = 'absolute';
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
     renderer.domElement.style.zIndex = '2';
-    renderer.domElement.style.pointerEvents = 'none';
-    
     containerRef.current.appendChild(renderer.domElement);
-
-    const handleResize = () => {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    
-    // Update camera aspect ratio without changing its size
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    
-    // Maintain renderer size
-    renderer.setSize(width, height);
-  };
-
-
-    window.addEventListener('resize', handleResize);
 
     const loader = new GLTFLoader();
     loader.load(
@@ -193,7 +191,33 @@ const ARTryOn = forwardRef((props, ref) => {
         
         boundingBox.getCenter(loadedModel.position);
         loadedModel.position.multiplyScalar(-1);
-        
+
+            // Add glassesType property based on the modelPath or other criteria
+    if (modelPath.includes('glasses1')) {
+      loadedModel.userData.glassesType = 'glasses1';
+    } else if (modelPath.includes('glasses2')) {
+      loadedModel.userData.glassesType = 'glasses2';
+    } else if (modelPath.includes('glasses3')) {
+      loadedModel.userData.glassesType = 'glasses3';
+    } else if (modelPath.includes('glasses4')) {
+      loadedModel.userData.glassesType = 'glasses4';
+    } else if (modelPath.includes('glasses5')) {
+      loadedModel.userData.glassesType = 'glasses5';
+    } else if (modelPath.includes('glasses6')) {
+      loadedModel.userData.glassesType = 'glasses6';
+    } else if (modelPath.includes('hat1')) {
+      loadedModel.userData.hatType = 'hat1';
+    } else if (modelPath.includes('hat2')) {
+      loadedModel.userData.hatType = 'hat2';
+    } else if (modelPath.includes('hat3')) {
+      loadedModel.userData.hatType = 'hat3';
+    } else if (modelPath.includes('hat4')) {
+      loadedModel.userData.hatType = 'hat4';
+    } else if (modelPath.includes('hat5')) {
+      loadedModel.userData.hatType = 'hat5';
+    } else if (modelPath.includes('hat6')) {
+      loadedModel.userData.hatType = 'hat6';
+    }
         scene.add(loadedModel);
         setModel(loadedModel);
       },
@@ -221,8 +245,16 @@ const ARTryOn = forwardRef((props, ref) => {
     };
     animate();
 
-    // Initial resizing call
-    handleResize();
+    let resizeTimeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }, 100);
+    };
+    window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -245,7 +277,6 @@ const ARTryOn = forwardRef((props, ref) => {
       renderer.dispose();
     };
   }, [modelPath]);
-
 
   useEffect(() => {
     if (model) {
