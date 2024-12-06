@@ -6,6 +6,7 @@ import com.arvirtualtryon.models.Category;
 import com.arvirtualtryon.services.CategoryService;
 import com.arvirtualtryon.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,12 @@ public class ProductController {
     private final ProductService productService;
     private final CategoryService categoryService;
 
+    /**
+     * Constructor for injecting dependencies.
+     *
+     * @param productService  Service layer for handling product operations.
+     * @param categoryService Service layer for handling category operations.
+     */
     @Autowired
     public ProductController(ProductService productService, CategoryService categoryService) {
         this.productService = productService;
@@ -48,11 +55,24 @@ public class ProductController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable Long id) {
-        if (id <= 0) {
-            return ResponseEntity.badRequest().body(null); // Simple validation
-        }
         ProductResponseDTO product = productService.getProductById(id);
         return ResponseEntity.ok(product);
+    }
+
+    /**
+     * Retrieve the model URL for a product by its ID.
+     *
+     * @param productId The ID of the product to retrieve the model for.
+     * @return A map containing the model URL.
+     */
+    @GetMapping("/{productId}/model")
+    public ResponseEntity<String> getModel(@PathVariable Long productId) {
+        ProductResponseDTO product = productService.getProductById(productId);
+        if (product.getModelUrl() == null || product.getModelUrl().isBlank()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Model URL not found for product ID " + productId);
+        }
+        return ResponseEntity.ok(product.getModelUrl());
     }
 
     /**
@@ -63,13 +83,7 @@ public class ProductController {
      */
     @GetMapping("/category/{categoryName}")
     public ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(@PathVariable String categoryName) {
-        if (categoryName == null || categoryName.isBlank()) {
-            return ResponseEntity.badRequest().body(null);
-        }
         Category category = categoryService.getCategoryByName(categoryName);
-        if (category == null) {
-            return ResponseEntity.notFound().build();
-        }
         List<ProductResponseDTO> products = productService.getProductsByCategory(category);
         return ResponseEntity.ok(products);
     }
@@ -83,7 +97,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductResponseDTO> createProduct(@RequestBody ProductRequestDTO productRequestDTO) {
         ProductResponseDTO createdProduct = productService.createProduct(productRequestDTO);
-        return ResponseEntity.status(201).body(createdProduct); // HTTP 201 for resource creation
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
     }
 
     /**
@@ -94,8 +108,7 @@ public class ProductController {
      * @return The updated product as a ProductResponseDTO.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> updateProduct(
-            @PathVariable Long id, @RequestBody ProductRequestDTO productRequestDTO) {
+    public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id, @RequestBody ProductRequestDTO productRequestDTO) {
         ProductResponseDTO updatedProduct = productService.updateProduct(id, productRequestDTO);
         return ResponseEntity.ok(updatedProduct);
     }
@@ -109,7 +122,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.noContent().build(); // HTTP 204 for successful deletion
+        return ResponseEntity.noContent().build();
     }
 
     /**

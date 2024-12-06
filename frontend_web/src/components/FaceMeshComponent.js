@@ -28,17 +28,25 @@ function FaceMeshComponent() {
         const response = await fetch('http://localhost:8081/api/products');
         if (!response.ok) throw new Error("Failed to fetch models");
         const data = await response.json();
-        
-        setGlassesImages(data.filter(item => item.type === 'glasses').map(item => ({
-          src: item.textureUrls[0],
-          model: item.modelUrl
-        })));
-        
-        setHatImages(data.filter(item => item.type === 'hat').map(item => ({
-          src: item.textureUrls[0],
-          model: item.modelUrl
-        })));
-        
+
+        setGlassesImages(
+          data
+            .filter((item) => item.category.toLowerCase() === 'glasses')
+            .map((item) => ({
+              src: item.textureUrls[0] || '/placeholder-glasses.png',
+              model: item.modelUrl,
+            }))
+        );
+
+        setHatImages(
+          data
+            .filter((item) => item.category.toLowerCase() === 'hat')
+            .map((item) => ({
+              src: item.textureUrls[0] || '/placeholder-hat.png',
+              model: item.modelUrl,
+            }))
+        );
+
         setError(null);
       } catch (err) {
         console.error(err);
@@ -108,18 +116,24 @@ function FaceMeshComponent() {
   });
 
   const handleGlassesClick = (model) => {
-    setSelectedGlasses(prevModel => (prevModel === model ? null : model));
+    setSelectedGlasses((prevModel) => (prevModel === model ? null : model));
   };
 
   const handleHatClick = (model) => {
-    setSelectedHat(prevModel => (prevModel === model ? null : model));
+    setSelectedHat((prevModel) => (prevModel === model ? null : model));
   };
 
-  if (loading) return <div>Loading models...</div>;
-  if (error) return <div>{error}</div>;
+  if (loading) {
+    return <div className="text-center text-lg">Loading models...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-600">{error}</div>;
+  }
 
   return (
     <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+      {/* Camera feed */}
       <Webcam
         ref={webcamRef}
         videoConstraints={videoConstraints}
@@ -132,10 +146,14 @@ function FaceMeshComponent() {
           objectFit: "cover",
         }}
       />
+
+      {/* AR Try-On Components */}
       {selectedGlasses && <ARTryOn ref={arRef} modelPath={selectedGlasses} type="glasses" />}
       {selectedHat && <ARTryOn ref={hatRef} modelPath={selectedHat} type="hat" />}
+
+      {/* Texture Selectors */}
       <div style={{ position: 'absolute', bottom: '5%', left: '5%', display: 'flex', gap: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {glassesImages.map((glasses, index) => (
             <img
               key={index}
@@ -146,7 +164,7 @@ function FaceMeshComponent() {
             />
           ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {hatImages.map((hat, index) => (
             <img
               key={index}

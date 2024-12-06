@@ -26,47 +26,29 @@ public class ModelMetadataParser {
             throw new IllegalArgumentException("Invalid base path: " + basePath);
         }
 
+        // Iterate over category directories (e.g., glasses, hats)
         for (File categoryDir : baseDir.listFiles(File::isDirectory)) {
-            String categoryName = categoryDir.getName();
+            String categoryName = categoryDir.getName(); // e.g., "glasses" or "hats"
             Category category = productService.findOrCreateCategory(categoryName);
 
-            for (File modelDir : categoryDir.listFiles(File::isDirectory)) {
-                String modelName = modelDir.getName();
+            // Iterate over files directly in the category directory
+            for (File modelFile : categoryDir.listFiles()) {
+                if (modelFile.isFile() && (modelFile.getName().endsWith(".gltf") || modelFile.getName().endsWith(".glb"))) {
+                    String modelName = modelFile.getName().split("\\.")[0]; // Use the filename (without extension) as the model name
+                    String modelUrl = modelFile.getPath().replace("\\", "/");
 
-                String modelUrl = null;
-                String binUrl = null;
-                List<String> textureUrls = new ArrayList<>();
+                    ProductRequestDTO productRequest = new ProductRequestDTO();
+                    productRequest.setName(modelName);
+                    productRequest.setCategory(category.getName());
+                    productRequest.setModelUrl(modelUrl);
+                    productRequest.setBinUrl(null); // No .bin expected
+                    productRequest.setTextureUrls(new ArrayList<>()); // No textures in this structure
 
-                for (File file : modelDir.listFiles()) {
-                    if (file.isFile()) {
-                        if (file.getName().endsWith(".gltf")) {
-                            modelUrl = file.getPath().replace("\\", "/");
-                        } else if (file.getName().endsWith(".bin")) {
-                            binUrl = file.getPath().replace("\\", "/");
-                        }
-                    } else if (file.isDirectory() && file.getName().equalsIgnoreCase("textures")) {
-                        for (File texture : file.listFiles()) {
-                            textureUrls.add(texture.getPath().replace("\\", "/"));
-                        }
+                    try {
+                        productService.createProduct(productRequest);
+                    } catch (Exception e) {
+                        System.out.println("Failed to save product: " + modelName + " - " + e.getMessage());
                     }
-                }
-
-                if (modelUrl == null) {
-                    System.out.println("Skipping model folder without .gltf file: " + modelName);
-                    continue;
-                }
-
-                ProductRequestDTO productRequest = new ProductRequestDTO();
-                productRequest.setName(modelName);
-                productRequest.setCategory(category.getName());
-                productRequest.setModelUrl(modelUrl);
-                productRequest.setBinUrl(binUrl);
-                productRequest.setTextureUrls(textureUrls);
-
-                try {
-                    productService.createProduct(productRequest);
-                } catch (Exception e) {
-                    System.out.println("Failed to save product: " + modelName + " - " + e.getMessage());
                 }
             }
         }

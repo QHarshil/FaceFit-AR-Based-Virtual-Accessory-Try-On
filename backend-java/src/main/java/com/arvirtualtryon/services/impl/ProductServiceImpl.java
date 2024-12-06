@@ -22,7 +22,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private static final String BASE_URL = "http://localhost:8080/api/resources/";
+    private static final String BASE_URL = "http://localhost:8081/api/resources/";
 
     @Autowired
     public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
@@ -94,44 +94,25 @@ public class ProductServiceImpl implements ProductService {
             String categoryName = categoryDir.getName();
             Category category = findOrCreateCategory(categoryName);
 
-            for (File modelDir : categoryDir.listFiles(File::isDirectory)) {
-                String modelName = modelDir.getName();
-                String modelUrl = null;
-                String binUrl = null;
-                List<String> textureUrls = new ArrayList<>();
+            for (File modelFile : categoryDir.listFiles()) {
+                if (modelFile.isFile() && (modelFile.getName().endsWith(".gltf") || modelFile.getName().endsWith(".glb"))) {
+                    String modelName = modelFile.getName().split("\\.")[0]; // Use filename without extension as model name
+                    String modelUrl = BASE_URL + categoryName + "/" + modelFile.getName();
 
-                for (File file : modelDir.listFiles()) {
-                    if (file.isFile()) {
-                        if (file.getName().endsWith(".gltf")) {
-                            modelUrl = BASE_URL + file.getPath().replace("\\", "/");
-                        } else if (file.getName().endsWith(".bin")) {
-                            binUrl = BASE_URL + file.getPath().replace("\\", "/");
-                        }
-                    } else if (file.isDirectory() && file.getName().equalsIgnoreCase("textures")) {
-                        for (File texture : file.listFiles()) {
-                            textureUrls.add(BASE_URL + texture.getPath().replace("\\", "/"));
-                        }
+                    ProductRequestDTO productRequest = new ProductRequestDTO();
+                    productRequest.setName(modelName);
+                    productRequest.setCategory(categoryName);
+                    productRequest.setModelUrl(modelUrl);
+                    productRequest.setBinUrl(null); // No .bin files expected in this structure
+                    productRequest.setTextureUrls(new ArrayList<>()); // Textures are not part of the current structure
+
+                    Optional<Product> existingProduct = productRepository.findByModelUrl(modelUrl);
+                    if (existingProduct.isPresent()) {
+                        Product product = existingProduct.get();
+                        productRepository.save(product);
+                    } else {
+                        createProduct(productRequest);
                     }
-                }
-
-                if (modelUrl == null) {
-                    System.out.println("Skipping model folder without .gltf file: " + modelName);
-                    continue;
-                }
-
-                Optional<Product> existingProduct = productRepository.findByModelUrl(modelUrl);
-                if (existingProduct.isPresent()) {
-                    Product product = existingProduct.get();
-                    product.setTextureUrls(textureUrls);
-                    productRepository.save(product);
-                } else {
-                    Product product = new Product();
-                    product.setName(modelName);
-                    product.setCategory(category);
-                    product.setModelUrl(modelUrl);
-                    product.setBinUrl(binUrl);
-                    product.setTextureUrls(textureUrls);
-                    productRepository.save(product);
                 }
             }
         }
@@ -151,9 +132,9 @@ public class ProductServiceImpl implements ProductService {
         dto.setId(product.getId());
         dto.setName(product.getName());
         dto.setCategory(product.getCategory().getName());
-        dto.setModelUrl(BASE_URL + product.getModelUrl());
-        dto.setTextureUrls(product.getTextureUrls());
-        dto.setBinUrl(product.getBinUrl());
+        dto.setModelUrl(product.getModelUrl()); // Use the stored model URL directly
+        dto.setTextureUrls(product.getTextureUrls()); // Use stored texture URLs (if any)
+        dto.setBinUrl(product.getBinUrl()); // Use stored .bin URL (if any)
         return dto;
     }
 
