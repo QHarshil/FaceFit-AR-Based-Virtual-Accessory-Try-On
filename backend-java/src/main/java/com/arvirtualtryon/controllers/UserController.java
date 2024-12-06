@@ -1,6 +1,6 @@
 package com.arvirtualtryon.controllers;
 
-import com.arvirtualtryon.dto.LoginRequest;
+import com.arvirtualtryon.dtos.LoginRequest;
 import com.arvirtualtryon.models.User;
 import com.arvirtualtryon.services.IUserService;
 import com.arvirtualtryon.utils.JwtUtil;

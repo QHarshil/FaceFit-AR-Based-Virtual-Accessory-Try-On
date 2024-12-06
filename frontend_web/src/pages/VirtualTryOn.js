@@ -53,7 +53,7 @@ const VirtualTryOn = () => {
             <p className="text-lg text-gray-600 mb-4">
               Align your face with the camera to try on our products!
             </p>
-            <div className="w-full max-w-screen-md bg-gray-100 rounded-lg shadow-lg p-4">
+            <div className="w-full h-[600px] bg-gray-100 rounded-lg shadow-lg p-4">
               <FaceMeshComponent />
             </div>
           </div>

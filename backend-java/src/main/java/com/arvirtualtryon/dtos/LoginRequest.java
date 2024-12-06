@@ -1,4 +1,4 @@
-package com.arvirtualtryon.dto;
+package com.arvirtualtryon.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
