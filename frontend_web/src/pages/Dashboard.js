@@ -6,82 +6,42 @@ const Dashboard = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-gray-100 to-blue-50">
-      <header className="bg-blue-500 text-white py-6 shadow-md">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl font-bold">Welcome, {user?.username || 'User'}!</h1>
-          <p className="text-lg mt-2">Here's a quick overview of your activity.</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Page Header */}
+      <header className="bg-white shadow-md py-4">
+        <div className="container mx-auto px-4">
+          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card: Total Products Tried */}
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Total Products Tried</h2>
-            <p className="text-gray-600 text-lg">12</p>
-            <Link
-              to="/try-on"
-              className="block mt-4 text-blue-500 hover:text-blue-700 transition font-medium"
-            >
-              Explore More Products →
-            </Link>
-          </div>
-
-          {/* Card: Favorites */}
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Your Favorites</h2>
-            <p className="text-gray-600 text-lg">5</p>
-            <Link
-              to="/favorites"
-              className="block mt-4 text-blue-500 hover:text-blue-700 transition font-medium"
-            >
-              View Favorites →
-            </Link>
-          </div>
-
-          {/* Card: Recently Viewed */}
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Recently Viewed</h2>
-            <p className="text-gray-600 text-lg">3</p>
-            <Link
-              to="/recent"
-              className="block mt-4 text-blue-500 hover:text-blue-700 transition font-medium"
-            >
-              See Your History →
-            </Link>
-          </div>
-        </section>
-
-        <section className="mt-12">
-          <h2 className="text-3xl font-bold text-gray-800 mb-6">Quick Links</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link
-              to="/try-on"
-              className="block bg-blue-500 text-white text-center py-4 rounded-lg shadow-md hover:bg-blue-600 transition"
-            >
-              Try Products
-            </Link>
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Welcome, {user?.username || 'Guest'}!</h2>
+          <p className="text-gray-600 mb-6">
+            Manage your products, explore the AR virtual try-on experience, and more.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link
               to="/products"
-              className="block bg-gray-500 text-white text-center py-4 rounded-lg shadow-md hover:bg-gray-600 transition"
+              className="block bg-blue-500 text-white py-4 px-6 rounded-lg shadow-md text-center hover:bg-blue-600"
+            >
+              View Products
+            </Link>
+            <Link
+              to="/management"
+              className="block bg-green-500 text-white py-4 px-6 rounded-lg shadow-md text-center hover:bg-green-600"
             >
               Manage Products
             </Link>
             <Link
-              to="/profile"
-              className="block bg-blue-500 text-white text-center py-4 rounded-lg shadow-md hover:bg-blue-600 transition"
+              to="/try-on"
+              className="block bg-purple-500 text-white py-4 px-6 rounded-lg shadow-md text-center hover:bg-purple-600"
             >
-              Edit Profile
-            </Link>
-            <Link
-              to="/logout"
-              className="block bg-red-500 text-white text-center py-4 rounded-lg shadow-md hover:bg-red-600 transition"
-            >
-              Logout
+              AR Try-On Experience
             </Link>
           </div>
-        </section>
+        </div>
       </main>
     </div>
   );

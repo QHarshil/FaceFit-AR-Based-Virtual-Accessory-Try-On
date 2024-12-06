@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 const ProductCard = ({ product }) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <img
-        src={product.textureUrl || '/placeholder-image.jpg'}
+      <img 
+        src={product.textureUrl || '/placeholder-image.jpg'} 
         alt={product.name}
         className="w-full h-48 object-cover"
       />
