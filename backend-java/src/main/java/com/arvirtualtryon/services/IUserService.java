@@ -50,4 +50,12 @@ public interface IUserService {
      * @param id The unique identifier of the user to delete.
      */
     void deleteUser(Long id);
+
+    /**
+     * Verifies if the raw password matches the encoded password.
+     * @param rawPassword The plain text password.
+     * @param encodedPassword The hashed password.
+     * @return True if the password matches, otherwise false.
+     */
+    boolean verifyPassword(String rawPassword, String encodedPassword);
 }

@@ -13,34 +13,38 @@ function FaceMeshComponent() {
   const [selectedHat, setSelectedHat] = useState(null);
   const [glassesImages, setGlassesImages] = useState([]);
   const [hatImages, setHatImages] = useState([]);
-  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const videoConstraints = {
     width: 1280,
     height: 720,
-    facingMode: "user"
+    facingMode: "user",
   };
 
   useEffect(() => {
-    // Fetch the model data from the backend
     async function fetchModels() {
       try {
         const response = await fetch('http://localhost:8081/api/products');
+        if (!response.ok) throw new Error("Failed to fetch models");
         const data = await response.json();
-        const glassesData = data.filter(item => item.type === 'glasses');
-        const hatData = data.filter(item => item.type === 'hat');
-
-        // Map the data to the format used in the component
-        setGlassesImages(glassesData.map(item => ({
+        
+        setGlassesImages(data.filter(item => item.type === 'glasses').map(item => ({
           src: item.textureUrls[0],
           model: item.modelUrl
         })));
-
-        setHatImages(hatData.map(item => ({
+        
+        setHatImages(data.filter(item => item.type === 'hat').map(item => ({
           src: item.textureUrls[0],
           model: item.modelUrl
         })));
-      } catch (error) {
-        console.error('Failed to fetch models:', error);
+        
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load models. Please try again.");
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -51,9 +55,7 @@ function FaceMeshComponent() {
     if (!webcamRef.current?.video) return;
 
     const faceMesh = new FaceMesh({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-      }
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
     });
 
     faceMesh.setOptions({
@@ -73,7 +75,7 @@ function FaceMeshComponent() {
           }
         },
         width: videoConstraints.width,
-        height: videoConstraints.height
+        height: videoConstraints.height,
       });
       cameraRef.current.start();
     }
@@ -100,31 +102,24 @@ function FaceMeshComponent() {
     height: '80px',
     border: isSelected ? '4px solid orange' : '2px solid white',
     borderRadius: '5px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', // Add shadow
-    transition: 'transform 0.2s', // Add transition for smooth effect
-    transform: isSelected ? 'scale(1.1)' : 'scale(1)' // Slightly enlarge selected item
+    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+    transition: 'transform 0.2s',
+    transform: isSelected ? 'scale(1.1)' : 'scale(1)',
   });
-  const handleGlassesClick = (model) => {
-    setSelectedGlasses(prevModel => prevModel === model ? null : model);
-  };
 
   const handleGlassesClick = (model) => {
-    setSelectedGlasses(prevModel => prevModel === model ? null : model);
+    setSelectedGlasses(prevModel => (prevModel === model ? null : model));
   };
 
   const handleHatClick = (model) => {
-    setSelectedHat(prevModel => prevModel === model ? null : model);
+    setSelectedHat(prevModel => (prevModel === model ? null : model));
   };
 
+  if (loading) return <div>Loading models...</div>;
+  if (error) return <div>{error}</div>;
+
   return (
-    <div 
-      style={{ 
-        position: 'relative',
-        width: '100%',
-        height: 'calc(100vh - 64px)', // Adjust height to account for Navbar
-        overflow: 'hidden'
-      }}
-    >
+    <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
       <Webcam
         ref={webcamRef}
         videoConstraints={videoConstraints}
@@ -137,20 +132,8 @@ function FaceMeshComponent() {
           objectFit: "cover",
         }}
       />
-      {selectedGlasses && (
-        <ARTryOn
-          ref={arRef}
-          modelPath={selectedGlasses}
-          type="glasses"
-        />
-      )}
-      {selectedHat && (
-        <ARTryOn
-          ref={hatRef}
-          modelPath={selectedHat}
-          type="hat"
-        />
-      )}
+      {selectedGlasses && <ARTryOn ref={arRef} modelPath={selectedGlasses} type="glasses" />}
+      {selectedHat && <ARTryOn ref={hatRef} modelPath={selectedHat} type="hat" />}
       <div style={{ position: 'absolute', bottom: '5%', left: '5%', display: 'flex', gap: '20px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {glassesImages.map((glasses, index) => (
