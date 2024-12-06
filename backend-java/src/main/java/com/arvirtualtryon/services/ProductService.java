@@ -7,7 +7,6 @@ import com.arvirtualtryon.models.ProductCategory;
 import java.util.List;
 
 public interface ProductService {
-
     List<ProductResponseDTO> getAllProducts();
 
     ProductResponseDTO getProductById(Long id);
@@ -19,4 +18,6 @@ public interface ProductService {
     ProductResponseDTO updateProduct(Long id, ProductRequestDTO productRequestDTO);
 
     void deleteProduct(Long id);
+
+    void addOrUpdateProductsFromDirectory(String directoryPath);
 }

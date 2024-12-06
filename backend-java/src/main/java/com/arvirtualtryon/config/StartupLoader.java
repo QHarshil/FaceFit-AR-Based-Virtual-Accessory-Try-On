@@ -1,6 +1,6 @@
 package com.arvirtualtryon.config;
 
-import com.arvirtualtryon.utils.ModelMetadataParser;
+import com.arvirtualtryon.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
@@ -8,18 +8,18 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class StartupLoader implements CommandLineRunner {
 
-    private final ModelMetadataParser modelMetadataParser;
+    private final ProductService productService;
 
     @Autowired
-    public StartupLoader(ModelMetadataParser modelMetadataParser) {
-        this.modelMetadataParser = modelMetadataParser;
+    public StartupLoader(ProductService productService) {
+        this.productService = productService;
     }
 
     @Override
     public void run(String... args) {
-        System.out.println("Parsing and saving model metadata...");
-        String basePath = "src/main/resources/models";
-        modelMetadataParser.parseAndSaveModels(basePath);
-        System.out.println("Model metadata parsing completed.");
+        String modelsDirectory = "src/main/resources/models";
+        System.out.println("Parsing and updating model metadata...");
+        productService.addOrUpdateProductsFromDirectory(modelsDirectory);
+        System.out.println("Model metadata parsing and updating completed.");
     }
 }

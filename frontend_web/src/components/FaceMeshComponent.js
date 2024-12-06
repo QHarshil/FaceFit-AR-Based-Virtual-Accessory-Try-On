@@ -11,11 +11,41 @@ function FaceMeshComponent() {
   const cameraRef = useRef(null);
   const [selectedGlasses, setSelectedGlasses] = useState(null);
   const [selectedHat, setSelectedHat] = useState(null);
+  const [glassesImages, setGlassesImages] = useState([]);
+  const [hatImages, setHatImages] = useState([]);
+  
   const videoConstraints = {
     width: 1280,
     height: 720,
     facingMode: "user"
   };
+
+  useEffect(() => {
+    // Fetch the model data from the backend
+    async function fetchModels() {
+      try {
+        const response = await fetch('http://localhost:8081/api/products');
+        const data = await response.json();
+        const glassesData = data.filter(item => item.type === 'glasses');
+        const hatData = data.filter(item => item.type === 'hat');
+
+        // Map the data to the format used in the component
+        setGlassesImages(glassesData.map(item => ({
+          src: item.textureUrls[0],
+          model: item.modelUrl
+        })));
+
+        setHatImages(hatData.map(item => ({
+          src: item.textureUrls[0],
+          model: item.modelUrl
+        })));
+      } catch (error) {
+        console.error('Failed to fetch models:', error);
+      }
+    }
+
+    fetchModels();
+  }, []);
 
   useEffect(() => {
     if (!webcamRef.current?.video) return;
@@ -63,24 +93,6 @@ function FaceMeshComponent() {
       hatRef.current.updateModel(results.multiFaceLandmarks?.[0]);
     }
   }
-  const glassesImages = [
-    { src: "/models/glasses1.png", model: "/models/glasses1.glb" },
-    { src: "/models/glasses2.png", model: "/models/glasses2.glb" },
-    { src: "/models/glasses3.png", model: "/models/glasses3.glb" },
-    { src: "/models/glasses4.png", model: "/models/glasses4.glb" },
-    { src: "/models/glasses5.png", model: "/models/glasses5.glb" },
-    { src: "/models/glasses6.png", model: "/models/glasses6.glb" },
-    // { src: "/models/glasses7.png", model: "/models/glasses7.glb" },
-  ];
-
-  const hatImages = [
-    { src: "/models/hat1.png", model: "/models/hat1.glb" },
-    { src: "/models/hat2.png", model: "/models/hat2.glb" },
-    { src: "/models/hat3.png", model: "/models/hat3.glb" },
-    { src: "/models/hat4.png", model: "/models/hat4.glb" },
-    { src: "/models/hat5.png", model: "/models/hat5.glb" },
-    { src: "/models/hat6.png", model: "/models/hat6.glb" },
-  ];
 
   const getImageStyle = (isSelected) => ({
     cursor: 'pointer',
@@ -96,9 +108,14 @@ function FaceMeshComponent() {
     setSelectedGlasses(prevModel => prevModel === model ? null : model);
   };
 
+  const handleGlassesClick = (model) => {
+    setSelectedGlasses(prevModel => prevModel === model ? null : model);
+  };
+
   const handleHatClick = (model) => {
     setSelectedHat(prevModel => prevModel === model ? null : model);
   };
+
   return (
     <div 
       style={{ 
@@ -118,7 +135,6 @@ function FaceMeshComponent() {
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          // transform: "scaleX(-1)" // Mirror the webcam
         }}
       />
       {selectedGlasses && (
@@ -131,13 +147,11 @@ function FaceMeshComponent() {
       {selectedHat && (
         <ARTryOn
           ref={hatRef}
-          modelPath={selectedHat}  // Make sure to use your hat model path
+          modelPath={selectedHat}
           type="hat"
         />
       )}
       <div style={{ position: 'absolute', bottom: '5%', left: '5%', display: 'flex', gap: '20px' }}>
-      {/* <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '200px', overflowY: 'auto' }}> */}
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {glassesImages.map((glasses, index) => (
             <img
