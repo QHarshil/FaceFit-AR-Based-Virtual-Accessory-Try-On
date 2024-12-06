@@ -97,14 +97,15 @@ public class ProductServiceImpl implements ProductService {
             for (File modelFile : categoryDir.listFiles()) {
                 if (modelFile.isFile() && (modelFile.getName().endsWith(".gltf") || modelFile.getName().endsWith(".glb"))) {
                     String modelName = modelFile.getName().split("\\.")[0]; // Use filename without extension as model name
+                    // Fix the URL path to exclude the "models" directory
                     String modelUrl = BASE_URL + categoryName + "/" + modelFile.getName();
 
                     ProductRequestDTO productRequest = new ProductRequestDTO();
                     productRequest.setName(modelName);
                     productRequest.setCategory(categoryName);
                     productRequest.setModelUrl(modelUrl);
-                    productRequest.setBinUrl(null); // No .bin files expected in this structure
-                    productRequest.setTextureUrls(new ArrayList<>()); // Textures are not part of the current structure
+                    productRequest.setBinUrl(null); // No .bin files expected
+                    productRequest.setTextureUrls(new ArrayList<>()); // No textures expected in this structure
 
                     Optional<Product> existingProduct = productRepository.findByModelUrl(modelUrl);
                     if (existingProduct.isPresent()) {
