@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { productService } from '../services/productService';
 import ProductCard from '../components/ProductCard';
 
 const ProductList = () => {
@@ -13,14 +12,16 @@ const ProductList = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        const data = category === 'ALL' 
-          ? await productService.getAllProducts()
-          : await productService.getProductsByCategory(category);
-          
+        const endpoint =
+          category === 'ALL'
+            ? 'http://localhost:8081/api/products'
+            : `http://localhost:8081/api/products?category=${category}`;
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error('Failed to fetch products');
+        const data = await response.json();
         setProducts(data);
       } catch (err) {
-        setError('Failed to load products');
+        setError(err.message);
         console.error('Error fetching products:', err);
       } finally {
         setLoading(false);
@@ -34,22 +35,22 @@ const ProductList = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       <div className="mb-6">
-        <select 
+        <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           className="p-2 border rounded"
         >
           <option value="ALL">All Categories</option>
           <option value="GLASSES">Glasses</option>
-          <option value="HAT">Hats</option>
+          <option value="HATS">Hats</option>
           <option value="JEWELRY">Jewelry</option>
         </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map(product => (
+        {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

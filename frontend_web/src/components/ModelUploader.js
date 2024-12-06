@@ -7,12 +7,18 @@ const ModelUploader = ({ productId }) => {
     formData.append('file', file);
 
     try {
-      await fetch(`http://localhost:8081/api/products/${productId}/model`, {
-        method: 'POST',
-        body: formData
-      });
+      const response = await fetch(
+        `http://localhost:8081/api/products/${productId}/model`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+      if (!response.ok) throw new Error('Upload failed');
+      alert('Model uploaded successfully!');
     } catch (error) {
       console.error('Upload failed:', error);
+      alert('Failed to upload the model');
     }
   };
 
@@ -21,6 +27,7 @@ const ModelUploader = ({ productId }) => {
       type="file"
       accept=".glb,.gltf"
       onChange={handleUpload}
+      className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
     />
   );
 };
