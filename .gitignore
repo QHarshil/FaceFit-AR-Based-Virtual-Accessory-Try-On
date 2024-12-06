@@ -1,5 +1,5 @@
 # Ignore Maven target directory
-target/
+backend-java/target/
 
 # Ignore build files
 *.class
