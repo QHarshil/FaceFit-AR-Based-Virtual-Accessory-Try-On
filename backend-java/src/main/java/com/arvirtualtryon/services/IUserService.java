@@ -4,6 +4,8 @@ import com.arvirtualtryon.models.User;
 
 import java.util.List;
 
+import org.springframework.security.core.userdetails.UserDetails;
+
 /**
  * Interface defining the contract for user-related operations.
  * Helps in decoupling service implementations from their usage.
@@ -58,4 +60,11 @@ public interface IUserService {
      * @return True if the password matches, otherwise false.
      */
     boolean verifyPassword(String rawPassword, String encodedPassword);
+
+    /**
+     * Loads a user by their email.
+     * @param email The email of the user.
+     * @return The user details as a UserDetails object.
+     */
+    UserDetails loadUserByUsername(String email);
 }
