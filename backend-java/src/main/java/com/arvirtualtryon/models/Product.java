@@ -1,15 +1,13 @@
 package com.arvirtualtryon.models;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Represents a product in the AR Virtual Try-On application.
- */
+import org.hibernate.annotations.CreationTimestamp;
+
+import jakarta.persistence.*;
+
 @Entity
 @Table(name = "products")
 public class Product {
@@ -18,57 +16,49 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Size(max = 100, message = "Product name must not exceed 100 characters.")
     @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ProductCategory category;
+    @ManyToOne
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
-    @NotBlank
-    @Column(nullable = false, unique = true)
-    private String modelUrl; // Path to the GLTF file
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private String modelUrl;
+
+    @Column
+    private String binUrl;
 
     @ElementCollection
     @CollectionTable(name = "product_textures", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "texture_url")
-    private List<String> textureUrls; // Paths to texture files
+    private List<String> textureUrls = new ArrayList<>();
 
-    @Column(nullable = true)
-    private String binUrl; // Optional path to the .bin file
+    // Metadata for rendering
+    @Column
+    private float positionX = 0.0f;
 
-    @ElementCollection
-    @CollectionTable(name = "product_tags", joinColumns = @JoinColumn(name = "product_id"))
-    @Column(name = "tag")
-    private List<String> tags; // Tags for filtering/search
+    @Column
+    private float positionY = 0.0f;
 
-    @Column(nullable = true)
-    private String dimensions; // Dimensions metadata, e.g., "width: 10, height: 15"
+    @Column
+    private float positionZ = 0.0f;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column
+    private float rotationX = 0.0f;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    @Column
+    private float rotationY = 0.0f;
 
-    /**
-     * Automatically set `createdAt` and `updatedAt` before persisting the entity.
-     */
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
+    @Column
+    private float rotationZ = 0.0f;
 
-    /**
-     * Automatically update `updatedAt` before updating the entity.
-     */
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @Column
+    private float scale = 1.0f;
 
     // Getters and Setters
     public Long getId() {
@@ -87,11 +77,11 @@ public class Product {
         this.name = name;
     }
 
-    public ProductCategory getCategory() {
+    public Category getCategory() {
         return category;
     }
 
-    public void setCategory(ProductCategory category) {
+    public void setCategory(Category category) {
         this.category = category;
     }
 
@@ -103,14 +93,6 @@ public class Product {
         this.modelUrl = modelUrl;
     }
 
-    public List<String> getTextureUrls() {
-        return textureUrls;
-    }
-
-    public void setTextureUrls(List<String> textureUrls) {
-        this.textureUrls = textureUrls;
-    }
-
     public String getBinUrl() {
         return binUrl;
     }
@@ -119,35 +101,67 @@ public class Product {
         this.binUrl = binUrl;
     }
 
-    public List<String> getTags() {
-        return tags;
+    public List<String> getTextureUrls() {
+        return textureUrls;
     }
 
-    public void setTags(List<String> tags) {
-        this.tags = tags;
+    public void setTextureUrls(List<String> textureUrls) {
+        this.textureUrls = textureUrls;
     }
 
-    public String getDimensions() {
-        return dimensions;
+    public float getPositionX() {
+        return positionX;
     }
 
-    public void setDimensions(String dimensions) {
-        this.dimensions = dimensions;
+    public void setPositionX(float positionX) {
+        this.positionX = positionX;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public float getPositionY() {
+        return positionY;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setPositionY(float positionY) {
+        this.positionY = positionY;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public float getPositionZ() {
+        return positionZ;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setPositionZ(float positionZ) {
+        this.positionZ = positionZ;
+    }
+
+    public float getRotationX() {
+        return rotationX;
+    }
+
+    public void setRotationX(float rotationX) {
+        this.rotationX = rotationX;
+    }
+
+    public float getRotationY() {
+        return rotationY;
+    }
+
+    public void setRotationY(float rotationY) {
+        this.rotationY = rotationY;
+    }
+
+    public float getRotationZ() {
+        return rotationZ;
+    }
+
+    public void setRotationZ(float rotationZ) {
+        this.rotationZ = rotationZ;
+    }
+
+    public float getScale() {
+        return scale;
+    }
+
+    public void setScale(float scale) {
+        this.scale = scale;
     }
 }

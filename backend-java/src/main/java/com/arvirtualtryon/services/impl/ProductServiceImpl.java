@@ -2,8 +2,9 @@ package com.arvirtualtryon.services.impl;
 
 import com.arvirtualtryon.dtos.ProductRequestDTO;
 import com.arvirtualtryon.dtos.ProductResponseDTO;
+import com.arvirtualtryon.models.Category;
 import com.arvirtualtryon.models.Product;
-import com.arvirtualtryon.models.ProductCategory;
+import com.arvirtualtryon.repositories.CategoryRepository;
 import com.arvirtualtryon.repositories.ProductRepository;
 import com.arvirtualtryon.services.ProductService;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,11 +21,13 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
     private static final String BASE_URL = "http://localhost:8080/api/resources/";
 
     @Autowired
-    public ProductServiceImpl(ProductRepository productRepository) {
+    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
@@ -43,7 +46,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductResponseDTO> getProductsByCategory(ProductCategory category) {
+    public List<ProductResponseDTO> getProductsByCategory(Category category) {
         return productRepository.findByCategory(category)
                 .stream()
                 .map(this::mapToResponseDTO)
@@ -63,7 +66,7 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new EntityNotFoundException("Product with ID " + id + " not found"));
 
         existingProduct.setName(productRequestDTO.getName());
-        existingProduct.setCategory(productRequestDTO.getCategory());
+        existingProduct.setCategory(findOrCreateCategory(productRequestDTO.getCategory()));
         existingProduct.setModelUrl(productRequestDTO.getModelUrl());
         existingProduct.setTextureUrls(productRequestDTO.getTextureUrls());
         existingProduct.setBinUrl(productRequestDTO.getBinUrl());
@@ -88,15 +91,8 @@ public class ProductServiceImpl implements ProductService {
         }
 
         for (File categoryDir : baseDir.listFiles(File::isDirectory)) {
-            String categoryName = categoryDir.getName().toUpperCase();
-            ProductCategory category;
-
-            try {
-                category = ProductCategory.valueOf(categoryName);
-            } catch (IllegalArgumentException e) {
-                System.out.println("Skipping unknown category: " + categoryName);
-                continue;
-            }
+            String categoryName = categoryDir.getName();
+            Category category = findOrCreateCategory(categoryName);
 
             for (File modelDir : categoryDir.listFiles(File::isDirectory)) {
                 String modelName = modelDir.getName();
@@ -107,13 +103,13 @@ public class ProductServiceImpl implements ProductService {
                 for (File file : modelDir.listFiles()) {
                     if (file.isFile()) {
                         if (file.getName().endsWith(".gltf")) {
-                            modelUrl = file.getPath().replace("\\", "/");
+                            modelUrl = BASE_URL + file.getPath().replace("\\", "/");
                         } else if (file.getName().endsWith(".bin")) {
-                            binUrl = file.getPath().replace("\\", "/");
+                            binUrl = BASE_URL + file.getPath().replace("\\", "/");
                         }
                     } else if (file.isDirectory() && file.getName().equalsIgnoreCase("textures")) {
                         for (File texture : file.listFiles()) {
-                            textureUrls.add(texture.getPath().replace("\\", "/"));
+                            textureUrls.add(BASE_URL + texture.getPath().replace("\\", "/"));
                         }
                     }
                 }
@@ -141,11 +137,20 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    @Override
+    public Category findOrCreateCategory(String name) {
+        return categoryRepository.findByName(name)
+                .orElseGet(() -> {
+                    Category category = new Category(name);
+                    return categoryRepository.save(category);
+                });
+    }
+
     private ProductResponseDTO mapToResponseDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());
-        dto.setCategory(product.getCategory());
+        dto.setCategory(product.getCategory().getName());
         dto.setModelUrl(BASE_URL + product.getModelUrl());
         dto.setTextureUrls(product.getTextureUrls());
         dto.setBinUrl(product.getBinUrl());
@@ -155,7 +160,7 @@ public class ProductServiceImpl implements ProductService {
     private Product mapToEntity(ProductRequestDTO dto) {
         Product product = new Product();
         product.setName(dto.getName());
-        product.setCategory(dto.getCategory());
+        product.setCategory(findOrCreateCategory(dto.getCategory()));
         product.setModelUrl(dto.getModelUrl());
         product.setTextureUrls(dto.getTextureUrls());
         product.setBinUrl(dto.getBinUrl());

@@ -2,7 +2,8 @@ package com.arvirtualtryon.controllers;
 
 import com.arvirtualtryon.dtos.ProductRequestDTO;
 import com.arvirtualtryon.dtos.ProductResponseDTO;
-import com.arvirtualtryon.models.ProductCategory;
+import com.arvirtualtryon.models.Category;
+import com.arvirtualtryon.services.CategoryService;
 import com.arvirtualtryon.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,15 +21,18 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final CategoryService categoryService;
 
     /**
-     * Constructor for injecting the ProductService dependency.
+     * Constructor for injecting dependencies.
      *
-     * @param productService Service layer for handling product operations.
+     * @param productService  Service layer for handling product operations.
+     * @param categoryService Service layer for handling category operations.
      */
     @Autowired
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, CategoryService categoryService) {
         this.productService = productService;
+        this.categoryService = categoryService;
     }
 
     /**
@@ -57,13 +61,13 @@ public class ProductController {
     /**
      * Retrieve products by their category.
      *
-     * @param category The category to filter products by (e.g., GLASSES, HATS).
+     * @param categoryName The category to filter products by.
      * @return List of products in the specified category as ProductResponseDTOs.
      */
-    @GetMapping("/category/{category}")
-    public ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(@PathVariable String category) {
-        ProductCategory productCategory = ProductCategory.valueOf(category.toUpperCase());
-        List<ProductResponseDTO> products = productService.getProductsByCategory(productCategory);
+    @GetMapping("/category/{categoryName}")
+    public ResponseEntity<List<ProductResponseDTO>> getProductsByCategory(@PathVariable String categoryName) {
+        Category category = categoryService.getCategoryByName(categoryName);
+        List<ProductResponseDTO> products = productService.getProductsByCategory(category);
         return ResponseEntity.ok(products);
     }
 
@@ -102,5 +106,19 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Retrieve all categories dynamically.
+     *
+     * @return List of all categories.
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getAllCategories() {
+        List<String> categories = categoryService.getAllCategories()
+                .stream()
+                .map(Category::getName)
+                .toList();
+        return ResponseEntity.ok(categories);
     }
 }

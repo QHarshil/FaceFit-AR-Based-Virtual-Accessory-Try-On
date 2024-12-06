@@ -1,12 +1,10 @@
 package com.arvirtualtryon.dtos;
 
-import com.arvirtualtryon.models.ProductCategory;
-
 import java.util.List;
 
 public class ProductRequestDTO {
     private String name;
-    private ProductCategory category;
+    private String category; // Updated to dynamic category handling
     private String modelUrl;
     private List<String> textureUrls;
     private String binUrl;
@@ -20,11 +18,11 @@ public class ProductRequestDTO {
         this.name = name;
     }
 
-    public ProductCategory getCategory() {
+    public String getCategory() {
         return category;
     }
 
-    public void setCategory(ProductCategory category) {
+    public void setCategory(String category) {
         this.category = category;
     }
 

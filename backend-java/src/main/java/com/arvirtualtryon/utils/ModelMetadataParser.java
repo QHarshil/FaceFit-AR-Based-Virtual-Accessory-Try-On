@@ -1,10 +1,10 @@
 package com.arvirtualtryon.utils;
 
 import com.arvirtualtryon.dtos.ProductRequestDTO;
-import com.arvirtualtryon.models.ProductCategory;
 import com.arvirtualtryon.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.arvirtualtryon.models.Category;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -27,15 +27,8 @@ public class ModelMetadataParser {
         }
 
         for (File categoryDir : baseDir.listFiles(File::isDirectory)) {
-            String categoryName = categoryDir.getName().toUpperCase();
-            ProductCategory category;
-
-            try {
-                category = ProductCategory.valueOf(categoryName);
-            } catch (IllegalArgumentException e) {
-                System.out.println("Skipping unknown category: " + categoryName);
-                continue;
-            }
+            String categoryName = categoryDir.getName();
+            Category category = productService.findOrCreateCategory(categoryName);
 
             for (File modelDir : categoryDir.listFiles(File::isDirectory)) {
                 String modelName = modelDir.getName();
@@ -63,18 +56,9 @@ public class ModelMetadataParser {
                     continue;
                 }
 
-                final String finalModelUrl = modelUrl; // Declare a final variable for lambda
-                boolean exists = productService.getAllProducts().stream()
-                        .anyMatch(product -> product.getModelUrl().equals(finalModelUrl));
-
-                if (exists) {
-                    System.out.println("Product already exists for modelUrl: " + modelUrl + ", skipping.");
-                    continue;
-                }
-
                 ProductRequestDTO productRequest = new ProductRequestDTO();
                 productRequest.setName(modelName);
-                productRequest.setCategory(category);
+                productRequest.setCategory(category.getName());
                 productRequest.setModelUrl(modelUrl);
                 productRequest.setBinUrl(binUrl);
                 productRequest.setTextureUrls(textureUrls);
