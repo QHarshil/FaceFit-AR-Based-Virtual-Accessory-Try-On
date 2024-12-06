@@ -11,21 +11,38 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="text-xl font-bold text-gray-800">
+          <Link to="/" className="text-2xl font-bold text-blue-600">
             FaceFit
           </Link>
 
-          {/* Links for Larger Screens */}
-          <div className="hidden md:flex items-center space-x-4">
-            <NavLink 
-              to="/products" 
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-6">
+            <NavLink
+              to="/"
               className={({ isActive }) =>
-                `text-gray-600 hover:text-gray-900 ${isActive ? 'font-semibold underline' : ''}`
+                `text-gray-600 hover:text-blue-600 ${isActive ? 'font-semibold underline' : ''}`
+              }
+            >
+              Home
+            </NavLink>
+            {user && (
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  `text-gray-600 hover:text-blue-600 ${isActive ? 'font-semibold underline' : ''}`
+                }
+              >
+                Dashboard
+              </NavLink>
+            )}
+            <NavLink
+              to="/products"
+              className={({ isActive }) =>
+                `text-gray-600 hover:text-blue-600 ${isActive ? 'font-semibold underline' : ''}`
               }
             >
               Products
             </NavLink>
-
             {user ? (
               <>
                 <span className="text-gray-600">{user.username}</span>
@@ -41,7 +58,7 @@ const Navbar = () => {
                 <NavLink
                   to="/login"
                   className={({ isActive }) =>
-                    `text-gray-600 hover:text-gray-900 ${isActive ? 'font-semibold underline' : ''}`
+                    `text-gray-600 hover:text-blue-600 ${isActive ? 'font-semibold underline' : ''}`
                   }
                 >
                   Login
@@ -56,11 +73,11 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Hamburger Menu for Smaller Screens */}
+          {/* Mobile Menu Toggle */}
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-600 focus:outline-none"
+              className="text-gray-600"
               aria-label="Toggle navigation"
             >
               <svg
@@ -74,7 +91,7 @@ const Navbar = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                  d={isMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
                 />
               </svg>
             </button>
@@ -85,8 +102,15 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-200">
             <NavLink
+              to="/dashboard"
+              className="block px-4 py-2 text-gray-600 hover:text-blue-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Dashboard
+            </NavLink>
+            <NavLink
               to="/products"
-              className="block px-4 py-2 text-gray-600 hover:text-gray-900"
+              className="block px-4 py-2 text-gray-600 hover:text-blue-600"
               onClick={() => setIsMenuOpen(false)}
             >
               Products
@@ -96,7 +120,7 @@ const Navbar = () => {
                 <span className="block px-4 py-2 text-gray-600">{user.username}</span>
                 <button
                   onClick={logout}
-                  className="w-full text-left px-4 py-2 bg-red-500 text-white hover:bg-red-600 transition duration-300"
+                  className="block w-full text-left px-4 py-2 bg-red-500 text-white hover:bg-red-600 transition"
                 >
                   Logout
                 </button>
@@ -105,14 +129,14 @@ const Navbar = () => {
               <>
                 <NavLink
                   to="/login"
-                  className="block px-4 py-2 text-gray-600 hover:text-gray-900"
+                  className="block px-4 py-2 text-gray-600 hover:text-blue-600"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login
                 </NavLink>
                 <NavLink
                   to="/register"
-                  className="block px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 transition duration-300"
+                  className="block px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 transition"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Register

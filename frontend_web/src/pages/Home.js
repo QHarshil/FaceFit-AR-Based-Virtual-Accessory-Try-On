@@ -3,57 +3,67 @@ import { Link } from 'react-router-dom';
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-r from-blue-50 via-white to-gray-100">
       {/* Hero Section */}
-      <header className="flex flex-col items-center justify-center text-center py-16">
-        <h1 className="text-5xl font-extrabold text-gray-800 mb-4">
-          Welcome to <span className="text-blue-500">FaceFit</span>
+      <header className="relative flex flex-col items-center justify-center text-center py-20 bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+        <h1 className="text-6xl font-extrabold mb-4 drop-shadow-lg">
+          Welcome to <span className="text-yellow-300">FaceFit</span>
         </h1>
-        <p className="text-lg text-gray-600 mb-8">
-          Revolutionizing the way you try on accessories using AR technology.
+        <p className="text-xl font-medium mb-8 drop-shadow-md">
+          Revolutionizing the way you try on accessories with cutting-edge AR technology.
         </p>
         <div className="space-x-4">
           <Link
             to="/try-on"
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-600 transition duration-300"
+            className="px-6 py-3 bg-yellow-400 text-blue-900 font-semibold rounded-lg shadow-lg hover:bg-yellow-500 transition transform hover:scale-105"
           >
             Try Products
           </Link>
           <Link
             to="/register"
-            className="bg-gray-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-gray-600 transition duration-300"
+            className="px-6 py-3 bg-white text-blue-900 font-semibold rounded-lg shadow-lg hover:bg-gray-200 transition transform hover:scale-105"
           >
             Sign Up
           </Link>
         </div>
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-4 animate-bounce">
+          <a href="#features" className="text-white text-3xl">
+            ↓
+          </a>
+        </div>
       </header>
 
       {/* Featured Products Section */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+      <section id="features" className="container mx-auto px-4 py-16">
+        <h2 className="text-4xl font-bold text-center mb-12 text-gray-800">
           Featured Products
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Dynamically render product cards here */}
           {[1, 2, 3].map((_, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-lg p-6 text-center"
+              className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform hover:scale-105"
             >
-              <div className="h-40 bg-gray-200 rounded-md mb-4">
+              <div className="h-48 bg-gray-200 flex items-center justify-center">
                 {/* Placeholder for product image */}
-                <span className="text-gray-500 text-sm">Product Image</span>
+                <span className="text-gray-500 text-lg font-semibold">
+                  Product Image
+                </span>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Product Name
-              </h3>
-              <p className="text-gray-600 text-sm mb-4">Product Description</p>
-              <Link
-                to="/try-on"
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300"
-              >
-                Try On
-              </Link>
+              <div className="p-6 text-center">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  Product Name
+                </h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  This is a brief description of the product, showcasing its key features.
+                </p>
+                <Link
+                  to="/try-on"
+                  className="inline-block px-4 py-2 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600 transition"
+                >
+                  Try On
+                </Link>
+              </div>
             </div>
           ))}
         </div>
@@ -62,47 +72,65 @@ const Home = () => {
       {/* Key Features Section */}
       <section className="bg-gray-100 py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">
+          <h2 className="text-4xl font-bold text-center mb-12 text-gray-800">
             Why Choose FaceFit?
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 text-white rounded-full flex items-center justify-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+            <div className="text-center p-6 bg-white shadow-md rounded-lg transform transition-transform hover:scale-105">
+              <div className="w-16 h-16 mx-auto mb-6 bg-blue-500 text-white rounded-full flex items-center justify-center">
                 {/* Placeholder for icon */}
-                <span className="text-2xl">🎥</span>
+                <span className="text-3xl">🎥</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
                 Real-time AR
               </h3>
-              <p className="text-gray-600 text-sm">
-                Experience seamless augmented reality for virtual try-ons.
+              <p className="text-gray-600">
+                Experience seamless augmented reality for virtual try-ons with unparalleled accuracy.
               </p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 text-white rounded-full flex items-center justify-center">
+            <div className="text-center p-6 bg-white shadow-md rounded-lg transform transition-transform hover:scale-105">
+              <div className="w-16 h-16 mx-auto mb-6 bg-blue-500 text-white rounded-full flex items-center justify-center">
                 {/* Placeholder for icon */}
-                <span className="text-2xl">🛍️</span>
+                <span className="text-3xl">🛍️</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
                 Wide Range of Products
               </h3>
-              <p className="text-gray-600 text-sm">
-                Browse a large selection of accessories tailored to your style.
+              <p className="text-gray-600">
+                Browse through a diverse catalog of stylish accessories tailored to your taste.
               </p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-500 text-white rounded-full flex items-center justify-center">
+            <div className="text-center p-6 bg-white shadow-md rounded-lg transform transition-transform hover:scale-105">
+              <div className="w-16 h-16 mx-auto mb-6 bg-blue-500 text-white rounded-full flex items-center justify-center">
                 {/* Placeholder for icon */}
-                <span className="text-2xl">👍</span>
+                <span className="text-3xl">👍</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
                 Easy to Use
               </h3>
-              <p className="text-gray-600 text-sm">
-                Our platform is designed to make virtual try-ons simple and fun.
+              <p className="text-gray-600">
+                A user-friendly interface designed to make virtual try-ons a breeze.
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="py-16 bg-gradient-to-r from-indigo-500 to-blue-500 text-white">
+        <div className="container mx-auto text-center">
+          <h2 className="text-4xl font-extrabold mb-6">
+            Ready to Transform Your Style?
+          </h2>
+          <p className="text-lg font-medium mb-8">
+            Sign up now to access a personalized AR experience with FaceFit.
+          </p>
+          <Link
+            to="/register"
+            className="px-8 py-4 bg-yellow-400 text-blue-900 font-semibold rounded-lg shadow-lg hover:bg-yellow-500 transition transform hover:scale-105"
+          >
+            Get Started
+          </Link>
         </div>
       </section>
     </div>
