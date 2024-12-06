@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 const ARTryOn = forwardRef((props, ref) => {
-  const { modelPath, type = 'glasses' } = props;
+  const { modelPath, type } = props;
   const [model, setModel] = useState(null);
   const sceneRef = useRef(new THREE.Scene());
   const cameraRef = useRef(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 10));
@@ -31,58 +31,60 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateGlasses = (landmarks) => {
     if (!model) return;
   
-    const leftEye = landmarks[33];
-    const rightEye = landmarks[263];
-    const leftIris = landmarks[468];
-    const rightIris = landmarks[473];
+    const leftTemple = landmarks[234];
+    const rightTemple = landmarks[454];
     const nose = landmarks[168];
   
-    // 使用眼睛实际宽度作为基准
-    const eyeWidth = Math.sqrt(
-      Math.pow(rightEye.x - leftEye.x, 2) +
-      Math.pow(rightEye.y - leftEye.y, 2)
+    const faceWidth = Math.sqrt(
+      Math.pow(rightTemple.x - leftTemple.x, 2) +
+      Math.pow(rightTemple.y - leftTemple.y, 2)
     );
   
-    // 调整缩放基准
-    const desiredWidth = eyeWidth * 6.2;
+    const desiredWidth = faceWidth * 8;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
     model.scale.set(
       widthScaleFactor,
-      widthScaleFactor,
+      widthScaleFactor * 0.85,
       widthScaleFactor
     );
   
-    // 使用眼睛中心点定位
-    const eyeCenterX = (rightEye.x + leftEye.x) / 2;
-    const eyeCenterY = (rightEye.y + leftEye.y) / 2;
-    const eyeDepth = (rightEye.z + leftEye.z) / 2;
-  
-    // 应用更精确的位置偏移
+    const centerX = (rightTemple.x + leftTemple.x) / 2;
+    const glassesType = model.userData.glassesType;
+    if (glassesType === 'glasses1' | glassesType === 'glasses4') {
     model.position.set(
-      (eyeCenterX - 0.5) * 2.4,           // 减小水平偏移
-      -(eyeCenterY - 0.45) * 2.4,         // 调整垂直位置
-      -nose.z * 2.4 - 0.15                // 优化深度位置
+      (centerX - 0.57) * 3,
+      -(nose.y - 0.52) * 3,
+      -nose.z * 3 - 0.8
     );
+    } else if (glassesType === 'glasses2') {
+      model.position.set(
+        (centerX - 0.57) * 3,    // Increased multiplier
+        -(nose.y - 0.48) * 3,   // Increased Y position multiplier
+        -nose.z * 3 - 1.6    
+      );
+    }else {
+      model.position.set(
+        (centerX - 0.55) * 3,    // Increased multiplier
+        -(nose.y - 0.48) * 3,   // Increased Y position multiplier
+        -nose.z * 3 - 0.8    
+      );
+    }
   
-    // 计算更准确的旋转角度
+    const leftEye = landmarks[33];
+    const rightEye = landmarks[263];
     const eyeVector = {
       x: rightEye.x - leftEye.x,
       y: rightEye.y - leftEye.y,
       z: rightEye.z - leftEye.z
     };
+    
   
-    // 限制旋转范围
-    const clampRotation = (value, min = -0.3, max = 0.3) => {
-      return Math.min(Math.max(value, min), max);
-    };
-  
-    // 应用有限的旋转
-    model.rotation.y = clampRotation(Math.atan2(eyeVector.z, eyeVector.x) * 0.3);
-    model.rotation.x = clampRotation(Math.atan2(-eyeVector.y, 
-      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.3);
-    model.rotation.z = clampRotation(Math.atan2(eyeVector.y, eyeVector.x) * 0.15);
+    model.rotation.y = -Math.atan2(eyeVector.z, eyeVector.x) * 0.6;
+    model.rotation.x = -(Math.atan2(-eyeVector.y, 
+      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.6);
+    model.rotation.z = -Math.atan2(eyeVector.y, eyeVector.x) * 0.4;
   
     model.updateWorldMatrix();
   };
@@ -90,71 +92,72 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateHat = (landmarks) => {
     if (!model) return;
   
-    const topHead = landmarks[10];    // 头顶
-    const foreheadCenter = landmarks[151];  // 使用更低的前额点
+    const foreheadCenter = landmarks[10];
     const leftTemple = landmarks[234];
     const rightTemple = landmarks[454];
   
-    // 计算头部宽度
     const headWidth = Math.sqrt(
       Math.pow(rightTemple.x - leftTemple.x, 2) +
       Math.pow(rightTemple.y - leftTemple.y, 2)
     );
   
-    // 调整缩放
-    const desiredWidth = headWidth * 5.8;
+    const desiredWidth = headWidth * 10;
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
     model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
-  
-    // 固定帽子在头顶位置
-    const yOffset = 0.62; // 微调垂直位置
+    const hatType = model.userData.hatType;
+    if (hatType === 'hat1' | hatType === 'hat6') {
     model.position.set(
-      (topHead.x - 0.5) * 2.4,
-      -(topHead.y - yOffset) * 2.4,
-      -topHead.z * 2.4 - 0.1
+      (foreheadCenter.x - 0.55) * 3,
+      -(foreheadCenter.y - 0.6) * 3,
+      -foreheadCenter.z * 3 - 0.5
     );
-  
-    // 计算头部方向
+  } else if (hatType === 'hat2') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.74) * 3,
+        -foreheadCenter.z * 3 - 1
+      );
+    } else if (hatType === 'hat3') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.8) * 3,
+        -foreheadCenter.z * 3 - 1.2
+      );
+    } else if (hatType === 'hat4') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.6) * 3,
+        -foreheadCenter.z * 3 - 0.9
+      );
+    } else if (hatType === 'hat5') {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.7) * 3,
+        -foreheadCenter.z * 3 - 0.8
+      );
+    } else {
+      model.position.set(
+        (foreheadCenter.x - 0.55) * 3,
+        -(foreheadCenter.y - 0.62) * 3,
+        -foreheadCenter.z * 3 - 0.6
+      );
+    }
+    const leftEar = landmarks[234];
+    const rightEar = landmarks[454];
     const headVector = {
-      x: rightTemple.x - leftTemple.x,
-      y: rightTemple.y - leftTemple.y,
-      z: rightTemple.z - leftTemple.z
+      x: rightEar.x - leftEar.x,
+      y: rightEar.y - leftEar.y,
+      z: rightEar.z - leftEar.z
     };
   
-    // 限制旋转范围的函数
-    const clampRotation = (value, min = -0.2, max = 0.2) => {
-      return Math.min(Math.max(value, min), max);
-    };
-  
-    // 计算基础旋转角度
-    let rotationY = Math.atan2(headVector.z, headVector.x);
-    let rotationX = Math.atan2(headVector.y, Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z));
-  
-    // 应用受限的旋转，移除额外的旋转补偿
-    model.rotation.y = clampRotation(rotationY * 0.3);
-    model.rotation.x = clampRotation(rotationX * 0.3);
-    model.rotation.z = clampRotation(Math.atan2(headVector.y, headVector.x) * 0.15);
+    model.rotation.y = -Math.atan2(headVector.z, headVector.x) * 0.7;
+    model.rotation.x = -(Math.atan2(-headVector.y, 
+      Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z)) * 0.7) + 0.1;
+    model.rotation.z = -Math.atan2(headVector.y, headVector.x) * 0.4;
   
     model.updateWorldMatrix();
-  };
-
-  const removeCurrentModel = () => {
-    if (model) {
-      sceneRef.current.remove(model);
-      model.traverse((object) => {
-        if (object.geometry) object.geometry.dispose();
-        if (object.material) {
-          if (Array.isArray(object.material)) {
-            object.material.forEach(material => material.dispose());
-          } else {
-            object.material.dispose();
-          }
-        }
-      });
-      setModel(null);
-    }
   };
 
   useEffect(() => {
@@ -177,8 +180,6 @@ const ARTryOn = forwardRef((props, ref) => {
     renderer.domElement.style.zIndex = '2';
     containerRef.current.appendChild(renderer.domElement);
 
-    removeCurrentModel(); // Remove the current model before loading a new one
-
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
@@ -188,14 +189,35 @@ const ARTryOn = forwardRef((props, ref) => {
         loadedModel.userData.originalWidth = boundingBox.max.x - boundingBox.min.x;
         loadedModel.visible = false;
         
-        // Reset position, scale, and rotation
-        loadedModel.position.set(0, 0, 0);
-        loadedModel.scale.set(1, 1, 1);
-        loadedModel.rotation.set(0, 0, 0);
-        
         boundingBox.getCenter(loadedModel.position);
         loadedModel.position.multiplyScalar(-1);
-        
+
+            // Add glassesType property based on the modelPath or other criteria
+    if (modelPath.includes('glasses1')) {
+      loadedModel.userData.glassesType = 'glasses1';
+    } else if (modelPath.includes('glasses2')) {
+      loadedModel.userData.glassesType = 'glasses2';
+    } else if (modelPath.includes('glasses3')) {
+      loadedModel.userData.glassesType = 'glasses3';
+    } else if (modelPath.includes('glasses4')) {
+      loadedModel.userData.glassesType = 'glasses4';
+    } else if (modelPath.includes('glasses5')) {
+      loadedModel.userData.glassesType = 'glasses5';
+    } else if (modelPath.includes('glasses6')) {
+      loadedModel.userData.glassesType = 'glasses6';
+    } else if (modelPath.includes('hat1')) {
+      loadedModel.userData.hatType = 'hat1';
+    } else if (modelPath.includes('hat2')) {
+      loadedModel.userData.hatType = 'hat2';
+    } else if (modelPath.includes('hat3')) {
+      loadedModel.userData.hatType = 'hat3';
+    } else if (modelPath.includes('hat4')) {
+      loadedModel.userData.hatType = 'hat4';
+    } else if (modelPath.includes('hat5')) {
+      loadedModel.userData.hatType = 'hat5';
+    } else if (modelPath.includes('hat6')) {
+      loadedModel.userData.hatType = 'hat6';
+    }
         scene.add(loadedModel);
         setModel(loadedModel);
       },
@@ -254,6 +276,23 @@ const ARTryOn = forwardRef((props, ref) => {
       });
       renderer.dispose();
     };
+  }, [modelPath]);
+
+  useEffect(() => {
+    if (model) {
+      sceneRef.current.remove(model);
+      model.traverse((object) => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
+      setModel(null);
+    }
   }, [modelPath]);
 
   return (
