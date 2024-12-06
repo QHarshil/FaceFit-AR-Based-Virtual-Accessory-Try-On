@@ -13,7 +13,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData); // 调试用
+    console.log('Form submitted:', formData);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -21,7 +21,7 @@ const Register = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/users/register', {
+      const response = await fetch('http://localhost:8081/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,15 +33,15 @@ const Register = () => {
         }),
       });
 
-      console.log('Response:', response); // 调试用
+      console.log('Response:', response);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Success:', data); // 调试用
+        console.log('Success:', data);
         navigate('/login');
       } else {
         const errorData = await response.json();
-        console.error('Error data:', errorData); // 调试用
+        console.error('Error data:', errorData);
         setError(errorData.message || 'Registration failed');
       }
     } catch (err) {

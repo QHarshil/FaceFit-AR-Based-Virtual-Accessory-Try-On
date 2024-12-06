@@ -17,6 +17,15 @@ const ARTryOn = forwardRef((props, ref) => {
   const containerRef = useRef(null);
   const animationFrameId = useRef(null);
 
+  // Precise positioning utility functions
+  const calculateDistance = (point1, point2) => {
+    return Math.sqrt(
+      Math.pow(point2.x - point1.x, 2) +
+      Math.pow(point2.y - point1.y, 2) +
+      Math.pow(point2.z - point1.z, 2)
+    );
+  };
+
   useImperativeHandle(ref, () => ({
     updateModel: (landmarks) => {
       if (!model || !landmarks) return;
@@ -31,58 +40,52 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateGlasses = (landmarks) => {
     if (!model) return;
   
-    const leftEye = landmarks[33];
-    const rightEye = landmarks[263];
-    const leftIris = landmarks[468];
-    const rightIris = landmarks[473];
-    const nose = landmarks[168];
+    // More precise landmarks for glasses positioning
+    const leftEyeOuter = landmarks[33];
+    const rightEyeOuter = landmarks[263];
+    const leftEyeInner = landmarks[133];
+    const rightEyeInner = landmarks[362];
+    const noseTip = landmarks[168];
+    const nose = {
+      x: (leftEyeInner.x + rightEyeInner.x) / 2,
+      y: (leftEyeInner.y + rightEyeInner.y) / 2,
+      z: (leftEyeInner.z + rightEyeInner.z) / 2
+    };
   
-    // 使用眼睛实际宽度作为基准
-    const eyeWidth = Math.sqrt(
-      Math.pow(rightEye.x - leftEye.x, 2) +
-      Math.pow(rightEye.y - leftEye.y, 2)
-    );
-  
-    // 调整缩放基准
-    const desiredWidth = eyeWidth * 6.2;
+    // Calculate precise face width and proportions
+    const eyeDistance = calculateDistance(leftEyeOuter, rightEyeOuter);
+    const desiredWidth = eyeDistance * 3.5; // Adjusted multiplier for better proportions
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
+    // More nuanced scaling
     model.visible = true;
     model.scale.set(
-      widthScaleFactor,
-      widthScaleFactor,
-      widthScaleFactor
+      widthScaleFactor * 1.9,
+      widthScaleFactor * 1.9,  // Slight vertical compression
+      widthScaleFactor * 1.5
     );
   
-    // 使用眼睛中心点定位
-    const eyeCenterX = (rightEye.x + leftEye.x) / 2;
-    const eyeCenterY = (rightEye.y + leftEye.y) / 2;
-    const eyeDepth = (rightEye.z + leftEye.z) / 2;
-  
-    // 应用更精确的位置偏移
+    // Advanced positioning calculation
     model.position.set(
-      (eyeCenterX - 0.5) * 2.4,           // 减小水平偏移
-      -(eyeCenterY - 0.45) * 2.4,         // 调整垂直位置
-      -nose.z * 2.4 - 0.15                // 优化深度位置
+      (nose.x - 0.55) * 3,           // Horizontal centering
+      -(noseTip.y - 0.45) * 3,        // Vertical positioning
+      -noseTip.z * 3 - eyeDistance   // Depth positioning
     );
   
-    // 计算更准确的旋转角度
-    const eyeVector = {
-      x: rightEye.x - leftEye.x,
-      y: rightEye.y - leftEye.y,
-      z: rightEye.z - leftEye.z
+    // Sophisticated rotation calculation
+    const eyeAxis = {
+      x: rightEyeOuter.x - leftEyeOuter.x,
+      y: rightEyeOuter.y - leftEyeOuter.y,
+      z: rightEyeOuter.z - leftEyeOuter.z
     };
   
-    // 限制旋转范围
-    const clampRotation = (value, min = -0.3, max = 0.3) => {
-      return Math.min(Math.max(value, min), max);
-    };
-  
-    // 应用有限的旋转
-    model.rotation.y = clampRotation(Math.atan2(eyeVector.z, eyeVector.x) * 0.3);
-    model.rotation.x = clampRotation(Math.atan2(-eyeVector.y, 
-      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z)) * 0.3);
-    model.rotation.z = clampRotation(Math.atan2(eyeVector.y, eyeVector.x) * 0.15);
+    // Fine-tuned rotation for natural placement
+    model.rotation.y = Math.atan2(eyeAxis.z, eyeAxis.x) * 0.7;
+    model.rotation.x = Math.atan2(
+      -eyeAxis.y, 
+      Math.sqrt(eyeAxis.x * eyeAxis.x + eyeAxis.z * eyeAxis.z)
+    ) * 0.5;
+    model.rotation.z = Math.atan2(eyeAxis.y, eyeAxis.x) * 0.3;
   
     model.updateWorldMatrix();
   };
@@ -90,71 +93,51 @@ const ARTryOn = forwardRef((props, ref) => {
   const updateHat = (landmarks) => {
     if (!model) return;
   
-    const topHead = landmarks[10];    // 头顶
-    const foreheadCenter = landmarks[151];  // 使用更低的前额点
-    const leftTemple = landmarks[234];
-    const rightTemple = landmarks[454];
+    // More precise landmarks for hat positioning
+    const foreheadCenter = landmarks[10];
+    const leftCheek = landmarks[93];
+    const rightCheek = landmarks[323];
+    const noseTip = landmarks[168];
+    const leftTemple = landmarks[227];
+    const rightTemple = landmarks[447];
   
-    // 计算头部宽度
-    const headWidth = Math.sqrt(
-      Math.pow(rightTemple.x - leftTemple.x, 2) +
-      Math.pow(rightTemple.y - leftTemple.y, 2)
-    );
-  
-    // 调整缩放
-    const desiredWidth = headWidth * 5.8;
+    // Calculate head width with more precision
+    const headWidth = calculateDistance(leftTemple, rightTemple);
+    const desiredWidth = headWidth * 4; // Adjusted multiplier
     const widthScaleFactor = desiredWidth / model.userData.originalWidth;
   
     model.visible = true;
-    model.scale.set(widthScaleFactor, widthScaleFactor, widthScaleFactor);
-  
-    // 固定帽子在头顶位置
-    const yOffset = 0.62; // 微调垂直位置
-    model.position.set(
-      (topHead.x - 0.5) * 2.4,
-      -(topHead.y - yOffset) * 2.4,
-      -topHead.z * 2.4 - 0.1
+    model.scale.set(
+      widthScaleFactor * 1.3, 
+      widthScaleFactor * 1, // Slight vertical compression
+      widthScaleFactor
     );
   
-    // 计算头部方向
-    const headVector = {
+    // More precise positioning
+    model.position.set(
+      (foreheadCenter.x - 0.55) * 3,     // Horizontal centering
+      -(foreheadCenter.y - 0.58) * 3,   // Vertical positioning
+      -(foreheadCenter.z)* 3 - headWidth // Depth positioning
+    );
+  
+    // Advanced head orientation calculation
+    const headAxis = {
       x: rightTemple.x - leftTemple.x,
       y: rightTemple.y - leftTemple.y,
       z: rightTemple.z - leftTemple.z
     };
   
-    // 限制旋转范围的函数
-    const clampRotation = (value, min = -0.2, max = 0.2) => {
-      return Math.min(Math.max(value, min), max);
-    };
-  
-    // 计算基础旋转角度
-    let rotationY = Math.atan2(headVector.z, headVector.x);
-    let rotationX = Math.atan2(headVector.y, Math.sqrt(headVector.x * headVector.x + headVector.z * headVector.z));
-  
-    // 应用受限的旋转，移除额外的旋转补偿
-    model.rotation.y = clampRotation(rotationY * 0.3);
-    model.rotation.x = clampRotation(rotationX * 0.3);
-    model.rotation.z = clampRotation(Math.atan2(headVector.y, headVector.x) * 0.15);
+    // Fine-tuned rotation for natural hat placement
+    model.rotation.y = Math.atan2(headAxis.z, headAxis.x) * 0.8;
+    model.rotation.x = (
+      Math.atan2(
+        -headAxis.y, 
+        Math.sqrt(headAxis.x * headAxis.x + headAxis.z * headAxis.z)
+      ) * 0.6
+    ) + 0.1;  // Slight upward tilt
+    model.rotation.z = Math.atan2(headAxis.y, headAxis.x) * 0.5;
   
     model.updateWorldMatrix();
-  };
-
-  const removeCurrentModel = () => {
-    if (model) {
-      sceneRef.current.remove(model);
-      model.traverse((object) => {
-        if (object.geometry) object.geometry.dispose();
-        if (object.material) {
-          if (Array.isArray(object.material)) {
-            object.material.forEach(material => material.dispose());
-          } else {
-            object.material.dispose();
-          }
-        }
-      });
-      setModel(null);
-    }
   };
 
   useEffect(() => {
@@ -177,8 +160,6 @@ const ARTryOn = forwardRef((props, ref) => {
     renderer.domElement.style.zIndex = '2';
     containerRef.current.appendChild(renderer.domElement);
 
-    removeCurrentModel(); // Remove the current model before loading a new one
-
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
@@ -187,11 +168,6 @@ const ARTryOn = forwardRef((props, ref) => {
         const boundingBox = new THREE.Box3().setFromObject(loadedModel);
         loadedModel.userData.originalWidth = boundingBox.max.x - boundingBox.min.x;
         loadedModel.visible = false;
-        
-        // Reset position, scale, and rotation
-        loadedModel.position.set(0, 0, 0);
-        loadedModel.scale.set(1, 1, 1);
-        loadedModel.rotation.set(0, 0, 0);
         
         boundingBox.getCenter(loadedModel.position);
         loadedModel.position.multiplyScalar(-1);
@@ -254,6 +230,23 @@ const ARTryOn = forwardRef((props, ref) => {
       });
       renderer.dispose();
     };
+  }, [modelPath]);
+
+  useEffect(() => {
+    if (model) {
+      sceneRef.current.remove(model);
+      model.traverse((object) => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
+      setModel(null);
+    }
   }, [modelPath]);
 
   return (
