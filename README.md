@@ -10,20 +10,9 @@ This project is an **Augmented Reality (AR) Virtual Try-On application** designe
 - **3D Model Rendering**: Integrates Three.js for real-time rendering of glasses and accessories.
 - **AR Filters**: Uses OpenCV to apply makeup filters like lipstick, eyeshadow, and blush.
 - **Product Customization**: Allows users to adjust the size, color, and position of selected products.
+- **Currently Built on Web**
 - **Cross-Platform Compatibility**: Built with React Native for compatibility across iOS and Android.
 
-## Tech Stack
-
-### Backend
-- **Flask**: Lightweight web framework for handling API requests.
-- **PostgreSQL**: Relational database for storing product data and user preferences.
-- **SQLAlchemy**: ORM for database interaction.
-- **OpenCV**: Image processing for makeup and AR filter application.
-
-### Frontend
-- **React Native**: Cross-platform mobile app framework.
-- **MediaPipe**: Real-time face detection and landmark tracking.
-- **Three.js**: Rendering of 3D models for virtual products.
 
 ## Project Structure
 
