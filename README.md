@@ -12,3 +12,6 @@ This project is an **Augmented Reality (AR) Virtual Try-On application** designe
 - **Product Customization**: Allows users to adjust the size, color, and position of selected products.
 - **Currently Built on Web**
 - **Cross-Platform Compatibility**: Built with React Native for compatibility across iOS and Android.
+
+## Running
+  - **Please see frontend-web directory for insturctions on how to demo the features**
