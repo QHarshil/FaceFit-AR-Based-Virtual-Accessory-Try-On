@@ -1,54 +1,30 @@
-# Ignore Maven target directory
-backend-java/target/
+# Dependencies
+node_modules/
+package-lock.json
 
-# Ignore build files
-*.class
-*.jar
-*.war
-*.ear
+# Production
+build/
+dist/
 
-# Ignore IntelliJ IDEA files
-.idea/
-*.iml
-out/
+# Environment
+.env
+.env.local
+.env.production
 
-# Ignore Eclipse files
-.project
-.classpath
-.settings/
+# Logs
+*.log
+npm-debug.log*
 
-# Ignore VS Code files
-.vscode/
-
-# Ignore operating system files
+# OS
 .DS_Store
 Thumbs.db
 
-# Ignore logs and temporary files
-*.log
-*.tmp
-*.bak
-
-# Ignore Java-specific files
+# IDE
+.vscode/
+.idea/
 *.swp
 *.swo
-*.~*
 
-# Ignore configuration files
-*.properties
-*.yml
-*.yaml
+# Docker
+.dockerignore
 
-# Ignore dependency folders
-node_modules/
-bower_components/
-
-# Ignore other IDE and editor files
-*.log
-*.history
-*.nfs*
-
-# Ignore Git conflict resolution files
-*.orig
-*.rej
-*~
