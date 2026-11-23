@@ -2,11 +2,13 @@ import { fileURLToPath } from 'node:url';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import * as schema from './schema.js';
+import { products } from './schema.js';
 
 export type AppDb = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 export interface Database {
   db: AppDb;
+  /** Resolves only when the database answers and the products table exists. */
   ping(): Promise<void>;
   migrate(): Promise<void>;
   close(): Promise<void>;
@@ -15,7 +17,14 @@ export interface Database {
 const migrationsFolder = fileURLToPath(new URL('../../drizzle', import.meta.url));
 const PGLITE_PREFIX = 'pglite://';
 
-const openPostgres = async (url: string): Promise<Database> => {
+export interface OpenOptions {
+  queryTimeoutMs?: number;
+}
+
+// Selecting from products fails on an unmigrated database, so readiness covers the schema too.
+const readinessQuery = sql`select 1 from ${products} limit 1`;
+
+const openPostgres = async (url: string, options: OpenOptions): Promise<Database> => {
   const { default: pg } = await import('pg');
   const { drizzle } = await import('drizzle-orm/node-postgres');
   const { migrate } = await import('drizzle-orm/node-postgres/migrator');
@@ -25,6 +34,10 @@ const openPostgres = async (url: string): Promise<Database> => {
     connectionTimeoutMillis: 3_000,
     idleTimeoutMillis: 30_000,
     statement_timeout: 5_000,
+    // statement_timeout is enforced by the server. A server that goes silent needs a client deadline.
+    query_timeout: options.queryTimeoutMs ?? 5_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
   });
   // An idle client that loses its connection emits 'error'; unhandled, it would end the process.
   pool.on('error', () => undefined);
@@ -32,7 +45,7 @@ const openPostgres = async (url: string): Promise<Database> => {
   return {
     db,
     ping: async () => {
-      await db.execute(sql`select 1`);
+      await db.execute(readinessQuery);
     },
     migrate: () => migrate(db, { migrationsFolder }),
     close: () => pool.end(),
@@ -49,12 +62,14 @@ const openPglite = async (location: string): Promise<Database> => {
   return {
     db,
     ping: async () => {
-      await db.execute(sql`select 1`);
+      await db.execute(readinessQuery);
     },
     migrate: () => migrate(db, { migrationsFolder }),
     close: () => client.close(),
   };
 };
 
-export const openDatabase = (url: string): Promise<Database> =>
-  url.startsWith(PGLITE_PREFIX) ? openPglite(url.slice(PGLITE_PREFIX.length)) : openPostgres(url);
+export const openDatabase = (url: string, options: OpenOptions = {}): Promise<Database> =>
+  url.startsWith(PGLITE_PREFIX)
+    ? openPglite(url.slice(PGLITE_PREFIX.length))
+    : openPostgres(url, options);

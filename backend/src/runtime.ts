@@ -19,6 +19,16 @@ export interface RuntimeDeps {
 const HEADERS_TIMEOUT_MS = 15_000;
 const KEEP_ALIVE_TIMEOUT_MS = 5_000;
 
+const withDeadline = (work: Promise<void>, ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    const finish = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+    work.then(finish, finish);
+  });
+
 const closeServer = (server: Server, timeoutMs: number): Promise<void> =>
   new Promise((resolve) => {
     // After the drain deadline, sockets that are still open are cut so shutdown cannot hang.
@@ -58,8 +68,10 @@ export const startServer = async ({
     stopping ??= (async () => {
       shuttingDown = true;
       logger.info('shutdown started');
+      const deadline = Date.now() + config.shutdownTimeoutMs;
       await closeServer(server, config.shutdownTimeoutMs);
-      await database.close();
+      // A pool end waits for checked-out clients, which a silent server never returns.
+      await withDeadline(database.close(), Math.max(0, deadline - Date.now()));
       logger.info('shutdown complete');
     })();
     return stopping;

@@ -11,7 +11,7 @@ Fastify was the alternative; its plugin system adds more than this API needs.
 
 ```sh
 cd backend && npm ci
-export DATABASE_URL=pglite://memory   # Postgres in WASM, no Docker
+export DATABASE_URL=pglite://./.data/facefit   # Postgres in WASM, files in backend/.data
 npm run migrate && npm run seed && npm run dev
 ```
 
@@ -21,17 +21,17 @@ Checks: `npm run lint`, `format:check`, `typecheck`, `test`, `npm audit --audit-
 
 ## Environment
 
-| Variable                   | Default  | Meaning                                                               |
-| -------------------------- | -------- | --------------------------------------------------------------------- |
-| `DATABASE_URL`             | required | `postgres://...` or `pglite://memory` or `pglite://<dir>`             |
-| `PORT`                     | 5055     | Listen port                                                           |
-| `CORS_ORIGINS`             | empty    | Comma-separated allowed origins. No wildcard.                         |
-| `TRUST_PROXY`              | false    | Use the last `X-Forwarded-For` entry as the client key                |
-| `RATE_LIMIT_WINDOW_MS`     | 60000    | Window length                                                         |
-| `RATE_LIMIT_MAX`           | 120      | Requests per client per window                                        |
-| `TELEMETRY_RATE_LIMIT_MAX` | 30       | Telemetry requests per client per window, on top of the general limit |
-| `REQUEST_TIMEOUT_MS`       | 10000    | Handler timeout, answers 504                                          |
-| `SHUTDOWN_TIMEOUT_MS`      | 10000    | Drain time after SIGTERM before sockets are cut                       |
+| Variable                   | Default  | Meaning                                                                                                                        |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`             | required | `postgres://...` or `pglite://<dir>` (persistent, shared by migrate, seed and the server). `pglite://memory` is for tests only |
+| `PORT`                     | 5055     | Listen port                                                                                                                    |
+| `CORS_ORIGINS`             | empty    | Comma-separated allowed origins. No wildcard.                                                                                  |
+| `TRUST_PROXY`              | false    | Use the last `X-Forwarded-For` entry as the client key                                                                         |
+| `RATE_LIMIT_WINDOW_MS`     | 60000    | Window length                                                                                                                  |
+| `RATE_LIMIT_MAX`           | 120      | Requests per client per window                                                                                                 |
+| `TELEMETRY_RATE_LIMIT_MAX` | 30       | Telemetry requests per client per window, on top of the general limit                                                          |
+| `REQUEST_TIMEOUT_MS`       | 10000    | Handler timeout, answers 504                                                                                                   |
+| `SHUTDOWN_TIMEOUT_MS`      | 10000    | Drain time after SIGTERM before sockets are cut                                                                                |
 
 Rate limit counters live in process memory, so each replica counts separately.
 
