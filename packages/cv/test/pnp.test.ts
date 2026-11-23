@@ -113,7 +113,15 @@ describe('solveHeadPose input validation', () => {
     );
   });
 
-  it.each([{ huberScalePx: 0 }, { outlierMadMultiple: -1 }, { maxIterations: 0 }, { maxIterations: 2.5 }])(
+  it.each([
+    { huberScalePx: 0 },
+    { outlierMadMultiple: -1 },
+    { maxIterations: 0 },
+    { maxIterations: 2.5 },
+    { minDepthMm: 0 },
+    { maxDepthMm: Number.NaN },
+    { minDepthMm: 800, maxDepthMm: 600 },
+  ])(
     'rejects options %o',
     (options) => {
       expectFailure(solveHeadPose(frontalPixels(), RIGID_FACE_LANDMARKS, intrinsics, options), 'invalid-options');
@@ -131,6 +139,13 @@ describe('solveHeadPose input validation', () => {
 });
 
 describe('solveHeadPose contract', () => {
+  it('reports a depth outside the configured range', () => {
+    const pixels = frontalPixels();
+    expectFailure(solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { maxDepthMm: 500 }), 'implausible-depth');
+    expectFailure(solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { minDepthMm: 700 }), 'implausible-depth');
+    expect(solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { minDepthMm: 550, maxDepthMm: 650 }).ok).toBe(true);
+  });
+
   it('returns the frontal pose for a noise-free frontal face', () => {
     const solved = solveHeadPose(frontalPixels(), RIGID_FACE_LANDMARKS, intrinsics);
     expect(solved.ok).toBe(true);

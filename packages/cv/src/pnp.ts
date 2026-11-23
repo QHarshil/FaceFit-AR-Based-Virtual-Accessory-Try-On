@@ -30,6 +30,12 @@ export interface SolveHeadPoseOptions {
   readonly minOutlierThresholdPx?: number;
   /** Levenberg-Marquardt iteration cap per refinement round. */
   readonly maxIterations?: number;
+  /**
+   * Plausible range for translationMm[2]. A solve outside it returns
+   * implausible-depth: gross outliers can fit a face kilometres away.
+   */
+  readonly minDepthMm?: number;
+  readonly maxDepthMm?: number;
 }
 
 export type HeadPoseFailureReason =
@@ -43,7 +49,8 @@ export type HeadPoseFailureReason =
   | 'invalid-initial-pose'
   | 'degenerate-model'
   | 'degenerate-image'
-  | 'no-solution';
+  | 'no-solution'
+  | 'implausible-depth';
 
 export interface HeadPoseSolution extends HeadPose {
   readonly ok: true;
@@ -81,6 +88,8 @@ const DEFAULTS = {
   outlierMadMultiple: 3,
   minOutlierThresholdPx: 2,
   maxIterations: 30,
+  minDepthMm: 100,
+  maxDepthMm: 5000,
 };
 
 /**
@@ -228,6 +237,9 @@ function solve(
   if (!Number.isFinite(rms) || !rotation.every(Number.isFinite) || !translationMm.every(Number.isFinite)) {
     return { ok: false, reason: 'no-solution' };
   }
+  if (!(translationMm[2] >= settings.minDepthMm && translationMm[2] <= settings.maxDepthMm)) {
+    return { ok: false, reason: 'implausible-depth' };
+  }
   return { ok: true, rotation, translationMm, rmsReprojectionPx: rms, inlierIndices: inliers, iterations };
 }
 
@@ -250,9 +262,18 @@ function resolveSettings(options: SolveHeadPoseOptions): Settings | null {
     outlierMadMultiple: options.outlierMadMultiple ?? DEFAULTS.outlierMadMultiple,
     minOutlierThresholdPx: options.minOutlierThresholdPx ?? DEFAULTS.minOutlierThresholdPx,
     maxIterations: options.maxIterations ?? DEFAULTS.maxIterations,
+    minDepthMm: options.minDepthMm ?? DEFAULTS.minDepthMm,
+    maxDepthMm: options.maxDepthMm ?? DEFAULTS.maxDepthMm,
   };
-  const positive = [settings.huberScalePx, settings.outlierMadMultiple, settings.minOutlierThresholdPx];
+  const positive = [
+    settings.huberScalePx,
+    settings.outlierMadMultiple,
+    settings.minOutlierThresholdPx,
+    settings.minDepthMm,
+    settings.maxDepthMm,
+  ];
   if (!positive.every((value) => Number.isFinite(value) && value > 0)) return null;
+  if (!(settings.maxDepthMm > settings.minDepthMm)) return null;
   if (!Number.isInteger(settings.maxIterations) || settings.maxIterations < 1) return null;
   return settings;
 }

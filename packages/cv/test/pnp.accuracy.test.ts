@@ -316,7 +316,16 @@ describe('solveHeadPose rejection of heavily weighted landmarks', () => {
   });
 });
 
-describe('solveHeadPose initial pose', () => {
+describe('solveHeadPose initial pose and plausibility', () => {
+  const RAD_PER_DEG = 1 / RAD_TO_DEG;
+  const moveOnePoint = (random: SeededRandom, pixels: Vec2[], minPx: number, maxPx: number): void => {
+    const index = random.integer(pixels.length);
+    const angle = random.uniform(0, 2 * Math.PI);
+    const distance = random.uniform(minPx, maxPx);
+    const pixel = pixels[index]!;
+    pixels[index] = [pixel[0] + distance * Math.cos(angle), pixel[1] + distance * Math.sin(angle)];
+  };
+
   it('recovers far, strongly yawed faces that EPnP can return mirrored in depth', () => {
     // A chi-3 variable exceeds 6 with probability 7e-8, so no correct solve
     // among 1000 does. A depth-mirrored pose is off by tens of degrees.
@@ -333,5 +342,33 @@ describe('solveHeadPose initial pose', () => {
       worst = Math.max(worst, whitenedPoseError(truth, solved, covariance).rotation);
     }
     expect(worst).toBeLessThan(6);
+  });
+
+  it('is within 5 degrees whenever it succeeds with one point moved 100 to 300 px', () => {
+    const random = seededRandom(400);
+    let succeeded = 0;
+    for (let trial = 0; trial < 2000; trial++) {
+      const truth = sampleHeadPose(random, intrinsics);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
+      moveOnePoint(random, pixels, 100, 300);
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+      if (!solved.ok) continue;
+      succeeded++;
+      expect(angleBetweenRotations(truth.rotation, solved.rotation)).toBeLessThan(5 * RAD_PER_DEG);
+    }
+    expect(succeeded).toBeGreaterThanOrEqual(1980);
+  });
+
+  it('never succeeds with a depth outside the plausible range when one point is 700 px off', () => {
+    const random = seededRandom(401);
+    for (let trial = 0; trial < 1000; trial++) {
+      const truth = sampleHeadPose(random, intrinsics);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
+      moveOnePoint(random, pixels, 700, 700);
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+      if (!solved.ok) continue;
+      expect(solved.translationMm[2]).toBeGreaterThanOrEqual(100);
+      expect(solved.translationMm[2]).toBeLessThanOrEqual(5000);
+    }
   });
 });
