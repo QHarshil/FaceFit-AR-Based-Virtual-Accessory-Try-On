@@ -69,11 +69,17 @@ export interface HeadPoseFailure {
 
 export type HeadPoseResult = HeadPoseSolution | HeadPoseFailure;
 
-/** EPnP needs four points; fewer leave the pose ambiguous. */
-export const MIN_POINTS = 4;
+/**
+ * From six points EPnP's null space is one-dimensional for exact data, so the
+ * control points follow linearly up to scale. Four points leave four
+ * dimensions whose ten quadratic coefficients six distance constraints cannot
+ * fix, and noise-free solves return wrong poses. Five leave two dimensions,
+ * exact without noise, but pixel noise can send them to a wrong pose.
+ */
+export const MIN_POINTS = 6;
 
-/** Rejection never leaves fewer than this many points, so 12 equations constrain 6 unknowns. */
-const MIN_INLIERS_AFTER_REJECTION = 6;
+/** Rejection never leaves fewer than the minimum, so 12 equations constrain 6 unknowns. */
+const MIN_INLIERS_AFTER_REJECTION = MIN_POINTS;
 const MAX_REJECTION_ROUNDS = 4;
 /** Scales the MAD to a standard deviation for Gaussian data. */
 const MAD_TO_SIGMA = 1.4826;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateIntrinsics, type CameraIntrinsics } from '../src/camera.ts';
 import { RIGID_FACE_LANDMARKS } from '../src/faceModel.ts';
 import { mat3Multiply, mat3MulVec3, type Mat3, type Vec2, type Vec3 } from '../src/linalg.ts';
-import { solveHeadPose, type HeadPose, type HeadPoseResult, type WeightedModelPoint } from '../src/pnp.ts';
+import { MIN_POINTS, solveHeadPose, type HeadPose, type HeadPoseResult, type WeightedModelPoint } from '../src/pnp.ts';
 import { angleBetweenRotations, isRotationMatrix, rotationMatrixFromVector } from '../src/rotation.ts';
 import { seededRandom } from './random.ts';
 import { percentile, projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
@@ -27,14 +27,26 @@ function expectFiniteSolution(result: HeadPoseResult): void {
 }
 
 describe('solveHeadPose input validation', () => {
-  it('rejects fewer points than the EPnP minimum', () => {
-    const model = RIGID_FACE_LANDMARKS.slice(0, 3);
-    expectFailure(solveHeadPose(frontalPixels(model), model, intrinsics), 'too-few-points');
+  it('rejects five points and recovers six exactly', () => {
+    // Four points return wrong poses even without noise; see MIN_POINTS.
+    expect(MIN_POINTS).toBe(6);
+    const random = seededRandom(40);
+    for (let trial = 0; trial < 500; trial++) {
+      const subset = new Set<number>();
+      while (subset.size < MIN_POINTS) subset.add(random.integer(RIGID_FACE_LANDMARKS.length));
+      const model = [...subset].map((index) => RIGID_FACE_LANDMARKS[index]!);
+      const truth = sampleHeadPose(random, intrinsics);
+      const pixels = projectWithNoise(truth, model, intrinsics, 0, random);
+      expectFailure(solveHeadPose(pixels.slice(1), model.slice(1), intrinsics), 'too-few-points');
+      const solved = solveHeadPose(pixels, model, intrinsics);
+      expect(solved.ok).toBe(true);
+      if (solved.ok) expect(angleBetweenRotations(solved.rotation, truth.rotation)).toBeLessThan(1e-6);
+    }
     expectFailure(solveHeadPose([], [], intrinsics), 'too-few-points');
   });
 
   it('counts only points with positive weight toward the minimum', () => {
-    const model = RIGID_FACE_LANDMARKS.map((point, index) => ({ ...point, weight: index < 3 ? 1 : 0 }));
+    const model = RIGID_FACE_LANDMARKS.map((point, index) => ({ ...point, weight: index < MIN_POINTS - 1 ? 1 : 0 }));
     expectFailure(solveHeadPose(frontalPixels(), model, intrinsics), 'too-few-points');
   });
 
