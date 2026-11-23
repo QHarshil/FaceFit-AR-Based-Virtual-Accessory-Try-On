@@ -183,4 +183,14 @@ describe('TryOn', () => {
     expect(await screen.findByText(/3D rendering is unavailable/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back to catalogue' })).toBeInTheDocument();
   });
+
+  it('releases the camera and worker once the error screen replaces the try-on', async () => {
+    getProductById.mockResolvedValue(PRODUCTS[0]);
+    webgl.available = false;
+    renderTryOn();
+    await screen.findByText(/3D rendering is unavailable/);
+
+    expect(tracking.start).toHaveBeenCalled();
+    expect(tracking.stop).toHaveBeenCalledTimes(tracking.start.mock.calls.length);
+  });
 });

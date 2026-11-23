@@ -66,9 +66,11 @@ function TryOn() {
     };
   }, [id]);
 
+  // Depends on `error` so the camera and worker stop once the error screen,
+  // which has no video element, replaces the try-on.
   useEffect(() => {
     const video = videoRef.current;
-    if (!product || !video) {
+    if (!product || !video || error) {
       return;
     }
 
@@ -118,7 +120,7 @@ function TryOn() {
       tracking.stop();
       setCameraReady(false);
     };
-  }, [product]);
+  }, [product, error]);
 
   const reportRenderError = useCallback(
     (err: unknown) => {
