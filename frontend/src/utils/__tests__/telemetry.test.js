@@ -5,6 +5,7 @@ describe('sendTelemetry', () => {
   const originalFetch = global.fetch;
 
   afterEach(() => {
+    delete window.navigator.sendBeacon;
     if (originalNavigator) {
       global.navigator = originalNavigator;
     } else {
@@ -20,7 +21,8 @@ describe('sendTelemetry', () => {
 
   it('uses navigator.sendBeacon when available', async () => {
     const sendBeacon = jest.fn().mockReturnValue(true);
-    global.navigator = { sendBeacon };
+    // jsdom's navigator is not assignable; define the method on it instead.
+    Object.defineProperty(window.navigator, 'sendBeacon', { value: sendBeacon, configurable: true });
     global.fetch = jest.fn();
 
     const result = await sendTelemetry('catalogue_loaded', { count: 4 });
