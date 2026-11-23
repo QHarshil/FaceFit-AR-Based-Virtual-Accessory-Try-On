@@ -1,0 +1,30 @@
+{
+  "measuredAt": "2026-11-23T19:49:51.330Z",
+  "commit": "60272b767c79cf712255481609658485785e94fe",
+  "dirty": false,
+  "command": "npm run bench (packages/cv)",
+  "hardware": {
+    "cpu": "Apple M4 Pro",
+    "cores": 14,
+    "memoryGB": 24,
+    "os": "darwin 25.6.0",
+    "node": "v25.1.0"
+  },
+  "setup": {
+    "solves": 1000,
+    "warmupSolves": 200,
+    "landmarks": 33,
+    "sigmaPx": 1,
+    "intrinsics": "1280x720, 62 deg horizontal FOV",
+    "independentPoses": "yaw +-45, pitch +-30, roll +-30 deg, 350 to 900 mm",
+    "trackingPoses": "random walk from one sampled pose, 0.01 rad and 2 mm per axis per frame"
+  },
+  "independentFrames": {
+    "p50Us": 76.3,
+    "p95Us": 109
+  },
+  "trackingWithWarmStart": {
+    "p50Us": 73.1,
+    "p95Us": 99.6
+  }
+}
