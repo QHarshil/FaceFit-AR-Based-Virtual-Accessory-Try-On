@@ -29,7 +29,7 @@ const pose = solveHeadPose(imagePoints, RIGID_FACE_LANDMARKS, intrinsics, { init
 npm install
 npm test            # Vitest, synthetic ground truth with seeded noise
 npm run typecheck   # tsc --noEmit
-npm run bench       # solve time over 1,000 solves; writes bench/results.json
+npm run bench       # solve time over 1,000 solves; merges into eval/results.json
 ```
 
 The bench runs TypeScript directly, which needs Node 22.18 or newer.

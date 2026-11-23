@@ -1,7 +1,8 @@
-// Solve time for solveHeadPose in Node. Writes bench/results.json next to
-// this file. Reports numbers; asserts nothing.
+// Solve time for solveHeadPose in Node. Merges its entry into
+// eval/results.json, the repository's single record of measured numbers.
+// Reports numbers; asserts nothing.
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { estimateIntrinsics } from '../src/camera.ts';
@@ -12,6 +13,9 @@ import { rotationMatrixFromVector } from '../src/rotation.ts';
 import { seededRandom } from '../test/random.ts';
 import { percentile, projectWithNoise, sampleHeadPose } from '../test/syntheticPose.ts';
 
+const RESULTS_KEY = 'cv-solveHeadPose';
+const REPO = fileURLToPath(new URL('../../../', import.meta.url));
+const RESULTS = fileURLToPath(new URL('../../../eval/results.json', import.meta.url));
 const SOLVES = 1000;
 const WARMUP_SOLVES = 200;
 const SIGMA_PX = 1;
@@ -23,7 +27,7 @@ const intrinsics = estimateIntrinsics({ width: 1280, height: 720, horizontalFovD
 if (!intrinsics) throw new Error('invalid bench intrinsics');
 
 function git(...args: string[]): string {
-  return execFileSync('git', args, { encoding: 'utf8' }).trim();
+  return execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
 }
 
 function timeSolves(frames: readonly Vec2[][], warmStart: boolean): number[] {
@@ -62,16 +66,20 @@ const trackingFrames = Array.from({ length: SOLVES }, () => {
   return projectWithNoise(pose, RIGID_FACE_LANDMARKS, intrinsics, SIGMA_PX, random);
 });
 
-const dirty = git('status', '--porcelain').length > 0;
+// A number in eval/results.json must come from a committed tree; the results file itself may differ.
+const dirty = git('status', '--porcelain')
+  .split('\n')
+  .some((line) => line && !line.endsWith('eval/results.json'));
 timeSolves(independentFrames.slice(0, WARMUP_SOLVES), false);
 const cold = timeSolves(independentFrames, false);
 const tracking = timeSolves(trackingFrames, true);
 
 const summary = (micros: number[]) => ({
+  n: micros.length,
   p50Us: Number(percentile(micros, 0.5).toFixed(1)),
   p95Us: Number(percentile(micros, 0.95).toFixed(1)),
 });
-const results = {
+const entry = {
   measuredAt: new Date().toISOString(),
   commit: git('rev-parse', 'HEAD'),
   dirty,
@@ -96,5 +104,13 @@ const results = {
   trackingWithWarmStart: summary(tracking),
 };
 
-writeFileSync(fileURLToPath(new URL('./results.json', import.meta.url)), `${JSON.stringify(results, null, 2)}\n`);
-console.log(JSON.stringify(results, null, 2));
+console.log(JSON.stringify(entry, null, 2));
+if (dirty) {
+  console.error(`working tree is dirty; commit first. ${RESULTS} not updated.`);
+  process.exitCode = 1;
+} else {
+  const results = existsSync(RESULTS) ? JSON.parse(readFileSync(RESULTS, 'utf8')) : { runs: {} };
+  results.runs[RESULTS_KEY] = entry;
+  writeFileSync(RESULTS, `${JSON.stringify(results, null, 2)}\n`);
+  console.log(`wrote runs["${RESULTS_KEY}"] to ${RESULTS}`);
+}
