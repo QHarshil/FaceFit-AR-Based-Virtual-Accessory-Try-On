@@ -180,10 +180,10 @@ describe('solveHeadPose contract', () => {
   });
 
   it('takes fewer iterations from the previous frame than from a cold start', () => {
-    // Two landmarks glitch by 100 px in the new frame. EPnP has no robust
-    // loss, so they drag its pose, while the previous frame's pose is off by
-    // the head motion only. Without glitches EPnP is already within the noise
-    // scale of the answer and both starts take about four iterations.
+    // Two landmarks glitch by 100 px in the new frame. EPnP has no
+    // robust loss, so they drag its pose, while the previous frame's pose is
+    // off by the head motion only. Without glitches EPnP is already within the
+    // noise scale of the answer and both starts take about four iterations.
     const random = seededRandom(41);
     let warmIterations = 0;
     let coldIterations = 0;
