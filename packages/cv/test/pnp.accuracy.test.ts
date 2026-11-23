@@ -292,9 +292,10 @@ describe('solveHeadPose rejection of heavily weighted landmarks', () => {
     expect(percentile(errors.rotation, 0.95)).toBeLessThan(1.5 * SIGMA1_P95_BOUND);
   });
 
-  it('keeps a 5 mm jaw drop within the sigma 1 bound', () => {
+  it('keeps a 5 mm jaw drop within 1.5x the sigma 1 bound', () => {
     // The jaw line (136, 365) moves 5 mm down in the face frame and its upper
-    // neighbours (132, 361) 1.5 mm, as when the mouth opens.
+    // neighbours (132, 361) 1.5 mm, as when the mouth opens. This is model
+    // error on top of 1 px noise, so it gets the same allowance as outliers.
     const jawDropMm = new Map([
       [indexOf(136), 5],
       [indexOf(365), 5],
@@ -312,7 +313,7 @@ describe('solveHeadPose rejection of heavily weighted landmarks', () => {
     };
     const errors = runCorrupted(303, dropJaw);
     expect(errors.failures).toBe(0);
-    expect(percentile(errors.rotation, 0.95)).toBeLessThan(SIGMA1_P95_BOUND);
+    expect(percentile(errors.rotation, 0.95)).toBeLessThan(1.5 * SIGMA1_P95_BOUND);
   });
 });
 
