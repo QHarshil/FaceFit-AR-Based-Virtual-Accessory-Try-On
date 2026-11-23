@@ -3,13 +3,17 @@
 //
 //   node eval/harness/baseline.mjs --source recordings
 //   node eval/harness/baseline.mjs --source recordings --allow-dirty   (writes to eval/.cache only)
+//   node eval/harness/baseline.mjs --source recordings --clips <dir> --label <name>
+//
+// --clips reads the Y4M clips from another checkout. --label is the key under
+// `runs` in results.json (default: baseline-<source>).
 //
 // Builds the production bundle, serves it with the catalog API, replays each
 // clip in Chrome as the fake camera, and summarizes the probe events.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { cpus, totalmem } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONDITIONS, PRODUCTS, RECORDED } from './conditions.mjs';
 import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, wrapLineAngle } from './metrics.mjs';
@@ -27,7 +31,10 @@ const arg = (name, fallback) => {
   return i > 0 ? process.argv[i + 1] : fallback;
 };
 const source = arg('source', 'recordings');
+const label = arg('label', `baseline-${source}`);
 const allowDirty = process.argv.includes('--allow-dirty');
+// The clip directory is machine-specific, so the recorded command omits its value.
+const commandArgs = process.argv.slice(2).map((a, i, all) => (all[i - 1] === '--clips' ? '<dir>' : a));
 const git = (...args) => execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
 
 const dirty = git('status', '--porcelain').split('\n').filter((line) => line && !line.endsWith('eval/results.json'));
@@ -36,7 +43,7 @@ if (dirty.length && !allowDirty) {
   process.exit(1);
 }
 
-const clipDir = join(EVAL, '.cache', 'clips', source);
+const clipDir = arg('clips') ? resolve(arg('clips')) : join(EVAL, '.cache', 'clips', source);
 const runDir = join(EVAL, '.cache', 'runs', source);
 const screenDir = join(EVAL, '.cache', 'screens', source);
 for (const dir of [runDir, screenDir]) mkdirSync(dir, { recursive: true });
@@ -44,11 +51,11 @@ for (const dir of [runDir, screenDir]) mkdirSync(dir, { recursive: true });
 console.log('building frontend');
 execFileSync('npm', ['run', 'build'], {
   cwd: join(REPO, 'frontend'),
-  env: { ...process.env, REACT_APP_API_URL: `http://localhost:${API_PORT}`, GENERATE_SOURCEMAP: 'false' },
+  env: { ...process.env, VITE_API_URL: `http://localhost:${API_PORT}` },
   stdio: 'ignore',
 });
 const api = spawn('node', ['server.js'], { cwd: join(REPO, 'backend'), env: { ...process.env, PORT: String(API_PORT) }, stdio: 'ignore' });
-const web = await serveBuild(join(REPO, 'frontend', 'build'), WEB_PORT);
+const web = await serveBuild(join(REPO, 'frontend', 'dist'), WEB_PORT);
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
 const conditions = [...CONDITIONS, ...PRODUCTS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
@@ -185,7 +192,7 @@ const entry = roundAll({
   measuredAt: new Date().toISOString(),
   commit: git('rev-parse', 'HEAD'),
   dirty: dirty.length > 0,
-  command: `node eval/harness/baseline.mjs --source ${source}`,
+  command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
   pipeline: `@mediapipe/face_mesh ${facemeshVersion} (WASM and model from unpinned jsdelivr), heuristic Euler pose, lerp/slerp alpha 0.3`,
   hardware: {
     cpu: cpus()[0].model,
@@ -204,6 +211,6 @@ const entry = roundAll({
 
 const out = allowDirty && dirty.length ? join(EVAL, '.cache', 'results-dirty.json') : RESULTS;
 const results = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : { runs: {} };
-results.runs[`baseline-${source}`] = entry;
+results.runs[label] = entry;
 writeFileSync(out, `${JSON.stringify(results, null, 2)}\n`);
 console.log(`wrote ${out}`);

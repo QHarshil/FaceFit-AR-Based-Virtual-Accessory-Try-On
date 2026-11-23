@@ -1,55 +1,31 @@
 #!/bin/bash
+set -e
 
-echo "🚀 Starting FaceFit AR..."
-echo ""
-
-# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    echo "❌ Docker is not installed. Please install Docker first."
+    echo "Docker is not installed. Install Docker first."
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
-    exit 1
-fi
-
-echo "✅ Docker and Docker Compose are installed"
-echo ""
-
-# Stop any existing containers
-echo "🛑 Stopping existing containers..."
-docker-compose down 2>/dev/null || docker compose down 2>/dev/null
-
-echo ""
-echo "🔨 Building and starting containers..."
-echo ""
-
-# Build and start containers
-if docker-compose up --build -d; then
-    echo ""
-    echo "✅ FaceFit AR is now running!"
-    echo ""
-    echo "📱 Access the application at: http://localhost:3000"
-    echo "🔧 Backend API running at: http://localhost:5000"
-    echo ""
-    echo "📋 View logs with: docker-compose logs -f"
-    echo "🛑 Stop with: docker-compose down"
-    echo ""
-elif docker compose up --build -d; then
-    echo ""
-    echo "✅ FaceFit AR is now running!"
-    echo ""
-    echo "📱 Access the application at: http://localhost:3000"
-    echo "🔧 Backend API running at: http://localhost:5000"
-    echo ""
-    echo "📋 View logs with: docker compose logs -f"
-    echo "🛑 Stop with: docker compose down"
-    echo ""
+if docker compose version &> /dev/null; then
+    compose=(docker compose)
+elif command -v docker-compose &> /dev/null; then
+    compose=(docker-compose)
 else
-    echo ""
-    echo "❌ Failed to start containers"
+    echo "Docker Compose is not installed. Install Docker Compose first."
     exit 1
 fi
 
+"${compose[@]}" down 2>/dev/null || true
+
+if "${compose[@]}" up --build -d; then
+    echo ""
+    echo "FaceFit AR is running."
+    echo "App: http://localhost:3000"
+    echo "API: http://localhost:5055"
+    echo ""
+    echo "Logs: ${compose[*]} logs -f"
+    echo "Stop: ${compose[*]} down"
+else
+    echo "Failed to start containers."
+    exit 1
+fi

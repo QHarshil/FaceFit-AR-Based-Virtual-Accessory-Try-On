@@ -1,14 +1,12 @@
-version: '3.8'
-
 services:
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5055
     ports:
-      - "3000:3000"
-    environment:
-      - REACT_APP_API_URL=http://localhost:5000
+      - "3000:80"
     depends_on:
       - backend
     networks:
@@ -19,13 +17,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "5055:5055"
     environment:
-      - PORT=5000
+      - PORT=5055
     networks:
       - facefit-network
 
 networks:
   facefit-network:
     driver: bridge
-

@@ -44,7 +44,10 @@
   font-weight: 600;
   color: #e2e8f0;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .back-button:hover {

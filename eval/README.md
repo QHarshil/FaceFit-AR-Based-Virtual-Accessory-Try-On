@@ -11,6 +11,7 @@ cd eval && npm install
 fixtures/record.sh static 12 && fixtures/record.sh blink 12   # webcam clips, macOS
 node fixtures/build.mjs --source recordings                   # Y4M clips in .cache/ (about 2 GB)
 node harness/baseline.mjs --source recordings                 # refuses a dirty working tree
+node harness/baseline.mjs --source recordings --clips <dir> --label <name>   # clips from another checkout, results key
 npm test
 ```
 

@@ -60,10 +60,10 @@ facefit-ar/
 │   ├── Dockerfile
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── ARTryOn.js # MediaPipe + Three.js pipeline
+│   │   │   └── ARTryOn.tsx # Three.js scene and pose
 │   │   └── pages/
-│   │       ├── Home.js    # Product gallery
-│   │       └── TryOn.js   # AR interface
+│   │       ├── Home.tsx    # Product gallery
+│   │       └── TryOn.tsx   # AR interface
 │   └── public/models/     # GLB eyewear assets
 ├── docker-compose.yml
 └── start.sh
@@ -76,7 +76,7 @@ facefit-ar/
 ```bash
 ./start.sh
 # Frontend: http://localhost:3000
-# API: http://localhost:5000
+# API: http://localhost:5055
 ```
 
 ### Local Development
@@ -86,7 +86,7 @@ facefit-ar/
 cd backend && npm install && npm start
 
 # Terminal 2
-cd frontend && npm install && npm start
+cd frontend && npm install && npm run dev   # http://localhost:3000
 ```
 
 ## API
