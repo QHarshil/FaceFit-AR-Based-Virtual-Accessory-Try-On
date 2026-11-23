@@ -27,7 +27,6 @@ const products = [
     },
     dimensionsSource: 'nominal',
     attribution: {
-      title: 'Glasses',
       author: 'AlbertVictory',
       authorUrl: 'https://sketchfab.com/albert_victory',
       sourceUrl: 'https://sketchfab.com/3d-models/glasses-4b8a1e54f3084c63828fe8c324198aec',
@@ -51,7 +50,6 @@ const products = [
     },
     dimensionsSource: 'nominal',
     attribution: {
-      title: 'Ray Ban Glasses',
       author: 'Agha.Najam',
       authorUrl: 'https://sketchfab.com/Agha.Najam',
       sourceUrl: 'https://sketchfab.com/3d-models/ray-ban-glasses-bb3a3736110a41bdacc9f92e11831a41',
@@ -75,7 +73,6 @@ const products = [
     },
     dimensionsSource: 'nominal',
     attribution: {
-      title: 'Deal with it glasses [Original]',
       author: 'BasicModel',
       authorUrl: 'https://sketchfab.com/BasicModel',
       sourceUrl: 'https://sketchfab.com/3d-models/deal-with-it-glasses-original-1c5b6d8f43754e3ba9643b96f6e4c27e',
@@ -99,7 +96,6 @@ const products = [
     },
     dimensionsSource: 'nominal',
     attribution: {
-      title: 'Glasses 09',
       author: 'Dokono Kinokoda',
       authorUrl: 'https://sketchfab.com/JunkWren',
       sourceUrl: 'https://sketchfab.com/3d-models/glasses-09-5d4ef7145b1b426cb129e3d661f7c2e6',
