@@ -6,7 +6,7 @@ Browser-based eyewear virtual try-on using MediaPipe Face Landmarker and Three.j
 
 This project investigates lightweight facial landmark detection for consumer AR applications:
 
-- **Landmark-based pose estimation** — Uses MediaPipe Face Landmarker (478 landmarks) instead of custom CNN detectors, running in a Web Worker at camera rate.
+- **Landmark-based pose estimation**: MediaPipe Face Landmarker (478 landmarks) in place of custom CNN detectors, running in a Web Worker at camera rate.
 - **Client-side geometry pipeline** — Computes head pose via classical linear algebra (orthonormal basis from eye/forehead vectors) rather than PnP solving, maintaining 60 FPS on laptop webcams.
 - **Modular AR architecture** — Separates perception (MediaPipe), geometric reasoning (pose computation), and rendering (Three.js) into distinct pipeline stages.
 
