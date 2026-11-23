@@ -44,7 +44,7 @@ describe('rotation vector exp and log maps', () => {
       const p: Vec3 = [random.uniform(-100, 100), random.uniform(-100, 100), random.uniform(-100, 100)];
       const expected = rodrigues(axis, angle, p);
       const actual = mat3MulVec3(r, p);
-      for (let i = 0; i < 3; i++) expect(Math.abs(actual[i]! - expected[i]!)).toBeLessThan(1e-12);
+      for (let i = 0; i < 3; i++) expect(Math.abs(actual[i] - expected[i])).toBeLessThan(1e-12);
     }
   });
 
@@ -57,7 +57,7 @@ describe('rotation vector exp and log maps', () => {
         const back = rotationVectorFromMatrix(rotationMatrixFromVector(v));
         // Absolute error near round-off of a unit-scale matrix; relative for tiny angles.
         const tolerance = Math.max(1e-12 * angle, 1e-15) + (angle > 3 ? 1e-9 : 0);
-        for (let i = 0; i < 3; i++) expect(Math.abs(back[i]! - v[i]!)).toBeLessThanOrEqual(tolerance);
+        for (let i = 0; i < 3; i++) expect(Math.abs(back[i] - v[i])).toBeLessThanOrEqual(tolerance);
       }
     }
   });
@@ -74,7 +74,7 @@ describe('quaternion and matrix conversions', () => {
       expect(q.w).toBeGreaterThanOrEqual(0);
       expect(Math.abs(Math.hypot(q.w, q.x, q.y, q.z) - 1)).toBeLessThan(1e-14);
       const back = matrixFromQuaternion(q);
-      for (let i = 0; i < 9; i++) expect(Math.abs(back[i]! - r[i]!)).toBeLessThan(1e-14);
+      for (let i = 0; i < 9; i++) expect(Math.abs(back[i] - r[i])).toBeLessThan(1e-14);
       expect(isRotationMatrix(back, 1e-12)).toBe(true);
     }
   });
@@ -86,7 +86,7 @@ describe('quaternion and matrix conversions', () => {
       const b = rotationMatrixFromVector(scaled(randomUnitVector(random), random.uniform(0, Math.PI)));
       const composed = matrixFromQuaternion(quaternionMultiply(quaternionFromMatrix(a), quaternionFromMatrix(b)));
       const expected = mat3Multiply(a, b);
-      for (let i = 0; i < 9; i++) expect(Math.abs(composed[i]! - expected[i]!)).toBeLessThan(1e-14);
+      for (let i = 0; i < 9; i++) expect(Math.abs(composed[i] - expected[i])).toBeLessThan(1e-14);
     }
   });
 });

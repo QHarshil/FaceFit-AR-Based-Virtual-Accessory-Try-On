@@ -13,10 +13,10 @@ function projectThroughGlMatrix(matrix: Float64Array, intrinsics: CameraIntrinsi
   const eye = [point[0], -point[1], -point[2], 1];
   const clip = [0, 0, 0, 0];
   for (let row = 0; row < 4; row++) {
-    for (let col = 0; col < 4; col++) clip[row]! += matrix[col * 4 + row]! * eye[col]!;
+    for (let col = 0; col < 4; col++) clip[row] += matrix[col * 4 + row] * eye[col];
   }
-  const ndcX = clip[0]! / clip[3]!;
-  const ndcY = clip[1]! / clip[3]!;
+  const ndcX = clip[0] / clip[3];
+  const ndcY = clip[1] / clip[3];
   return [((ndcX + 1) / 2) * intrinsics.width, ((1 - ndcY) / 2) * intrinsics.height];
 }
 
@@ -83,7 +83,7 @@ describe('projectionMatrixFromIntrinsics', () => {
   it('maps the near and far planes to NDC depth -1 and 1', () => {
     const intrinsics = estimateIntrinsics({ width: 1280, height: 720, horizontalFovDeg: 62 })!;
     const matrix = projectionMatrixFromIntrinsics(intrinsics, 20, 3000)!;
-    const ndcDepth = (eyeZ: number): number => (matrix[10]! * eyeZ + matrix[14]!) / (matrix[11]! * eyeZ);
+    const ndcDepth = (eyeZ: number): number => (matrix[10] * eyeZ + matrix[14]) / (matrix[11] * eyeZ);
     expect(ndcDepth(-20)).toBeCloseTo(-1, 12);
     expect(ndcDepth(-3000)).toBeCloseTo(1, 12);
   });
