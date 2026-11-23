@@ -41,7 +41,7 @@ const catalogModel = z.object({
 
 const catalogFile = z.object({ models: z.array(catalogModel).min(1) });
 
-// Models keep the placeholder GLB paths until the pose integration serves the normalised assets.
+// modelPath stays on the existing /models/glassesN.glb files, which the frontend serves today.
 export const catalogToRows = (raw: unknown): ProductRow[] =>
   catalogFile.parse(raw).models.map((model) => ({
     id: model.id,
