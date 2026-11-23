@@ -16,10 +16,12 @@ const pose = solveHeadPose(imagePoints, RIGID_FACE_LANDMARKS, intrinsics, { init
 ```
 
 - `estimateIntrinsics` assumes square pixels and a centred principal point. Returns `null` for a non-positive size or a FOV outside (0, 180) degrees.
+- `isValidIntrinsics(intrinsics)` is true when the focal lengths and image size are positive and finite and the principal point is finite.
+- `projectPoint(intrinsics, pointCamera)` returns the pixel of a point in solver camera coordinates, or `null` at or behind the camera plane.
 - `projectionMatrixFromIntrinsics(intrinsics, near, far)` returns a column-major 4x4 `Float64Array` for an OpenGL eye space that looks down -z. A solver camera point `(x, y, z)` is `(x, -y, -z)` in that space. Returns `null` for invalid input.
-- `RIGID_FACE_LANDMARKS` holds the 33 Procrustes landmarks from MediaPipe's canonical face model, in millimetres, keyed by Face Mesh landmark index, with weights that sum to 1. Blink-affected landmarks are downweighted; see `src/faceModel.ts`.
+- `RIGID_FACE_LANDMARKS` holds the 33 Procrustes landmarks from MediaPipe's canonical face model, in millimetres, keyed by Face Mesh landmark index, with weights that sum to 1. Blink-affected landmarks are downweighted; see `src/faceModel.ts`. `RIGID_FACE_LANDMARK_INDICES` lists the same indices in order.
 - `solveHeadPose(imagePoints, modelPoints, intrinsics, options)` pairs `imagePoints[i]` (pixels) with `modelPoints[i]`. It returns `{ ok: true, rotation, translationMm, rmsReprojectionPx, inlierIndices, iterations }`, where a model point `p` maps to `rotation * p + translationMm` in camera coordinates (x right, y down, z forward). On bad input, or a depth outside `minDepthMm` to `maxDepthMm` (default 100 to 5000), it returns `{ ok: false, reason }`. It never throws and never returns NaN. Points with weight 0 are ignored. At least `MIN_POINTS` (6) need positive weight, and the model points must span 3D.
-- `rotation.ts` exports quaternion and matrix conversions, rotation-vector exp and log maps, and the angle between two rotations.
+- `rotation.ts` exports quaternion and matrix conversions, rotation-vector exp and log maps, and the angle between two rotations; `linalg.ts` exports the 3x3 matrix helpers and the `Mat3`, `Vec2` and `Vec3` types.
 
 ## Commands
 
