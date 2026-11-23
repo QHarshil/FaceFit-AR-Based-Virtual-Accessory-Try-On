@@ -17,11 +17,11 @@ export interface HeadPose {
 export interface SolveHeadPoseOptions {
   /**
    * Previous pose for tracking. It is a second starting point next to EPnP;
-   * refinement starts from whichever has the lower robust cost.
+   * refinement starts from whichever has the lower Huber cost.
    */
   readonly initialPose?: HeadPose;
   /** Huber loss scale on the per-point reprojection error, in pixels. */
-  readonly robustLossScalePx?: number;
+  readonly huberScalePx?: number;
   /** Set false to keep every point; the Huber loss still applies. */
   readonly rejectOutliers?: boolean;
   /** k in the outlier threshold median + k * 1.4826 * MAD of residual norms. */
@@ -76,7 +76,7 @@ const COLLINEAR_VARIANCE_RATIO = 1e-12;
 const PLANAR_VARIANCE_RATIO = 1e-6;
 
 const DEFAULTS = {
-  robustLossScalePx: 3,
+  huberScalePx: 3,
   rejectOutliers: true,
   outlierMadMultiple: 3,
   minOutlierThresholdPx: 2,
@@ -114,6 +114,10 @@ function solve(
   if (!settings) return { ok: false, reason: 'invalid-options' };
   if (imagePoints.length !== modelPoints.length) return { ok: false, reason: 'mismatched-lengths' };
   if (!isValidIntrinsics(intrinsics)) return { ok: false, reason: 'invalid-intrinsics' };
+  const warm = options.initialPose;
+  if (warm && (!isRotationMatrix(warm.rotation, 1e-6) || !warm.translationMm.every(Number.isFinite))) {
+    return { ok: false, reason: 'invalid-initial-pose' };
+  }
 
   const n = imagePoints.length;
   const pixels = new Float64Array(2 * n);
@@ -139,7 +143,7 @@ function solve(
 
   // Weights normalized to mean 1 keep the Huber scale in plain pixels.
   const meanWeight = active.reduce((sum, i) => sum + weights[i], 0) / active.length;
-  for (const i of active) weights[i] = weights[i] / meanWeight;
+  for (const i of active) weights[i] /= meanWeight;
 
   // Centring the model on its weighted centroid decouples rotation from translation in LM.
   const centroid: [number, number, number] = [0, 0, 0];
@@ -157,7 +161,7 @@ function solve(
     return { ok: false, reason: 'degenerate-image' };
   }
 
-  const problem: Problem = { model, pixels, weights, intrinsics, huber: settings.robustLossScalePx };
+  const problem: Problem = { model, pixels, weights, intrinsics, huber: settings.huberScalePx };
 
   const candidates: RigidPose[] = [];
   const normalized = new Float64Array(2 * n);
@@ -167,11 +171,7 @@ function solve(
   }
   const epnpPose = solveEpnp(model, normalized, weights, active);
   if (epnpPose) candidates.push(epnpPose);
-  if (options.initialPose !== undefined) {
-    const warm = options.initialPose;
-    if (!isRotationMatrix(warm.rotation, 1e-6) || !warm.translationMm.every(Number.isFinite)) {
-      return { ok: false, reason: 'invalid-initial-pose' };
-    }
+  if (warm) {
     const rotation = reorthonormalize(warm.rotation);
     const shift = mat3MulVec3(rotation, centroid);
     candidates.push({
@@ -187,7 +187,7 @@ function solve(
   let pose: RigidPose | null = null;
   let bestCost = Number.POSITIVE_INFINITY;
   for (const candidate of candidates) {
-    const cost = robustCost(problem, active, candidate);
+    const cost = weightedHuberCost(problem, active, candidate);
     if (cost < bestCost) {
       bestCost = cost;
       pose = candidate;
@@ -242,13 +242,13 @@ type Settings = typeof DEFAULTS;
 
 function resolveSettings(options: SolveHeadPoseOptions): Settings | null {
   const settings: Settings = {
-    robustLossScalePx: options.robustLossScalePx ?? DEFAULTS.robustLossScalePx,
+    huberScalePx: options.huberScalePx ?? DEFAULTS.huberScalePx,
     rejectOutliers: options.rejectOutliers ?? DEFAULTS.rejectOutliers,
     outlierMadMultiple: options.outlierMadMultiple ?? DEFAULTS.outlierMadMultiple,
     minOutlierThresholdPx: options.minOutlierThresholdPx ?? DEFAULTS.minOutlierThresholdPx,
     maxIterations: options.maxIterations ?? DEFAULTS.maxIterations,
   };
-  const positive = [settings.robustLossScalePx, settings.outlierMadMultiple, settings.minOutlierThresholdPx];
+  const positive = [settings.huberScalePx, settings.outlierMadMultiple, settings.minOutlierThresholdPx];
   if (!positive.every((value) => Number.isFinite(value) && value > 0)) return null;
   if (!Number.isInteger(settings.maxIterations) || settings.maxIterations < 1) return null;
   return settings;
@@ -271,7 +271,7 @@ function principalVariances(points: Float64Array, indices: readonly number[], di
 }
 
 /** Huber: quadratic up to the scale, linear beyond, so gross errors pull with bounded force. */
-function huberCost(squaredNorm: number, scale: number): number {
+function huberLoss(squaredNorm: number, scale: number): number {
   return squaredNorm <= scale * scale ? squaredNorm : 2 * scale * Math.sqrt(squaredNorm) - scale * scale;
 }
 
@@ -279,7 +279,7 @@ function huberWeight(squaredNorm: number, scale: number): number {
   return squaredNorm <= scale * scale ? 1 : scale / Math.sqrt(squaredNorm);
 }
 
-function robustCost(problem: Problem, indices: readonly number[], pose: RigidPose): number {
+function weightedHuberCost(problem: Problem, indices: readonly number[], pose: RigidPose): number {
   const { model, pixels, weights, intrinsics, huber } = problem;
   const r = pose.rotation;
   const t = pose.translation;
@@ -292,7 +292,7 @@ function robustCost(problem: Problem, indices: readonly number[], pose: RigidPos
     if (!(cz > 0)) return Number.POSITIVE_INFINITY;
     const ex = intrinsics.fx * ((r[0] * x + r[1] * y + r[2] * z + t[0]) / cz) + intrinsics.cx - pixels[2 * i];
     const ey = intrinsics.fy * ((r[3] * x + r[4] * y + r[5] * z + t[1]) / cz) + intrinsics.cy - pixels[2 * i + 1];
-    cost += weights[i] * huberCost(ex * ex + ey * ey, huber);
+    cost += weights[i] * huberLoss(ex * ex + ey * ey, huber);
   }
   return Number.isFinite(cost) ? cost : Number.POSITIVE_INFINITY;
 }
@@ -336,7 +336,7 @@ function refinePose(
   const { model, pixels, weights, intrinsics, huber } = problem;
   const { fx, fy, cx, cy } = intrinsics;
   let pose = start;
-  let cost = robustCost(problem, indices, pose);
+  let cost = weightedHuberCost(problem, indices, pose);
   let lambda = 1e-3;
   const h = new Float64Array(36);
   const g = new Float64Array(6);
@@ -415,7 +415,7 @@ function refinePose(
         rotation: mat3Multiply(rotationMatrixFromVector(rotationStep), r),
         translation: [t[0] - step[3], t[1] - step[4], t[2] - step[5]],
       };
-      const candidateCost = robustCost(problem, indices, candidate);
+      const candidateCost = weightedHuberCost(problem, indices, candidate);
       if (candidateCost < cost) {
         const rotationStepSize = Math.hypot(step[0], step[1], step[2]);
         const translationStepSize = Math.hypot(step[3], step[4], step[5]);

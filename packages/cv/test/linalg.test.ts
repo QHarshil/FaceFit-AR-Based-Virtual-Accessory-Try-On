@@ -45,12 +45,12 @@ describe('symmetricEigen', () => {
     for (let r = 0; r < rows; r++) {
       let dot = 0;
       for (let j = 0; j < n; j++) dot += b[r * n + j] * unitZ[j];
-      for (let j = 0; j < n; j++) b[r * n + j] = b[r * n + j] - dot * unitZ[j];
+      for (let j = 0; j < n; j++) b[r * n + j] -= dot * unitZ[j];
     }
     const btb = new Float64Array(n * n);
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
-        for (let r = 0; r < rows; r++) btb[i * n + j] = btb[i * n + j] + b[r * n + i] * b[r * n + j];
+        for (let r = 0; r < rows; r++) btb[i * n + j] += b[r * n + i] * b[r * n + j];
       }
     }
     const { values, vectors } = symmetricEigen(btb, n);

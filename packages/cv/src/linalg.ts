@@ -185,12 +185,12 @@ export function solveLeastSquares(
       let dot = 0;
       for (let i = k; i < rows; i++) dot += a[i * cols + k] * a[i * cols + j];
       const f = (2 * dot) / uNormSq;
-      for (let i = k; i < rows; i++) a[i * cols + j] = a[i * cols + j] - f * a[i * cols + k];
+      for (let i = k; i < rows; i++) a[i * cols + j] -= f * a[i * cols + k];
     }
     let dotB = 0;
     for (let i = k; i < rows; i++) dotB += a[i * cols + k] * b[i];
     const fb = (2 * dotB) / uNormSq;
-    for (let i = k; i < rows; i++) b[i] = b[i] - fb * a[i * cols + k];
+    for (let i = k; i < rows; i++) b[i] -= fb * a[i * cols + k];
     a[k * cols + k] = alpha;
   }
 

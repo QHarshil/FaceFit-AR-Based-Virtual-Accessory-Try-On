@@ -113,7 +113,7 @@ describe('solveHeadPose input validation', () => {
     );
   });
 
-  it.each([{ robustLossScalePx: 0 }, { outlierMadMultiple: -1 }, { maxIterations: 0 }, { maxIterations: 2.5 }])(
+  it.each([{ huberScalePx: 0 }, { outlierMadMultiple: -1 }, { maxIterations: 0 }, { maxIterations: 2.5 }])(
     'rejects options %o',
     (options) => {
       expectFailure(solveHeadPose(frontalPixels(), RIGID_FACE_LANDMARKS, intrinsics, options), 'invalid-options');
@@ -259,7 +259,7 @@ describe('solveHeadPose optimality', () => {
     for (let trial = 0; trial < 50; trial++) {
       const truth = sampleHeadPose(random, intrinsics);
       const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 2, random);
-      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { robustLossScalePx: HUBER_PX });
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { huberScalePx: HUBER_PX });
       expect(solved.ok).toBe(true);
       if (!solved.ok) continue;
       const center = weightedHuberCost(solved, pixels, solved.inlierIndices);

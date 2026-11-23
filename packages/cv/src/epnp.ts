@@ -56,7 +56,7 @@ export function solveEpnp(
       rowY[3 * j + 2] = -a * v;
     }
     for (let r = 0; r < 12; r++) {
-      for (let c = r; c < 12; c++) mtm[r * 12 + c] = mtm[r * 12 + c] + w * (rowX[r] * rowX[c] + rowY[r] * rowY[c]);
+      for (let c = r; c < 12; c++) mtm[r * 12 + c] += w * (rowX[r] * rowX[c] + rowY[r] * rowY[c]);
     }
   }
   for (let r = 0; r < 12; r++) for (let c = 0; c < r; c++) mtm[r * 12 + c] = mtm[c * 12 + r];
@@ -86,7 +86,7 @@ export function solveEpnp(
 function chooseControlPoints(model: Float64Array, indices: readonly number[]): Float64Array | null {
   const n = indices.length;
   const control = new Float64Array(12);
-  for (const i of indices) for (let d = 0; d < 3; d++) control[d] = control[d] + model[3 * i + d] / n;
+  for (const i of indices) for (let d = 0; d < 3; d++) control[d] += model[3 * i + d] / n;
   const covariance = new Float64Array(9);
   for (const i of indices) {
     for (let r = 0; r < 3; r++) {
@@ -222,7 +222,7 @@ function refineBetas(l: Float64Array, rho: Float64Array, initial: Float64Array):
     }
     const step = solveLeastSquares(a, residual, 6, 4);
     if (!step || !step.every(Number.isFinite)) break;
-    for (let k = 0; k < 4; k++) betas[k] = betas[k] + step[k];
+    for (let k = 0; k < 4; k++) betas[k] += step[k];
   }
   return betas;
 }
@@ -237,7 +237,7 @@ function poseFromBetas(
 ): RigidPose | null {
   const controlCamera = new Float64Array(12);
   for (let k = 0; k < 4; k++) {
-    for (let e = 0; e < 12; e++) controlCamera[e] = controlCamera[e] + betas[k] * nullVectors[k][e];
+    for (let e = 0; e < 12; e++) controlCamera[e] += betas[k] * nullVectors[k][e];
   }
   const n = indices.length;
   const camera = new Float64Array(3 * n);
@@ -273,21 +273,21 @@ function absoluteOrientation(
     const w = weights[i];
     totalWeight += w;
     for (let d = 0; d < 3; d++) {
-      modelCentroid[d] = modelCentroid[d] + w * model[3 * i + d];
-      cameraCentroid[d] = cameraCentroid[d] + w * camera[3 * k + d];
+      modelCentroid[d] += w * model[3 * i + d];
+      cameraCentroid[d] += w * camera[3 * k + d];
     }
   });
   if (!(totalWeight > 0)) return null;
   for (let d = 0; d < 3; d++) {
-    modelCentroid[d] = modelCentroid[d] / totalWeight;
-    cameraCentroid[d] = cameraCentroid[d] / totalWeight;
+    modelCentroid[d] /= totalWeight;
+    cameraCentroid[d] /= totalWeight;
   }
   const s = new Float64Array(9);
   indices.forEach((i, k) => {
     const w = weights[i];
     for (let r = 0; r < 3; r++) {
       const a = model[3 * i + r] - modelCentroid[r];
-      for (let c = 0; c < 3; c++) s[r * 3 + c] = s[r * 3 + c] + w * a * (camera[3 * k + c] - cameraCentroid[c]);
+      for (let c = 0; c < 3; c++) s[r * 3 + c] += w * a * (camera[3 * k + c] - cameraCentroid[c]);
     }
   });
   const [sxx, sxy, sxz, syx, syy, syz, szx, szy, szz] = s;

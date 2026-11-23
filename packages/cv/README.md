@@ -1,6 +1,6 @@
 # @facefit/cv
 
-Head-pose geometry for FaceFit: camera intrinsics, a GL projection matrix, a rigid face model and a robust PnP solver. Pure TypeScript with no runtime dependencies and no DOM, MediaPipe or Three.js types. Equations and conventions: [docs/geometry.md](../../docs/geometry.md).
+Head-pose geometry for FaceFit: camera intrinsics, a GL projection matrix, a rigid face model and a PnP solver with outlier rejection. Pure TypeScript with no runtime dependencies and no DOM, MediaPipe or Three.js types. Equations and conventions: [docs/geometry.md](../../docs/geometry.md).
 
 ## API
 
