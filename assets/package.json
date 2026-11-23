@@ -1,0 +1,21 @@
+{
+  "name": "facefit-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "normalize": "node normalize.mjs",
+    "render": "node render.mjs",
+    "test": "node --test *.test.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "1.3.0"
+  },
+  "devDependencies": {
+    "draco3dgltf": "1.5.9",
+    "playwright-core": "1.65.1",
+    "three": "0.187.0"
+  }
+}

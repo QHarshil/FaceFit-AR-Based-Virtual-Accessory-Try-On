@@ -1,0 +1,236 @@
+{
+  "models": [
+    {
+      "id": 1,
+      "slug": "rectangular-acetate",
+      "name": "Rectangular Acetate Glasses",
+      "description": "Black rectangular full-rim frame with clear lenses.",
+      "source": "source/glasses1.glb",
+      "axisCorrection": [
+        0,
+        -90,
+        0
+      ],
+      "totalWidthMm": 140,
+      "lensWidthMm": 53,
+      "lensHeightMm": 33,
+      "bridgeMm": 18,
+      "templeLengthMm": 135,
+      "dimensionsSource": "nominal",
+      "bridgeOriginMm": [
+        0,
+        12.2,
+        -2.2
+      ],
+      "anchors": {
+        "bridgeCenter": [
+          0,
+          0,
+          0
+        ],
+        "nosePadLeft": [
+          9,
+          -8,
+          -0.9
+        ],
+        "nosePadRight": [
+          -9,
+          -8,
+          -0.9
+        ],
+        "hingeLeft": [
+          69,
+          0.5,
+          -6.8
+        ],
+        "hingeRight": [
+          -69,
+          0.5,
+          -6.8
+        ]
+      },
+      "attribution": {
+        "title": "Glasses",
+        "author": "AlbertVictory",
+        "authorUrl": "https://sketchfab.com/albert_victory",
+        "sourceUrl": "https://sketchfab.com/3d-models/glasses-4b8a1e54f3084c63828fe8c324198aec",
+        "license": "CC-BY-4.0",
+        "licenseUrl": "http://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": 2,
+      "slug": "oval-wire-sunglasses",
+      "name": "Oval Wire-Rim Sunglasses",
+      "description": "Thin metal oval frame with dark tinted lenses.",
+      "source": "source/glasses2.glb",
+      "axisCorrection": [
+        0,
+        0,
+        0
+      ],
+      "totalWidthMm": 135,
+      "lensWidthMm": 52,
+      "lensHeightMm": 45,
+      "bridgeMm": 20,
+      "templeLengthMm": 135,
+      "dimensionsSource": "nominal",
+      "bridgeOriginMm": [
+        0,
+        11.8,
+        -2.1
+      ],
+      "anchors": {
+        "bridgeCenter": [
+          0,
+          0,
+          0
+        ],
+        "nosePadLeft": [
+          10,
+          -14,
+          -7.6
+        ],
+        "nosePadRight": [
+          -10,
+          -14,
+          -7.6
+        ],
+        "hingeLeft": [
+          65.5,
+          -6.6,
+          -6.6
+        ],
+        "hingeRight": [
+          -65.5,
+          -6.6,
+          -6.6
+        ]
+      },
+      "attribution": {
+        "title": "Ray Ban Glasses",
+        "author": "Agha.Najam",
+        "authorUrl": "https://sketchfab.com/Agha.Najam",
+        "sourceUrl": "https://sketchfab.com/3d-models/ray-ban-glasses-bb3a3736110a41bdacc9f92e11831a41",
+        "license": "CC-BY-4.0",
+        "licenseUrl": "http://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": 3,
+      "slug": "pixel-shades",
+      "name": "Pixel Shades (novelty)",
+      "description": "Voxel-style novelty sunglasses.",
+      "source": "source/glasses3.glb",
+      "axisCorrection": [
+        0,
+        90,
+        0
+      ],
+      "totalWidthMm": 140,
+      "lensWidthMm": 64,
+      "lensHeightMm": 29,
+      "bridgeMm": 10,
+      "templeLengthMm": 115,
+      "dimensionsSource": "nominal",
+      "bridgeOriginMm": [
+        0,
+        11.3,
+        -3.2
+      ],
+      "anchors": {
+        "bridgeCenter": [
+          0,
+          0,
+          0
+        ],
+        "nosePadLeft": [
+          5,
+          -3,
+          0
+        ],
+        "nosePadRight": [
+          -5,
+          -3,
+          0
+        ],
+        "hingeLeft": [
+          68.6,
+          -3.8,
+          0
+        ],
+        "hingeRight": [
+          -68.6,
+          -3.8,
+          0
+        ]
+      },
+      "attribution": {
+        "title": "Deal with it glasses [Original]",
+        "author": "BasicModel",
+        "authorUrl": "https://sketchfab.com/BasicModel",
+        "sourceUrl": "https://sketchfab.com/3d-models/deal-with-it-glasses-original-1c5b6d8f43754e3ba9643b96f6e4c27e",
+        "license": "CC-BY-4.0",
+        "licenseUrl": "http://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": 4,
+      "slug": "round-wire-glasses",
+      "name": "Round Wire-Rim Glasses",
+      "description": "Small round metal frame with grey lenses and adjustable nose pads.",
+      "source": "source/glasses4.glb",
+      "axisCorrection": [
+        0,
+        0,
+        0
+      ],
+      "totalWidthMm": 128,
+      "lensWidthMm": 36,
+      "lensHeightMm": 36,
+      "bridgeMm": 26,
+      "templeLengthMm": 150,
+      "dimensionsSource": "nominal",
+      "bridgeOriginMm": [
+        0,
+        12.5,
+        -1.3
+      ],
+      "anchors": {
+        "bridgeCenter": [
+          0,
+          0,
+          0
+        ],
+        "nosePadLeft": [
+          12,
+          -16,
+          -12.9
+        ],
+        "nosePadRight": [
+          -12,
+          -16,
+          -12.9
+        ],
+        "hingeLeft": [
+          63.5,
+          -8.4,
+          -12
+        ],
+        "hingeRight": [
+          -63.5,
+          -8.4,
+          -12
+        ]
+      },
+      "attribution": {
+        "title": "Glasses 09",
+        "author": "Dokono Kinokoda",
+        "authorUrl": "https://sketchfab.com/JunkWren",
+        "sourceUrl": "https://sketchfab.com/3d-models/glasses-09-5d4ef7145b1b426cb129e3d661f7c2e6",
+        "license": "CC-BY-4.0",
+        "licenseUrl": "http://creativecommons.org/licenses/by/4.0/"
+      }
+    }
+  ]
+}

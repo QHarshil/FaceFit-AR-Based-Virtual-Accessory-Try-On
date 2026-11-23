@@ -1,0 +1,70 @@
+[
+  {
+    "slug": "rectangular-acetate",
+    "sha256": "44aa3315aba35e95068c9751c106c0e86fe5cd4de694f395ffc6ba2fd38e62c6",
+    "scaleMmPerUnit": 11.251023691157373,
+    "sourceBytes": 1164908,
+    "sourceBrotliBytes": 361760,
+    "bytesByCodec": {
+      "none": 755776,
+      "meshopt": 168428,
+      "draco": 79604
+    },
+    "brotliBytesByCodec": {
+      "none": 390934,
+      "meshopt": 64309,
+      "draco": 65883
+    }
+  },
+  {
+    "slug": "oval-wire-sunglasses",
+    "sha256": "bc43a429171de30b893d544300a369b696fc0df844e4b3972acf76f546411b8d",
+    "scaleMmPerUnit": 70.53261976637444,
+    "sourceBytes": 2066096,
+    "sourceBrotliBytes": 1273509,
+    "bytesByCodec": {
+      "none": 1881996,
+      "meshopt": 1006804,
+      "draco": 940072
+    },
+    "brotliBytesByCodec": {
+      "none": 1300285,
+      "meshopt": 897927,
+      "draco": 905348
+    }
+  },
+  {
+    "slug": "pixel-shades",
+    "sha256": "6a3ececb1b02917d755bae87041a0a419588072de16155ec42f5815f4af315de",
+    "scaleMmPerUnit": 115.45319877156523,
+    "sourceBytes": 202272,
+    "sourceBrotliBytes": 10813,
+    "bytesByCodec": {
+      "none": 95376,
+      "meshopt": 26088,
+      "draco": 7332
+    },
+    "brotliBytesByCodec": {
+      "none": 12570,
+      "meshopt": 5884,
+      "draco": 4767
+    }
+  },
+  {
+    "slug": "round-wire-glasses",
+    "sha256": "a9bd47538a24f5a4957ef4b0685dfa5378da69d3c31a6383b0baa09ecbe5b9b0",
+    "scaleMmPerUnit": 27.410708798972173,
+    "sourceBytes": 2652712,
+    "sourceBrotliBytes": 1269595,
+    "bytesByCodec": {
+      "none": 2307044,
+      "meshopt": 831064,
+      "draco": 712084
+    },
+    "brotliBytesByCodec": {
+      "none": 1201087,
+      "meshopt": 663041,
+      "draco": 670794
+    }
+  }
+]
