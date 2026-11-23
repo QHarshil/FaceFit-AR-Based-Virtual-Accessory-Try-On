@@ -170,8 +170,7 @@ function solve(
     normalized[2 * i] = (pixels[2 * i] - intrinsics.cx) / intrinsics.fx;
     normalized[2 * i + 1] = (pixels[2 * i + 1] - intrinsics.cy) / intrinsics.fy;
   }
-  const epnpPose = solveEpnp(model, normalized, weights, active);
-  if (epnpPose) candidates.push(epnpPose);
+  candidates.push(...solveEpnp(model, normalized, weights, active));
   if (warm) {
     const rotation = reorthonormalize(warm.rotation);
     const shift = mat3MulVec3(rotation, centroid);

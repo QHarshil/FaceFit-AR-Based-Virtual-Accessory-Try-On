@@ -7,7 +7,15 @@ import type { SeededRandom } from './random.ts';
 
 const DEG = Math.PI / 180;
 
-export const POSE_RANGE = {
+export interface PoseRange {
+  readonly yawDeg: number;
+  readonly pitchDeg: number;
+  readonly rollDeg: number;
+  readonly minDistanceMm: number;
+  readonly maxDistanceMm: number;
+}
+
+export const POSE_RANGE: PoseRange = {
   yawDeg: 45,
   pitchDeg: 30,
   rollDeg: 30,
@@ -16,16 +24,20 @@ export const POSE_RANGE = {
 };
 
 /**
- * Random head pose within POSE_RANGE. The three angles only sample the test
+ * Random head pose within the range. The three angles only sample the test
  * distribution; the rotation is built once as roll * yaw * pitch about the
  * camera axes and never decomposed back. The model origin lands in the
  * central half of the image at a depth between the distance limits.
  */
-export function sampleHeadPose(random: SeededRandom, intrinsics: CameraIntrinsics): HeadPose {
-  const yaw = rotationMatrixFromVector([0, random.uniform(-1, 1) * POSE_RANGE.yawDeg * DEG, 0]);
-  const pitch = rotationMatrixFromVector([random.uniform(-1, 1) * POSE_RANGE.pitchDeg * DEG, 0, 0]);
-  const roll = rotationMatrixFromVector([0, 0, random.uniform(-1, 1) * POSE_RANGE.rollDeg * DEG]);
-  const depth = random.uniform(POSE_RANGE.minDistanceMm, POSE_RANGE.maxDistanceMm);
+export function sampleHeadPose(
+  random: SeededRandom,
+  intrinsics: CameraIntrinsics,
+  range: PoseRange = POSE_RANGE,
+): HeadPose {
+  const yaw = rotationMatrixFromVector([0, random.uniform(-1, 1) * range.yawDeg * DEG, 0]);
+  const pitch = rotationMatrixFromVector([random.uniform(-1, 1) * range.pitchDeg * DEG, 0, 0]);
+  const roll = rotationMatrixFromVector([0, 0, random.uniform(-1, 1) * range.rollDeg * DEG]);
+  const depth = random.uniform(range.minDistanceMm, range.maxDistanceMm);
   const u = random.uniform(0.25, 0.75) * intrinsics.width;
   const v = random.uniform(0.25, 0.75) * intrinsics.height;
   return {

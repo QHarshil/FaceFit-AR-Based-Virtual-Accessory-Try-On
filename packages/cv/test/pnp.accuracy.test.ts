@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { estimateIntrinsics } from '../src/camera.ts';
 import { solveEpnp } from '../src/epnp.ts';
 import { RIGID_FACE_LANDMARKS } from '../src/faceModel.ts';
-import { mat3Multiply, type Vec2 } from '../src/linalg.ts';
+import { mat3Multiply, mat3MulVec3, type Vec2 } from '../src/linalg.ts';
 import { solveHeadPose, type HeadPose, type SolveHeadPoseOptions } from '../src/pnp.ts';
 import { angleBetweenRotations, rotationMatrixFromVector } from '../src/rotation.ts';
 import { predictedPoseCovariance, whitenedPoseError } from './expectedError.ts';
 import { seededRandom, type SeededRandom } from './random.ts';
-import { percentile, projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
+import { POSE_RANGE, percentile, projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
 
 const intrinsics = estimateIntrinsics({ width: 1280, height: 720, horizontalFovDeg: 62 })!;
 const RAD_TO_DEG = 180 / Math.PI;
@@ -115,7 +115,10 @@ const shippedSolver: Solver = (pixels) => {
   return solved.ok ? solved : null;
 };
 
-/** EPnP's closed-form pose with no Levenberg-Marquardt refinement. */
+/**
+ * EPnP's closed-form pose with no Levenberg-Marquardt refinement: the
+ * candidate with the lowest weighted squared reprojection error.
+ */
 const epnpOnlySolver: Solver = (pixels) => {
   const n = RIGID_FACE_LANDMARKS.length;
   const model = new Float64Array(3 * n);
@@ -127,8 +130,21 @@ const epnpOnlySolver: Solver = (pixels) => {
     normalized[2 * index + 1] = (pixels[index]![1] - intrinsics.cy) / intrinsics.fy;
     weights[index] = point.weight * n;
   });
-  const pose = solveEpnp(model, normalized, weights, ALL_POINTS);
-  return pose ? { rotation: pose.rotation, translationMm: pose.translation } : null;
+  const reprojectionError = (pose: HeadPose): number =>
+    RIGID_FACE_LANDMARKS.reduce((sum, point, index) => {
+      const camera = mat3MulVec3(pose.rotation, point.positionMm);
+      const z = camera[2] + pose.translationMm[2];
+      if (!(z > 0)) return Number.POSITIVE_INFINITY;
+      const ex = (camera[0] + pose.translationMm[0]) / z - normalized[2 * index]!;
+      const ey = (camera[1] + pose.translationMm[1]) / z - normalized[2 * index + 1]!;
+      return sum + point.weight * (ex * ex + ey * ey);
+    }, 0);
+  let best: HeadPose | null = null;
+  for (const candidate of solveEpnp(model, normalized, weights, ALL_POINTS)) {
+    const pose = { rotation: candidate.rotation, translationMm: candidate.translation };
+    if (!best || reprojectionError(pose) < reprojectionError(best)) best = pose;
+  }
+  return best;
 };
 
 /** The shipped solver with its pitch biased by 1.5 degrees per pixel of noise. */
@@ -297,5 +313,25 @@ describe('solveHeadPose rejection of heavily weighted landmarks', () => {
     const errors = runCorrupted(303, dropJaw);
     expect(errors.failures).toBe(0);
     expect(percentile(errors.rotation, 0.95)).toBeLessThan(SIGMA1_P95_BOUND);
+  });
+});
+
+describe('solveHeadPose initial pose', () => {
+  it('recovers far, strongly yawed faces that EPnP can return mirrored in depth', () => {
+    // A chi-3 variable exceeds 6 with probability 7e-8, so no correct solve
+    // among 1000 does. A depth-mirrored pose is off by tens of degrees.
+    const farYawed = { ...POSE_RANGE, yawDeg: 70, minDistanceMm: 2500, maxDistanceMm: 2500 };
+    const random = seededRandom(304);
+    let worst = 0;
+    for (let trial = 0; trial < 1000; trial++) {
+      const truth = sampleHeadPose(random, intrinsics, farYawed);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+      expect(solved.ok).toBe(true);
+      if (!solved.ok) continue;
+      const covariance = predictedPoseCovariance(truth, RIGID_FACE_LANDMARKS, intrinsics, 1);
+      worst = Math.max(worst, whitenedPoseError(truth, solved, covariance).rotation);
+    }
+    expect(worst).toBeLessThan(6);
   });
 });

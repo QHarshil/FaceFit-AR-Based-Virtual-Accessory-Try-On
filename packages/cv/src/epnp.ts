@@ -19,8 +19,9 @@ const CONTROL_PAIRS: readonly (readonly [number, number])[] = [
 /**
  * EPnP (Lepetit, Moreno-Noguer and Fua, IJCV 2009) on normalized image
  * coordinates, with each point's two equations scaled by sqrt(weight).
- * Expects non-coplanar model points; the caller checks that. Returns null
- * when no beta approximation yields a finite pose.
+ * Expects non-coplanar model points; the caller checks that. Returns one
+ * pose per beta approximation and its depth reflection, for the caller to
+ * score with its own cost; empty when none is finite.
  *
  * @param model    x, y, z per point
  * @param image    normalized (x / z, y / z) per point
@@ -32,10 +33,10 @@ export function solveEpnp(
   image: Float64Array,
   weights: Float64Array,
   indices: readonly number[],
-): RigidPose | null {
+): RigidPose[] {
   const n = indices.length;
   const control = chooseControlPoints(model, indices);
-  if (!control) return null;
+  if (!control) return [];
   const alphas = barycentricCoordinates(model, indices, control);
 
   const mtm = new Float64Array(144);
@@ -66,20 +67,13 @@ export function solveEpnp(
   const nullVectors = [0, 1, 2, 3].map((k) => vectors.subarray(k * 12, k * 12 + 12));
   const { l, rho } = distanceConstraints(nullVectors, control);
 
-  let best: RigidPose | null = null;
-  let bestError = Number.POSITIVE_INFINITY;
+  const poses: RigidPose[] = [];
   for (const initialBetas of [betasApprox1(l, rho), betasApprox2(l, rho), betasApprox3(l, rho)]) {
     if (!initialBetas) continue;
     const betas = refineBetas(l, rho, initialBetas);
-    const pose = poseFromBetas(model, indices, weights, alphas, nullVectors, betas);
-    if (!pose) continue;
-    const error = reprojectionError(model, image, weights, indices, pose);
-    if (error < bestError) {
-      bestError = error;
-      best = pose;
-    }
+    poses.push(...posesFromBetas(model, indices, weights, alphas, nullVectors, betas));
   }
-  return best;
+  return poses;
 }
 
 /** Centroid plus the principal axes scaled by their standard deviation. */
@@ -227,14 +221,22 @@ function refineBetas(l: Float64Array, rho: Float64Array, initial: Float64Array):
   return betas;
 }
 
-function poseFromBetas(
+/**
+ * The pose from the camera-frame points and from their mirror image in depth.
+ * The six control-point distances, and the image under weak perspective, do
+ * not change when the points are reflected about a plane of constant depth,
+ * so with noise or an outlier the null-space solution can land on the mirror
+ * image. Horn's method then fits the best proper rotation to an improper
+ * shape, a wrong pose that the reflected candidate corrects.
+ */
+function posesFromBetas(
   model: Float64Array,
   indices: readonly number[],
   weights: Float64Array,
   alphas: Float64Array,
   nullVectors: readonly Float64Array[],
   betas: Float64Array,
-): RigidPose | null {
+): RigidPose[] {
   const controlCamera = new Float64Array(12);
   for (let k = 0; k < 4; k++) {
     for (let e = 0; e < 12; e++) controlCamera[e] += betas[k] * nullVectors[k][e];
@@ -252,7 +254,21 @@ function poseFromBetas(
   }
   // The null-space solution has a sign ambiguity; the face is in front of the camera.
   if (depthSum < 0) for (let e = 0; e < camera.length; e++) camera[e] = -camera[e];
-  return absoluteOrientation(model, indices, weights, camera);
+  let weightedDepth = 0;
+  let totalWeight = 0;
+  indices.forEach((i, k) => {
+    weightedDepth += weights[i] * camera[3 * k + 2];
+    totalWeight += weights[i];
+  });
+  const meanDepth = weightedDepth / totalWeight;
+  const reflected = Float64Array.from(camera);
+  for (let k = 0; k < n; k++) reflected[3 * k + 2] = 2 * meanDepth - camera[3 * k + 2];
+  const poses: RigidPose[] = [];
+  for (const points of [camera, reflected]) {
+    const pose = absoluteOrientation(model, indices, weights, points);
+    if (pose) poses.push(pose);
+  }
+  return poses;
 }
 
 /**
@@ -309,27 +325,4 @@ function absoluteOrientation(
   ];
   if (!translation.every(Number.isFinite) || !rotation.every(Number.isFinite)) return null;
   return { rotation, translation };
-}
-
-function reprojectionError(
-  model: Float64Array,
-  image: Float64Array,
-  weights: Float64Array,
-  indices: readonly number[],
-  pose: RigidPose,
-): number {
-  const r = pose.rotation;
-  const t = pose.translation;
-  let error = 0;
-  for (const i of indices) {
-    const x = model[3 * i];
-    const y = model[3 * i + 1];
-    const z = model[3 * i + 2];
-    const cz = r[6] * x + r[7] * y + r[8] * z + t[2];
-    if (!(cz > 0)) return Number.POSITIVE_INFINITY;
-    const cx = r[0] * x + r[1] * y + r[2] * z + t[0];
-    const cy = r[3] * x + r[4] * y + r[5] * z + t[1];
-    error += weights[i] * ((cx / cz - image[2 * i]) ** 2 + (cy / cz - image[2 * i + 1]) ** 2);
-  }
-  return error;
 }

@@ -46,7 +46,7 @@ Huber is convex in the residual, unlike redescending losses. Past the scale, a p
 
 ## Initial pose
 
-EPnP (Lepetit, Moreno-Noguer and Fua 2009) expresses each model point in barycentric coordinates of four control points (centroid and principal axes), solves for the control points in the camera frame from the null space of a $12 \times 12$ system, fits the null-space coefficients to the control-point distances, and recovers $R, t$ by Horn's absolute orientation. It needs the model points to span 3D. A previous pose passed as `initialPose` is a second candidate; refinement starts from whichever has the lower $E$.
+EPnP (Lepetit, Moreno-Noguer and Fua 2009) expresses each model point in barycentric coordinates of four control points (centroid and principal axes), solves for the control points in the camera frame from the null space of a $12 \times 12$ system, fits the null-space coefficients to the control-point distances, and recovers $R, t$ by Horn's absolute orientation. It needs the model points to span 3D. The control-point distances, and the image under weak perspective, do not change when the camera-frame points are mirrored about a plane of constant depth, so with noise or an outlier the null-space solution can land on the mirror image and Horn's method returns a wrong rotation. Each of EPnP's three beta approximations therefore yields two candidates, as solved and mirrored about its weighted mean depth. A previous pose passed as `initialPose` is one more candidate; refinement starts from whichever has the lowest $E$.
 
 ## Levenberg-Marquardt update
 
