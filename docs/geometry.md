@@ -42,7 +42,7 @@ where $\rho$ is the Huber loss with scale $c$ (default 3 px):
 
 $$\rho(s) = \begin{cases} s & s \le c^2 \\ 2c\sqrt{s} - c^2 & s > c^2 \end{cases}$$
 
-Huber is convex in the residual, unlike redescending losses, and caps each point's pull on the solution at $c$.
+Huber is convex in the residual, unlike redescending losses. Past the scale, a point's gradient stops growing with its residual, so one bad landmark has bounded pull on the solution.
 
 ## Initial pose
 
