@@ -4,9 +4,10 @@ import { readFile } from 'node:fs/promises';
 import { before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { getBounds } from '@gltf-transform/functions';
-import { createIO, loadCatalog, measureFront, normalizeModel, worldVertices } from './normalize.mjs';
+import { createIO, loadCatalog, normalizeModel } from './normalize.mjs';
 
 const here = (name) => fileURLToPath(new URL(name, import.meta.url));
+const TRADEMARKS = /ray.?ban|aviator|wayfarer/i;
 const ANCHORS = ['bridgeCenter', 'nosePadLeft', 'nosePadRight', 'hingeLeft', 'hingeRight'];
 const DIMENSIONS = ['totalWidthMm', 'lensWidthMm', 'lensHeightMm', 'bridgeMm', 'templeLengthMm'];
 
@@ -16,6 +17,28 @@ before(async () => {
   catalog = await loadCatalog();
   io = await createIO();
 });
+
+// Decoded vertex positions in scene space, written independently of normalize.mjs so a shared bug cannot hide.
+function sceneVertices(document) {
+  const out = [];
+  for (const node of document.getRoot().listNodes()) {
+    const mesh = node.getMesh();
+    if (!mesh) continue;
+    const m = node.getWorldMatrix();
+    for (const primitive of mesh.listPrimitives()) {
+      const position = primitive.getAttribute('POSITION');
+      for (let i = 0; i < position.getCount(); i++) {
+        const [x, y, z] = position.getElement(i, [0, 0, 0]);
+        out.push([
+          m[0] * x + m[4] * y + m[8] * z + m[12],
+          m[1] * x + m[5] * y + m[9] * z + m[13],
+          m[2] * x + m[6] * y + m[10] * z + m[14],
+        ]);
+      }
+    }
+  }
+  return out;
+}
 
 const isVector3 = (v) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
 
@@ -31,6 +54,7 @@ describe('catalog schema', () => {
       assert.ok(isVector3(m.axisCorrection), `${m.slug}.axisCorrection`);
       assert.ok(isVector3(m.bridgeOriginMm), `${m.slug}.bridgeOriginMm`);
       assert.equal(m.dimensionsSource, 'nominal');
+      assert.ok(isVector3(m.expectedBoundsMm.min) && isVector3(m.expectedBoundsMm.max), `${m.slug}.expectedBoundsMm`);
       for (const key of DIMENSIONS) assert.ok(m[key] > 0 && Number.isFinite(m[key]), `${m.slug}.${key}`);
       for (const name of ANCHORS) assert.ok(isVector3(m.anchors[name]), `${m.slug}.anchors.${name}`);
       for (const key of ['title', 'author', 'authorUrl', 'sourceUrl', 'license', 'licenseUrl']) {
@@ -39,8 +63,8 @@ describe('catalog schema', () => {
     }
   });
 
-  test('names carry no trademarks', () => {
-    for (const m of catalog.models) assert.doesNotMatch(`${m.name} ${m.description}`, /ray.?ban|aviator|wayfarer/i);
+  test('names and descriptions carry no trademarks', () => {
+    for (const m of catalog.models) assert.doesNotMatch(`${m.name} ${m.description}`, TRADEMARKS);
   });
 
   test('attribution matches the asset.extras embedded in each source', async () => {
@@ -75,7 +99,9 @@ describe('backend product list', () => {
       assert.equal(product.name, m.name);
       assert.equal(product.description, m.description);
       assert.equal(product.modelPath, `/models/glasses${m.id}.glb`);
-      assert.deepEqual(product.attribution, m.attribution);
+      // The title stays in CREDITS.md and the GLB extras; the API omits it so no trademark leaves the server.
+      const { title, ...withoutTitle } = m.attribution;
+      assert.deepEqual(product.attribution, withoutTitle);
       assert.deepEqual(product.dimensionsMm, {
         total: m.totalWidthMm,
         lensWidth: m.lensWidthMm,
@@ -84,6 +110,14 @@ describe('backend product list', () => {
         templeLength: m.templeLengthMm,
       });
       assert.equal(product.dimensionsSource, 'nominal');
+    }
+  });
+
+  test('no product string carries a trademark, except URLs that must stay as published', () => {
+    const strings = (value) =>
+      typeof value === 'string' ? [value] : value && typeof value === 'object' ? Object.entries(value).flatMap(([k, v]) => (/Url$/.test(k) ? [] : strings(v))) : [];
+    for (const product of products) {
+      for (const text of strings(product)) assert.doesNotMatch(text, TRADEMARKS, `product ${product.id}`);
     }
   });
 });
@@ -106,20 +140,36 @@ describe('normalized output', () => {
 
   test('frame front spans totalWidthMm within 1 mm', () => {
     for (const m of catalog.models) {
-      const { width } = measureFront(worldVertices(decoded.get(m.slug)));
+      // Front slab ends 3 mm behind the hinge, so splayed temples are excluded.
+      const slab = sceneVertices(decoded.get(m.slug)).filter((v) => v[2] >= m.anchors.hingeLeft[2] - 3);
+      const xs = slab.map((v) => v[0]);
+      const width = Math.max(...xs) - Math.min(...xs);
       assert.ok(Math.abs(width - m.totalWidthMm) <= 1, `${m.slug}: ${width.toFixed(2)} vs ${m.totalWidthMm}`);
     }
   });
 
-  test('origin sits at the bridge anchor, centred and at the front plane', () => {
+  test('scene bounds match the pinned expectedBoundsMm within 1 mm', () => {
+    // Pins scale, origin and orientation: a shift, tilt or roll of the model moves at least one face.
     for (const m of catalog.models) {
-      const vertices = worldVertices(decoded.get(m.slug));
+      const { min, max } = getBounds(decoded.get(m.slug).getRoot().getDefaultScene());
+      for (let axis = 0; axis < 3; axis++) {
+        assert.ok(Math.abs(min[axis] - m.expectedBoundsMm.min[axis]) <= 1, `${m.slug} min[${axis}] ${min[axis].toFixed(2)}`);
+        assert.ok(Math.abs(max[axis] - m.expectedBoundsMm.max[axis]) <= 1, `${m.slug} max[${axis}] ${max[axis].toFixed(2)}`);
+      }
+    }
+  });
+
+  test('origin sits at the bridge anchor on the frame front', () => {
+    for (const m of catalog.models) {
+      const vertices = sceneVertices(decoded.get(m.slug));
       assert.deepEqual(m.anchors.bridgeCenter, [0, 0, 0]);
-      const front = measureFront(vertices);
-      assert.ok(Math.abs(front.centerX) < 0.1, `${m.slug} centerX ${front.centerX}`);
       const nearest = Math.min(...vertices.map((v) => Math.hypot(...v)));
       assert.ok(nearest < 8, `${m.slug}: nearest vertex to the origin is ${nearest.toFixed(1)} mm away`);
-      assert.ok(front.zMax > 0 && front.zMax < 6, `${m.slug}: bridge is ${front.zMax} mm behind the front plane`);
+      // The bridge centre is on the rear face of the bridge bar, so the front plane is 1 to 6 mm ahead of it.
+      const frontZ = Math.max(...vertices.map((v) => v[2]));
+      assert.ok(frontZ > 1 && frontZ < 6, `${m.slug}: front plane at z = ${frontZ.toFixed(2)}`);
+      const slab = vertices.filter((v) => v[2] >= m.anchors.hingeLeft[2] - 3).map((v) => v[0]);
+      assert.ok(Math.abs((Math.max(...slab) + Math.min(...slab)) / 2) < 0.5, `${m.slug}: front is off-centre in x`);
     }
   });
 
