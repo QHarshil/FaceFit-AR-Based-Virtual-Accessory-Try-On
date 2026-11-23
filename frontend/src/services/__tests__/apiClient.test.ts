@@ -41,4 +41,24 @@ describe('apiClient', () => {
 
     await expect(getProductById(999)).rejects.toThrow('Product not found');
   });
+
+  it('rejects when a successful response has no JSON body', async () => {
+    stubFetch({
+      ok: true,
+      status: 200,
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+    });
+
+    await expect(getProducts()).rejects.toThrow('Response was not valid JSON');
+  });
+
+  it('defaults the API base URL to localhost:5055', async () => {
+    vi.stubEnv('VITE_API_URL', '');
+    vi.resetModules();
+
+    const { API_BASE_URL: baseUrl } = await import('../apiClient');
+
+    expect(baseUrl).toBe('http://localhost:5055');
+    vi.unstubAllEnvs();
+  });
 });

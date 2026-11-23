@@ -1,6 +1,6 @@
 import type { LandmarkList } from '../types';
 import { probe } from '../utils/probe';
-import { Camera, FaceMesh } from './mediapipeGlobals';
+import { getMediapipe } from './mediapipeGlobals';
 
 export interface FaceTracking {
   /** Resolves once frames are flowing. Rejects if the camera or model cannot start. */
@@ -27,6 +27,7 @@ export const startFaceTracking = (
   video: HTMLVideoElement,
   onLandmarks: (landmarks: LandmarkList | null) => void,
 ): FaceTracking => {
+  const { Camera, FaceMesh } = getMediapipe();
   let active = true;
 
   const faceMesh = new FaceMesh({

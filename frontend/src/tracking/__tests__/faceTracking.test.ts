@@ -10,8 +10,8 @@ const cameras: FakeCamera[] = [];
 const faceMeshes: { close: ReturnType<typeof vi.fn> }[] = [];
 
 // Mirrors camera_utils: stop() only stops a stream that start() already attached.
-vi.mock('../mediapipeGlobals', () => ({
-  Camera: class {
+vi.mock('../mediapipeGlobals', () => {
+  const Camera = class {
     private readonly entry: FakeCamera = {
       attachStream: () => {},
       streamLive: false,
@@ -38,8 +38,8 @@ vi.mock('../mediapipeGlobals', () => ({
       }
       return Promise.resolve();
     }
-  },
-  FaceMesh: class {
+  };
+  const FaceMesh = class {
     constructor() {
       faceMeshes.push(this);
     }
@@ -49,8 +49,9 @@ vi.mock('../mediapipeGlobals', () => ({
     send() {
       return Promise.resolve();
     }
-  },
-}));
+  };
+  return { getMediapipe: () => ({ Camera, FaceMesh }) };
+});
 
 const { startFaceTracking } = await import('../faceTracking');
 
@@ -99,5 +100,27 @@ describe('startFaceTracking', () => {
     second.stop();
     expect(liveStreams()).toBe(0);
     expect(faceMeshes.map((mesh) => mesh.close.mock.calls.length)).toEqual([1, 1]);
+  });
+
+  it('holds the next camera until the previous stream has attached', async () => {
+    const video = document.createElement('video');
+    const first = startFaceTracking(video, () => {});
+    await flush();
+    expect(cameras[0]?.startCalls).toBe(1);
+
+    first.stop();
+    const second = startFaceTracking(video, () => {});
+    await flush();
+    expect(cameras[1]?.startCalls).toBe(0);
+
+    cameras[0]?.attachStream();
+    await first.started;
+    await flush();
+    expect(cameras[1]?.startCalls).toBe(1);
+    expect(cameras[0]?.streamLive).toBe(false);
+
+    cameras[1]?.attachStream();
+    await second.started;
+    expect(liveStreams()).toBe(1);
   });
 });

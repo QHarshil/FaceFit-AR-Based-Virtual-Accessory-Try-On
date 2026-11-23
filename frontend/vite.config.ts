@@ -5,25 +5,19 @@ import type { Plugin } from 'vite';
 const LEGACY_MEDIAPIPE =
   /node_modules[\\/]@mediapipe[\\/](face_mesh|camera_utils)[\\/][a-z_]+\.js$/;
 
-// The legacy MediaPipe scripts end in `.call(this)` and register their classes on
-// that object. Bundled as a module, `this` is not the window, so the classes would
-// never reach the global scope that src/tracking/mediapipeGlobals.ts reads.
-const mediapipeGlobalScope = (): Plugin => ({
-  name: 'mediapipe-global-scope',
+// Both legacy packages declare `sideEffects: []`, so the bundler would drop the
+// import that makes them register FaceMesh and Camera on the global object.
+const mediapipeSideEffects = (): Plugin => ({
+  name: 'mediapipe-side-effects',
   enforce: 'pre',
   transform(code, id) {
     if (!LEGACY_MEDIAPIPE.test(id)) return null;
-    return {
-      code: code.replace(/\}\)\.call\(this\);\s*$/, '}).call(globalThis);'),
-      map: null,
-      // Both packages declare `sideEffects: []`, which would drop the import.
-      moduleSideEffects: true,
-    };
+    return { code, map: null, moduleSideEffects: true };
   },
 });
 
 export default defineConfig({
-  plugins: [mediapipeGlobalScope(), react()],
+  plugins: [mediapipeSideEffects(), react()],
   optimizeDeps: { exclude: ['@mediapipe/face_mesh', '@mediapipe/camera_utils'] },
   server: { port: 3000 },
   build: { outDir: 'dist', sourcemap: false },

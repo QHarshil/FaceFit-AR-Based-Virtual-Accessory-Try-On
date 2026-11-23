@@ -16,12 +16,12 @@ const camera = vi.hoisted(() => ({
 vi.mock('../../services/apiClient', () => ({ getProductById }));
 vi.mock('../../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
 
-vi.mock('../../tracking/mediapipeGlobals', () => ({
-  Camera: class {
+vi.mock('../../tracking/mediapipeGlobals', () => {
+  const Camera = class {
     start = camera.start;
     stop = camera.stop;
-  },
-  FaceMesh: class {
+  };
+  const FaceMesh = class {
     setOptions() {}
     onResults(listener: typeof camera.results) {
       camera.results = listener;
@@ -32,8 +32,9 @@ vi.mock('../../tracking/mediapipeGlobals', () => ({
     close() {
       return Promise.resolve();
     }
-  },
-}));
+  };
+  return { getMediapipe: () => ({ Camera, FaceMesh }) };
+});
 
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>();

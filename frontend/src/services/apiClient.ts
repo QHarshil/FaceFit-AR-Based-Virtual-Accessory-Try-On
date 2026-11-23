@@ -20,6 +20,9 @@ const parseJson = async <T>(response: Response): Promise<T> => {
       failure.error || failure.message || `Request failed with status ${response.status}`;
     throw new Error(message);
   }
+  if (payload === null) {
+    throw new Error('Response was not valid JSON');
+  }
   return payload as T;
 };
 

@@ -23,7 +23,10 @@ export default tseslint.config(
   },
   {
     files: ['*.config.{js,ts}'],
-    languageOptions: { globals: globals.node },
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      ...tseslint.configs.disableTypeChecked.languageOptions,
+      globals: globals.node,
+    },
   },
 );

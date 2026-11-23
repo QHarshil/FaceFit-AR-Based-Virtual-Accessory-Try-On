@@ -11,11 +11,17 @@ interface MediapipeGlobals {
   FaceMesh?: typeof FaceMeshClass | undefined;
 }
 
-const globals = globalThis as MediapipeGlobals;
-
-if (!globals.Camera || !globals.FaceMesh) {
-  throw new Error('MediaPipe scripts did not register their classes');
+export interface MediapipeClasses {
+  Camera: typeof CameraClass;
+  FaceMesh: typeof FaceMeshClass;
 }
 
-export const Camera: typeof CameraClass = globals.Camera;
-export const FaceMesh: typeof FaceMeshClass = globals.FaceMesh;
+// Checked when tracking starts, not at import, so a missing global shows the
+// camera error screen and does not take down every page that imports TryOn.
+export const getMediapipe = (): MediapipeClasses => {
+  const { Camera, FaceMesh } = globalThis as MediapipeGlobals;
+  if (!Camera || !FaceMesh) {
+    throw new Error('MediaPipe scripts did not register their classes');
+  }
+  return { Camera, FaceMesh };
+};
