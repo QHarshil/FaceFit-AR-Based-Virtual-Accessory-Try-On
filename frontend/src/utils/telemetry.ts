@@ -1,13 +1,18 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5055';
 const TELEMETRY_ENDPOINT = `${API_URL}/api/telemetry`;
 
-const buildPayload = (eventType, payload) => ({
+export type TelemetryPayload = Record<string, unknown>;
+
+const buildPayload = (eventType: string, payload: TelemetryPayload) => ({
   eventType,
   payload,
   timestamp: new Date().toISOString(),
 });
 
-export const sendTelemetry = (eventType, payload = {}) => {
+export const sendTelemetry = (
+  eventType: string,
+  payload: TelemetryPayload = {},
+): Promise<boolean> => {
   if (!eventType) {
     return Promise.resolve(false);
   }
@@ -29,7 +34,7 @@ export const sendTelemetry = (eventType, payload = {}) => {
     keepalive: true,
   }).then(
     () => true,
-    () => false
+    () => false,
   );
 };
 

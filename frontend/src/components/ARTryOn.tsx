@@ -1,6 +1,8 @@
-import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { ARTryOnHandle, Landmark, LandmarkList, ProductType } from '../types';
 import { probe, probeEnabled } from '../utils/probe';
 
 const LEFT_EYE_INDICES = [33, 133, 159, 145];
@@ -17,33 +19,72 @@ const SMOOTH_ALPHA = 0.3;
 // Landmarks the eval harness needs for jitter, blink and registration metrics.
 const PROBE_LANDMARKS = [1, 10, 33, 133, 145, 159, 168, 234, 263, 362, 374, 386, 454];
 
-const toVector3 = (landmark) => new THREE.Vector3(landmark.x, landmark.y, landmark.z);
+interface ARTryOnProps {
+  modelPath: string;
+  type?: ProductType;
+  ref?: Ref<ARTryOnHandle>;
+}
 
-const averageLandmarks = (landmarks, indices) => {
-  const sum = indices.reduce((acc, index) => {
-    const point = landmarks[index];
-    return acc.add(new THREE.Vector3(point.x, point.y, point.z));
-  }, new THREE.Vector3());
+interface SmoothedPose {
+  position: THREE.Vector3;
+  quaternion: THREE.Quaternion;
+  initialized: boolean;
+}
+
+// The face model always returns every index; a missing one is a malformed frame.
+const landmarkAt = (landmarks: LandmarkList, index: number): Landmark => {
+  const landmark = landmarks[index];
+  if (!landmark) {
+    throw new RangeError(`Landmark ${index} is missing`);
+  }
+  return landmark;
+};
+
+const toVector3 = (landmarks: LandmarkList, index: number): THREE.Vector3 => {
+  const landmark = landmarkAt(landmarks, index);
+  return new THREE.Vector3(landmark.x, landmark.y, landmark.z);
+};
+
+const averageLandmarks = (landmarks: LandmarkList, indices: readonly number[]): THREE.Vector3 => {
+  const sum = indices.reduce(
+    (acc, index) => acc.add(toVector3(landmarks, index)),
+    new THREE.Vector3(),
+  );
 
   return sum.divideScalar(indices.length);
 };
 
-const ARTryOn = forwardRef((props, ref) => {
-  const { modelPath, type = 'glasses' } = props;
-  const [model, setModel] = useState(null);
+// Written once when the model loads; the fallback of 1 matches a model with no width.
+const originalWidthOf = (model: THREE.Object3D): number => {
+  const width: unknown = model.userData.originalWidth;
+  return typeof width === 'number' && width ? width : 1;
+};
+
+const disposeMaterial = (material: THREE.Material | THREE.Material[]) => {
+  (Array.isArray(material) ? material : [material]).forEach((entry) => entry.dispose());
+};
+
+const disposeObject = (root: THREE.Object3D) => {
+  root.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.geometry.dispose();
+      disposeMaterial(child.material);
+    }
+  });
+};
+
+function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
+  const [model, setModel] = useState<THREE.Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const sceneRef = useRef(new THREE.Scene());
-  const cameraRef = useRef(new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000));
-  const rendererRef = useRef(null);
-  const containerRef = useRef(null);
-  const animationFrameId = useRef(null);
-  const prevPoseRef = useRef({
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const prevPoseRef = useRef<SmoothedPose>({
     position: new THREE.Vector3(),
     quaternion: new THREE.Quaternion(),
-    initialized: false
+    initialized: false,
   });
 
-  const applySmoothedPose = useCallback((targetPosition, targetQuaternion) => {
+  const applySmoothedPose = useCallback((targetPosition: THREE.Vector3, targetQuaternion: THREE.Quaternion) => {
     if (!model) return;
 
     const pose = prevPoseRef.current;
@@ -62,16 +103,16 @@ const ARTryOn = forwardRef((props, ref) => {
     model.updateMatrixWorld(true);
   }, [model]);
 
-  const updateGlasses = useCallback((landmarks) => {
+  const updateGlasses = useCallback((landmarks: LandmarkList) => {
     if (!model) return;
 
     const leftEye = averageLandmarks(landmarks, LEFT_EYE_INDICES);
     const rightEye = averageLandmarks(landmarks, RIGHT_EYE_INDICES);
     const eyeMidpoint = leftEye.clone().add(rightEye).multiplyScalar(0.5);
-    const leftTemple = toVector3(landmarks[LEFT_TEMPLE_INDEX]);
-    const rightTemple = toVector3(landmarks[RIGHT_TEMPLE_INDEX]);
-    const noseBridge = toVector3(landmarks[NOSE_BRIDGE_INDEX]);
-    const browPoint = toVector3(landmarks[FOREHEAD_INDEX]);
+    const leftTemple = toVector3(landmarks, LEFT_TEMPLE_INDEX);
+    const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
+    const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
+    const browPoint = toVector3(landmarks, FOREHEAD_INDEX);
     const faceAnchorTop = landmarks[1]?.y ?? browPoint.y;
     const anchor = eyeMidpoint.clone().lerp(noseBridge, 0.18);
 
@@ -83,7 +124,7 @@ const ARTryOn = forwardRef((props, ref) => {
     }
 
     const desiredWidth = faceWidth * 10;
-    const originalWidth = model.userData.originalWidth || 1;
+    const originalWidth = originalWidthOf(model);
     const widthScaleFactor = desiredWidth / Math.max(originalWidth, EPSILON);
     const clampedScale = Math.min(Math.max(widthScaleFactor, 0.75), 2.8);
 
@@ -122,11 +163,11 @@ const ARTryOn = forwardRef((props, ref) => {
 
     applySmoothedPose(targetPosition, targetQuaternion);
 
-    if (probeEnabled()) {
-      const camera = cameraRef.current;
+    const camera = cameraRef.current;
+    if (camera && probeEnabled()) {
       const pose = prevPoseRef.current;
-      const halfWidth = (model.userData.originalWidth * model.scale.x) / 2;
-      const templeEnd = (sign) =>
+      const halfWidth = (originalWidthOf(model) * model.scale.x) / 2;
+      const templeEnd = (sign: number) =>
         new THREE.Vector3(sign * halfWidth, 0, 0)
           .applyQuaternion(pose.quaternion)
           .add(pose.position)
@@ -141,18 +182,21 @@ const ARTryOn = forwardRef((props, ref) => {
         smoothedEndsNdc: [templeEnd(-1), templeEnd(1)],
         targetQuat: targetQuaternion.toArray(),
         smoothedQuat: pose.quaternion.toArray(),
-        landmarks: PROBE_LANDMARKS.map((i) => [landmarks[i].x, landmarks[i].y, landmarks[i].z]),
+        landmarks: PROBE_LANDMARKS.map((i) => {
+          const point = landmarkAt(landmarks, i);
+          return [point.x, point.y, point.z];
+        }),
       });
     }
   }, [model, applySmoothedPose]);
 
-  const updateHat = useCallback((landmarks) => {
+  const updateHat = useCallback((landmarks: LandmarkList) => {
     if (!model) return;
 
-    const forehead = toVector3(landmarks[FOREHEAD_INDEX]);
-    const leftTemple = toVector3(landmarks[LEFT_TEMPLE_INDEX]);
-    const rightTemple = toVector3(landmarks[RIGHT_TEMPLE_INDEX]);
-    const noseBridge = toVector3(landmarks[NOSE_BRIDGE_INDEX]);
+    const forehead = toVector3(landmarks, FOREHEAD_INDEX);
+    const leftTemple = toVector3(landmarks, LEFT_TEMPLE_INDEX);
+    const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
+    const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
 
     const headWidth = leftTemple.distanceTo(rightTemple);
     if (!Number.isFinite(headWidth) || headWidth < EPSILON) {
@@ -162,7 +206,7 @@ const ARTryOn = forwardRef((props, ref) => {
     }
 
     const desiredWidth = headWidth * 12;
-    const originalWidth = model.userData.originalWidth || 1;
+    const originalWidth = originalWidthOf(model);
     const widthScaleFactor = desiredWidth / Math.max(originalWidth, EPSILON);
     const clampedScale = Math.min(Math.max(widthScaleFactor, 0.9), 3.5);
 
@@ -197,8 +241,8 @@ const ARTryOn = forwardRef((props, ref) => {
     applySmoothedPose(targetPosition, targetQuaternion);
   }, [model, applySmoothedPose]);
 
-  useImperativeHandle(ref, () => ({
-    updateModel: (landmarks) => {
+  useImperativeHandle(ref, (): ARTryOnHandle => ({
+    updateModel: (landmarks: LandmarkList | null) => {
       if (!landmarks) {
         if (model) {
           model.visible = false;
@@ -219,11 +263,15 @@ const ARTryOn = forwardRef((props, ref) => {
     const container = containerRef.current;
     if (!container) return;
 
-    const scene = sceneRef.current;
-    const camera = cameraRef.current;
+    // The scene belongs to this effect run. A scene shared across runs kept the
+    // lights of every earlier run, which StrictMode doubles in development.
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    cameraRef.current = camera;
+    let disposed = false;
+    let animationFrameId = 0;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    rendererRef.current = renderer;
 
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);
@@ -236,8 +284,7 @@ const ARTryOn = forwardRef((props, ref) => {
     renderer.domElement.style.transformOrigin = 'center';
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-    scene.add(ambientLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
     directionalLight.position.set(0, 1, 1);
@@ -245,12 +292,14 @@ const ARTryOn = forwardRef((props, ref) => {
 
     camera.position.z = 2;
 
-    let currentModel = null;
-
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
       (gltf) => {
+        if (disposed) {
+          disposeObject(gltf.scene);
+          return;
+        }
         const loadedModel = gltf.scene;
         const boundingBox = new THREE.Box3().setFromObject(loadedModel);
         const size = new THREE.Vector3();
@@ -264,9 +313,14 @@ const ARTryOn = forwardRef((props, ref) => {
 
         loadedModel.position.sub(center);
         loadedModel.traverse((child) => {
-          if (child.isMesh) {
-            child.material.transparent = true;
-            child.material.side = THREE.DoubleSide;
+          if (child instanceof THREE.Mesh) {
+            const materials: THREE.Material[] = Array.isArray(child.material)
+              ? child.material
+              : [child.material];
+            materials.forEach((material) => {
+              material.transparent = true;
+              material.side = THREE.DoubleSide;
+            });
             child.castShadow = true;
             child.receiveShadow = true;
           }
@@ -274,27 +328,21 @@ const ARTryOn = forwardRef((props, ref) => {
 
         pivot.add(loadedModel);
         scene.add(pivot);
-        currentModel = pivot;
 
         setModel(pivot);
         prevPoseRef.current.initialized = false;
         setIsLoading(false);
-        console.log('3D model loaded successfully');
       },
-      (progress) => {
-        if (progress.total > 0) {
-          const percent = Math.round((progress.loaded / progress.total) * 100);
-          console.log(`Loading: ${percent}%`);
-        }
-      },
+      undefined,
       (error) => {
+        if (disposed) return;
         console.error('Error loading model:', error);
         setIsLoading(false);
-      }
+      },
     );
 
     const animate = () => {
-      animationFrameId.current = requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
       const renderStart = performance.now();
       renderer.render(scene, camera);
       probe({ stage: 'render', start: renderStart, end: performance.now() });
@@ -309,19 +357,20 @@ const ARTryOn = forwardRef((props, ref) => {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      disposed = true;
       window.removeEventListener('resize', handleResize);
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
-      if (renderer) {
-        renderer.dispose();
-      }
-      if (container && renderer.domElement && container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
-      if (currentModel) {
-        scene.remove(currentModel);
-      }
+      cancelAnimationFrame(animationFrameId);
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          disposeMaterial(object.material);
+        }
+      });
+      scene.clear();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      renderer.domElement.remove();
+      cameraRef.current = null;
       setModel(null);
       setIsLoading(true);
       prevPoseRef.current.initialized = false;
@@ -329,24 +378,29 @@ const ARTryOn = forwardRef((props, ref) => {
   }, [modelPath]);
 
   return (
-    <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+    <div
+      ref={containerRef}
+      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+    >
       {isLoading && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          color: 'white',
-          background: 'rgba(0,0,0,0.7)',
-          padding: '20px',
-          borderRadius: '10px',
-          zIndex: 10
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: 'white',
+            background: 'rgba(0,0,0,0.7)',
+            padding: '20px',
+            borderRadius: '10px',
+            zIndex: 10,
+          }}
+        >
           Loading 3D Model...
         </div>
       )}
     </div>
   );
-});
+}
 
 export default ARTryOn;

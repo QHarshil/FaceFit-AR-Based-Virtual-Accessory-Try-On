@@ -1,26 +1,26 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { Camera } from '@mediapipe/camera_utils';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import ARTryOn from '../components/ARTryOn';
 import { getProductById } from '../services/apiClient';
-import { sendTelemetry } from '../utils/telemetry';
+import { startFaceTracking } from '../tracking/faceTracking';
+import type { ARTryOnHandle, Product } from '../types';
 import { probe } from '../utils/probe';
+import { sendTelemetry } from '../utils/telemetry';
 import '../styles/TryOn.css';
+
+const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 function TryOn() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const videoRef = useRef(null);
-  const arRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const arRef = useRef<ARTryOnHandle | null>(null);
   const [faceDetected, setFaceDetected] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
-  const [error, setError] = useState(null);
-  const [product, setProduct] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [productLoading, setProductLoading] = useState(true);
-  const faceStateRef = useRef(null);
-  const faceMeshRef = useRef(null);
-  const cameraRef = useRef(null);
+  const faceStateRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,7 +38,7 @@ function TryOn() {
         console.error('Product load error:', err);
         setProduct(null);
         setError('Product not found. Please choose another frame.');
-        sendTelemetry('product_load_failed', { productId: id, message: err.message });
+        sendTelemetry('product_load_failed', { productId: id, message: errorMessage(err) });
       } finally {
         if (isMounted) {
           setProductLoading(false);
@@ -53,79 +53,49 @@ function TryOn() {
   }, [id]);
 
   useEffect(() => {
-    if (!product || !videoRef.current) {
+    const video = videoRef.current;
+    if (!product || !video) {
       return;
     }
 
     let isActive = true;
+    const productId = product.id;
 
-    const initCamera = async () => {
-      try {
-        const faceMesh = new FaceMesh({
-          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-        });
-
-        faceMesh.setOptions({
-          maxNumFaces: 1,
-          refineLandmarks: true,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5
-        });
-
-        faceMesh.onResults((results) => {
-          if (!isActive) return;
-
-          if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-            setFaceDetected(true);
-            const landmarks = results.multiFaceLandmarks[0];
-            if (arRef.current) {
-              const poseStart = performance.now();
-              arRef.current.updateModel(landmarks);
-              probe({ stage: 'pose', start: poseStart, end: performance.now() });
-            }
-          } else {
-            setFaceDetected(false);
-          }
-        });
-
-        faceMeshRef.current = faceMesh;
-
-        if (videoRef.current) {
-          const camera = new Camera(videoRef.current, {
-            onFrame: async () => {
-              if (videoRef.current && faceMeshRef.current && isActive) {
-                const sendStart = performance.now();
-                await faceMeshRef.current.send({ image: videoRef.current });
-                probe({ stage: 'send', start: sendStart, end: performance.now() });
-              }
-            },
-            width: 1280,
-            height: 720
-          });
-
-          await camera.start();
-          cameraRef.current = camera;
-          setCameraReady(true);
-          sendTelemetry('camera_started', { productId: product.id });
-        }
-      } catch (err) {
-        console.error('Camera error:', err);
-        setError('Unable to start the camera. Please allow access and refresh the page.');
-        sendTelemetry('camera_error', { productId: product.id, message: err.message });
-      }
+    const reportCameraError = (err: unknown) => {
+      if (!isActive) return;
+      console.error('Camera error:', err);
+      setError('Unable to start the camera. Please allow access and refresh the page.');
+      sendTelemetry('camera_error', { productId, message: errorMessage(err) });
     };
 
-    initCamera();
+    let tracking: ReturnType<typeof startFaceTracking>;
+    try {
+      tracking = startFaceTracking(video, (landmarks) => {
+        if (!landmarks) {
+          setFaceDetected(false);
+          return;
+        }
+        setFaceDetected(true);
+        if (arRef.current) {
+          const poseStart = performance.now();
+          arRef.current.updateModel(landmarks);
+          probe({ stage: 'pose', start: poseStart, end: performance.now() });
+        }
+      });
+    } catch (err) {
+      reportCameraError(err);
+      return;
+    }
+
+    tracking.started.then(() => {
+      if (!isActive) return;
+      setCameraReady(true);
+      sendTelemetry('camera_started', { productId });
+    }, reportCameraError);
 
     return () => {
       isActive = false;
-      if (cameraRef.current) {
-        cameraRef.current.stop();
-      }
-      if (faceMeshRef.current?.close) {
-        faceMeshRef.current.close();
-      }
-      faceMeshRef.current = null;
+      tracking.stop();
       setCameraReady(false);
     };
   }, [product]);

@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Home.css';
 import { getProducts } from '../services/apiClient';
+import type { Product } from '../types';
 import { sendTelemetry } from '../utils/telemetry';
 
 const CAPABILITIES = [
@@ -20,16 +21,23 @@ const CAPABILITIES = [
 ];
 
 const LOADING_PLACEHOLDERS = Array.from({ length: 4 }, (_, index) => index);
-const ILLUSTRATION_THEMES = [
+interface IllustrationTheme {
+  frame: string;
+  lens: string;
+  accent: string;
+  background: string;
+}
+
+const ILLUSTRATION_THEMES: [IllustrationTheme, ...IllustrationTheme[]] = [
   { frame: '#1d4ed8', lens: '#bfdbfe', accent: '#2563eb', background: '#eff6ff' },
   { frame: '#047857', lens: '#bbf7d0', accent: '#0f766e', background: '#ecfdf5' },
   { frame: '#7c3aed', lens: '#ddd6fe', accent: '#6d28d9', background: '#f5f3ff' },
   { frame: '#dc2626', lens: '#fecaca', accent: '#b91c1c', background: '#fef2f2' },
 ];
 
-function ProductImage({ product }) {
+function ProductImage({ product }: { product: Product }) {
   const [failed, setFailed] = useState(false);
-  const theme = ILLUSTRATION_THEMES[(product.id - 1) % ILLUSTRATION_THEMES.length];
+  const theme = ILLUSTRATION_THEMES[(product.id - 1) % ILLUSTRATION_THEMES.length] ?? ILLUSTRATION_THEMES[0];
   const hasValidImage = Boolean(product.image) && !failed;
 
   if (!hasValidImage) {
@@ -75,9 +83,9 @@ function ProductImage({ product }) {
 
 function Home() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,7 +102,7 @@ function Home() {
         if (!isMounted) return;
         console.error('Failed to load products:', err);
         setError('We could not reach the product catalogue. Please retry in a moment.');
-        sendTelemetry('catalogue_failed', { message: err.message });
+        sendTelemetry('catalogue_failed', { message: err instanceof Error ? err.message : String(err) });
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -108,14 +116,14 @@ function Home() {
     };
   }, []);
 
-  const [primaryProductId, secondaryProductId] = useMemo(() => {
+  const [primaryProductId, secondaryProductId] = useMemo((): [number | undefined, number | undefined] => {
     if (products.length === 0) {
       return [undefined, undefined];
     }
     return [products[0]?.id, products[1]?.id ?? products[0]?.id];
   }, [products]);
 
-  const handleNavigate = (productId) => {
+  const handleNavigate = (productId: number | undefined) => {
     if (!productId) return;
     navigate(`/try-on/${productId}`);
   };

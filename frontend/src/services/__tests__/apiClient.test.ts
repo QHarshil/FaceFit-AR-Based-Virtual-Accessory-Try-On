@@ -1,45 +1,39 @@
-import { getProductById, getProducts, API_BASE_URL } from '../apiClient';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { API_BASE_URL, getProductById, getProducts } from '../apiClient';
 
 describe('apiClient', () => {
-  const originalFetch = global.fetch;
-
   afterEach(() => {
-    if (originalFetch) {
-      global.fetch = originalFetch;
-    } else {
-      delete global.fetch;
-    }
-    jest.clearAllMocks();
+    vi.unstubAllGlobals();
   });
+
+  const stubFetch = (response: Partial<Response>) => {
+    const fetchMock = vi.fn().mockResolvedValue(response);
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  };
 
   it('requests the full product catalogue', async () => {
     const catalogue = [{ id: 1 }, { id: 2 }];
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(catalogue),
-    });
+    const fetchMock = stubFetch({ ok: true, json: () => Promise.resolve(catalogue) });
 
     const result = await getProducts();
 
-    expect(global.fetch).toHaveBeenCalledWith(`${API_BASE_URL}/api/products`);
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/api/products`);
     expect(result).toEqual(catalogue);
   });
 
   it('requests a product by id', async () => {
     const product = { id: 7 };
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(product),
-    });
+    const fetchMock = stubFetch({ ok: true, json: () => Promise.resolve(product) });
 
     const result = await getProductById(7);
 
-    expect(global.fetch).toHaveBeenCalledWith(`${API_BASE_URL}/api/products/7`);
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/api/products/7`);
     expect(result).toEqual(product);
   });
 
   it('throws a descriptive error when the response is not ok', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    stubFetch({
       ok: false,
       status: 404,
       json: () => Promise.resolve({ error: 'Product not found' }),
