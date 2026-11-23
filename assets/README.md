@@ -28,20 +28,20 @@ Marker colours: bridge magenta, left pad blue, right pad green, left hinge orang
 
 `normalize.mjs` rotates by `axisCorrection`, bakes and flattens nodes, scales to `totalWidthMm`, moves the origin to `bridgeOriginMm`, welds, dedupes, joins meshes per material, prunes, then quantizes and compresses with meshopt. Output is deterministic and a test checks it.
 
-`bridgeOriginMm` is hand-set. It is the bridge centre in the intermediate frame (front slab centred in x, vertically centred, front plane at z = 0). Anchors were set from the geometry and checked in the renders.
+`bridgeOriginMm` is hand-set. It is the bridge centre in the intermediate frame (front slab centred in x, vertically centred, front plane at z = 0). Anchors were set from the geometry and checked in the renders. `expectedBoundsMm` pins the output bounds so tests catch a change in scale, origin or orientation.
 
 ## Compression
 
-Meshopt. Sizes are in `out/manifest.json`.
+Meshopt. Sizes are in `out/manifest.json`, with gzip at level 9.
 
-| Model | Source | Meshopt | Draco | Meshopt + brotli | Draco + brotli |
+| Model | Source | Meshopt | Draco | Meshopt gzip | Draco gzip |
 |---|---|---|---|---|---|
-| rectangular-acetate | 1164908 | 168428 | 79604 | 64309 | 65883 |
-| oval-wire-sunglasses | 2066096 | 1006804 | 940072 | 897927 | 905348 |
-| pixel-shades | 202272 | 26088 | 7332 | 5884 | 4767 |
-| round-wire-glasses | 2652712 | 831064 | 712084 | 663041 | 670794 |
+| rectangular-acetate | 1164908 | 168428 | 79604 | 70789 | 67842 |
+| oval-wire-sunglasses | 2066096 | 1006804 | 940072 | 911193 | 908598 |
+| pixel-shades | 202272 | 26088 | 7332 | 6624 | 5053 |
+| round-wire-glasses | 2652712 | 831064 | 712084 | 682755 | 676753 |
 
-Draco is smaller before transfer compression. With brotli, which the static host applies, meshopt is smaller on three of four and in total, decodes faster and ships a much smaller decoder. Textures are unchanged: they account for most of the remaining size in the oval and round models.
+Draco is smaller on every model, before and after gzip. Over the four models gzipped Draco is 13115 bytes smaller. Meshopt wins on the decoder: in three 0.187, `meshopt_decoder.module.js` is 29256 bytes, while the Draco glTF decoder is 192420 bytes of wasm plus a 58456 byte wrapper (250876 total), and meshopt decodes faster. The decoder is paid once per visitor, so the saving outweighs the gap. Textures are unchanged and account for most of the remaining size in the oval and round models.
 
 ## Credits
 
