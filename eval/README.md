@@ -32,12 +32,18 @@ npm test
 
 | Metric | Definition | Correct value |
 |--------|------------|---------------|
-| `inferenceMs` | `FaceMesh.send` duration, including the results callback | lower |
-| `pipelineMs` | frame pickup to the end of the first render with the new pose; excludes camera and display latency | lower |
-| jitter `rmsHighPass` | RMS distance from a 9-sample centered moving average, blinks masked | lower |
+| `inferenceMs` | `detectForVideo` duration, measured in the worker | lower |
+| `frameToLandmarksMs` | frame callback (`requestVideoFrameCallback`) to the worker result arriving on the main thread | lower |
+| `mainThreadPerFrameMs` | main-thread time per processed frame: the frame callback (capture and post) plus result handling, pose included | lower |
+| `captureIntervalMs`, `inferenceIntervalMs`, `ratesHz` | time between camera frames and between worker results; events per measured second | inference rate equals camera rate |
+| `framesDropped` | waiting frames replaced by a newer one before the worker took them | 0 |
+| `pipelineMs` | frame callback to the end of the first render after that frame's pose; excludes camera and display latency | lower |
+| jitter `rmsHighPass` | RMS distance from a centered moving average spanning about 150 ms (`windowSamples`: 9 at 60 Hz, 5 at 30 Hz), blinks masked | lower |
 | `renderedPerFaceDeg` | slope of the rendered frame's screen angle against the face's eye-line angle | 1 |
 | `gainX`, `gainY` | slope of overlay displacement against nose-bridge displacement | 1 |
 | `renderedOverFace` | rendered frame width over face contour width (landmarks 234 to 454) | constant across zoom |
 | blink shift | peak vertical displacement during a blink against the open-eye median before it | 0 |
 
 Screen quantities are CSS pixels at a 1280x720 viewport.
+
+Runs before `perception-worker` (`baseline-recordings`, `parity-vite`) ran the legacy Face Mesh on the main thread once per animation frame: their `inferenceMs` is the `FaceMesh.send` duration including the results callback, `inferenceIntervalMs` is the animation frame interval, `pipelineMs` starts at that frame, and the jitter window is 9 samples. Blink windows (`before`, `settle`, the mask margin) count pose updates, not milliseconds.

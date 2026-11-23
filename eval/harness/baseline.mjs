@@ -18,7 +18,7 @@ import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONDITIONS, PRODUCTS, RECORDED } from './conditions.mjs';
-import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, wrapLineAngle } from './metrics.mjs';
+import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
 import { runCondition } from './run.mjs';
 
@@ -129,7 +129,8 @@ const geometryOf = (run) => run.events
 const round = (value, digits = 2) => (value == null ? null : Number(value.toFixed(digits)));
 const roundAll = (obj) => JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === 'number' ? round(v, 3) : v)));
 
-// Jitter with blinks and their neighbours masked out.
+// Jitter with blinks and their neighbours masked out. The high-pass window
+// spans about 150 ms whatever the pose rate.
 const jitterOf = (allGeometry, run) => {
   const allPoses = run.events.filter((e) => e.stage === 'glassesPose');
   const blinks = findBlinks(allGeometry.map((g) => g.eyeOpenness));
@@ -137,15 +138,17 @@ const jitterOf = (allGeometry, run) => {
   const geometry = keep.map((i) => allGeometry[i]);
   const poses = keep.map((i) => allPoses[i]);
   const iod = median(geometry.map((g) => g.interocular));
+  const window = windowSamples(allPoses.map((e) => e.t));
   return {
     samples: geometry.length,
     blinksMasked: blinks.length,
+    windowSamples: window,
     interocularPx: iod,
-    landmarkNoseBridgePx: pointJitter(geometry.map((g) => g.noseBridge)),
-    rawCenterPx: pointJitter(geometry.map((g) => g.targetCenter)),
-    smoothedCenterPx: pointJitter(geometry.map((g) => g.renderedCenter)),
-    rawRotationDeg: rotationJitter(poses.map((e) => e.targetQuat)),
-    smoothedRotationDeg: rotationJitter(poses.map((e) => e.smoothedQuat)),
+    landmarkNoseBridgePx: pointJitter(geometry.map((g) => g.noseBridge), window),
+    rawCenterPx: pointJitter(geometry.map((g) => g.targetCenter), window),
+    smoothedCenterPx: pointJitter(geometry.map((g) => g.renderedCenter), window),
+    rawRotationDeg: rotationJitter(poses.map((e) => e.targetQuat), window),
+    smoothedRotationDeg: rotationJitter(poses.map((e) => e.smoothedQuat), window),
   };
 };
 
@@ -155,7 +158,7 @@ const medianOf = (id, key) => median(geometry[id].map((g) => g[key]));
 
 for (const id of ['still', 'rec-static']) {
   if (!runs[id]) continue;
-  summary.latency[id] = latency(runs[id].events);
+  summary.latency[id] = latency(runs[id].events, conditions.find((c) => c.id === id).measureSeconds);
   summary.jitter[id] = jitterOf(geometry[id], runs[id]);
 }
 
