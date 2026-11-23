@@ -8,8 +8,10 @@
 // --clips reads the Y4M clips from another checkout. --label is the key under
 // `runs` in results.json (default: baseline-<source>).
 //
-// Builds the production bundle, serves it with the catalog API, replays each
-// clip in Chrome as the fake camera, and summarizes the probe events.
+// Builds the production bundle, serves it with `vite preview` (which sends the
+// production CSP) and the catalog API, replays each clip in Chrome as the fake
+// camera, and summarizes the probe events. Fails without writing results if
+// any request left localhost or the CSP blocked anything.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { cpus, totalmem } from 'node:os';
@@ -17,12 +19,13 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONDITIONS, PRODUCTS, RECORDED } from './conditions.mjs';
 import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, wrapLineAngle } from './metrics.mjs';
+import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
 import { runCondition } from './run.mjs';
-import { serveBuild } from './serve.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EVAL, '..');
 const API_PORT = 5077;
+const API_URL = `http://localhost:${API_PORT}`;
 const WEB_PORT = 4177;
 const RESULTS = join(EVAL, 'results.json');
 
@@ -48,14 +51,36 @@ const runDir = join(EVAL, '.cache', 'runs', source);
 const screenDir = join(EVAL, '.cache', 'screens', source);
 for (const dir of [runDir, screenDir]) mkdirSync(dir, { recursive: true });
 
+const FRONTEND = join(REPO, 'frontend');
 console.log('building frontend');
-execFileSync('npm', ['run', 'build'], {
-  cwd: join(REPO, 'frontend'),
-  env: { ...process.env, VITE_API_URL: `http://localhost:${API_PORT}` },
-  stdio: 'ignore',
-});
+execFileSync('npm', ['run', 'build'], { cwd: FRONTEND, env: { ...process.env, VITE_API_URL: API_URL }, stdio: 'ignore' });
+
+const startPreview = async () => {
+  const preview = spawn(process.execPath, [join(FRONTEND, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--port', String(WEB_PORT), '--strictPort'], {
+    cwd: FRONTEND,
+    env: { ...process.env, VITE_API_URL: API_URL },
+    stdio: 'ignore',
+  });
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      if ((await fetch(`http://localhost:${WEB_PORT}/`)).ok) return preview;
+    } catch {
+      // not listening yet
+    }
+    await new Promise((done) => setTimeout(done, 200));
+  }
+  preview.kill();
+  throw new Error('vite preview did not start');
+};
+
 const api = spawn('node', ['server.js'], { cwd: join(REPO, 'backend'), env: { ...process.env, PORT: String(API_PORT) }, stdio: 'ignore' });
-const web = await serveBuild(join(REPO, 'frontend', 'dist'), WEB_PORT);
+let web;
+try {
+  web = await startPreview();
+} catch (error) {
+  api.kill();
+  throw error;
+}
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
 const conditions = [...CONDITIONS, ...PRODUCTS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
@@ -77,9 +102,25 @@ try {
   }
 } finally {
   api.kill();
-  web.close();
+  web.kill();
 }
 console.log();
+
+const network = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, {
+  requests: run.requests.length,
+  offDevice: offDeviceRequests(run.requests),
+  workerFetchSeen: sawWorkerFetch(run.requests),
+  cspViolations: run.cspViolations,
+}]));
+const networkProblems = Object.entries(network).flatMap(([id, n]) => [
+  ...n.offDevice.map((url) => `${id}: request left localhost: ${url}`),
+  ...n.cspViolations.map((violation) => `${id}: CSP violation: ${violation}`),
+  ...(n.workerFetchSeen ? [] : [`${id}: the worker's model request was not captured`]),
+]);
+if (networkProblems.length) {
+  console.error(`network check failed; results not written\n${networkProblems.join('\n')}`);
+  process.exit(1);
+}
 
 const geometryOf = (run) => run.events
   .filter((e) => e.stage === 'glassesPose')
@@ -187,13 +228,14 @@ if (runs['rec-blink']) {
   };
 }
 
-const facemeshVersion = JSON.parse(readFileSync(join(REPO, 'frontend', 'node_modules', '@mediapipe', 'face_mesh', 'package.json'), 'utf8')).version;
+const tasksVisionVersion = JSON.parse(readFileSync(join(FRONTEND, 'node_modules', '@mediapipe', 'tasks-vision', 'package.json'), 'utf8')).version;
+const delegates = [...new Set(Object.values(runs).map((run) => run.delegate))];
 const entry = roundAll({
   measuredAt: new Date().toISOString(),
   commit: git('rev-parse', 'HEAD'),
   dirty: dirty.length > 0,
   command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
-  pipeline: `@mediapipe/face_mesh ${facemeshVersion} (WASM and model from unpinned jsdelivr), heuristic Euler pose, lerp/slerp alpha 0.3`,
+  pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces 2, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3`,
   hardware: {
     cpu: cpus()[0].model,
     memoryGB: Math.round(totalmem() / 2 ** 30),
@@ -203,9 +245,16 @@ const entry = roundAll({
     viewport: environment.viewport,
     video: environment.video,
     cameraFps: environment.cameraFps,
+    perceptionDelegate: delegates.join('/'),
   },
   input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise' : 'webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise',
-  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length }])),
+  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests }])),
+  network: {
+    requests: Object.values(network).reduce((sum, n) => sum + n.requests, 0),
+    offDeviceRequests: 0,
+    cspViolations: 0,
+    check: 'every request from the page and its worker went to localhost (eval/harness/network.mjs)',
+  },
   summary,
 });
 

@@ -25,3 +25,7 @@ Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronous
 | `face_landmarker.task`             | `/mediapipe/face_landmarker/float16/1/` | 3,758,596  | `storage.googleapis.com/mediapipe-models`, float16/1 | Apache-2.0 ([model card](https://huggingface.co/litert-community/MediaPipe-FaceLandmarker)) |
 
 `@mediapipe/tasks-vision` is pinned to 1.2.3, the latest stable release. 1.2.0 added Web Worker platform detection, 1.2.2 removed the non-SIMD builds, and 1.2.3 renamed APIs behind deprecated aliases; none of the calls used here changed. To upgrade, bump the package and the pins in the vendor script together.
+
+## Privacy
+
+Frames and landmarks stay in the browser. The package also posts usage logs to `odml.pa.googleapis.com` from the worker. The CSP (`csp.ts`) blocks that through `connect-src`, and `sameOriginFetch.ts` rejects any off-origin fetch inside the worker for hosts that serve the files without the header. The eval harness fails a run that requests anything outside localhost.

@@ -1,5 +1,6 @@
 // Runs the try-on page in Chrome with a clip as the fake camera and collects
-// probe events (see frontend/src/utils/probe.js).
+// probe events (see frontend/src/utils/probe.ts), every request the page and
+// its worker make, and CSP violations.
 import { chromium } from 'playwright-core';
 
 const describeEnvironment = () => {
@@ -46,13 +47,16 @@ export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, h
     await context.addInitScript(() => {
       window.__facefitEvents = [];
       window.__facefitProbe = (event) => window.__facefitEvents.push(event);
+      window.__facefitCspViolations = [];
+      document.addEventListener('securitypolicyviolation', (event) => {
+        window.__facefitCspViolations.push(`${event.effectiveDirective} ${event.blockedURI}`);
+      });
     });
+    // On the context, so requests from the landmark worker are included.
+    const requests = [];
+    context.on('request', (req) => requests.push(req.url()));
     const page = await context.newPage();
-    const assets = [];
     const errors = [];
-    page.on('response', (res) => {
-      if (res.url().includes('mediapipe')) assets.push({ url: res.url(), status: res.status() });
-    });
     page.on('pageerror', (err) => errors.push(String(err)));
     page.on('console', (msg) => msg.type() === 'error' && errors.push(msg.text()));
 
@@ -62,6 +66,7 @@ export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, h
       null,
       { timeout: 60000 },
     );
+    const ready = await page.evaluate(() => window.__facefitEvents.find((e) => e.stage === 'perceptionReady'));
     await page.waitForTimeout(warmupSeconds * 1000);
     await page.evaluate(() => { window.__facefitEvents.length = 0; });
     await page.waitForTimeout(measureSeconds * 1000);
@@ -69,7 +74,12 @@ export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, h
     const environment = await page.evaluate(describeEnvironment);
     environment.cameraFps = await page.evaluate(measureCameraFps);
     if (screenshot) await page.screenshot({ path: screenshot });
-    return { events, environment, assets, errors };
+    // Worker violations reach the page only as console errors.
+    const cspViolations = [
+      ...(await page.evaluate(() => window.__facefitCspViolations)),
+      ...errors.filter((text) => text.includes('Content Security Policy')),
+    ];
+    return { events, environment, delegate: ready ? ready.delegate : null, requests, cspViolations, errors };
   } finally {
     await browser.close();
   }

@@ -1,6 +1,8 @@
 # Eval harness
 
-Replays clips through the try-on page in Chrome as a fake camera and writes metrics to `results.json`. The app reports timings and poses through `probe()` (`frontend/src/utils/probe.js`), which is a no-op unless the harness installs a sink.
+Replays clips through the try-on page in Chrome as a fake camera and writes metrics to `results.json`. The app reports timings and poses through `probe()` (`frontend/src/utils/probe.ts`), which is a no-op unless the harness installs a sink.
+
+The production build is served by `vite preview`, which sends the production CSP. The harness records every request from the page and its worker; a run that requests anything outside localhost or trips the CSP fails and writes no results (`harness/network.mjs`).
 
 ## Run
 

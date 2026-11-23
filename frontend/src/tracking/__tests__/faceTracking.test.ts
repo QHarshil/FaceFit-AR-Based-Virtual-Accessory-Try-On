@@ -81,8 +81,8 @@ describe('startFaceTracking', () => {
     expect(landmarkers).toHaveLength(1);
     expect(cameras).toHaveLength(1);
     expect(landmarkers[0]?.options.assets).toEqual({
-      wasmBaseUrl: `/mediapipe/tasks-vision/${__TASKS_VISION_VERSION__}`,
-      modelUrl: '/mediapipe/face_landmarker/float16/1/face_landmarker.task',
+      wasmBaseUrl: `${window.location.origin}/mediapipe/tasks-vision/${__TASKS_VISION_VERSION__}`,
+      modelUrl: `${window.location.origin}/mediapipe/face_landmarker/float16/1/face_landmarker.task`,
     });
 
     // Sessions are serialized, so settle this camera before the next test.
