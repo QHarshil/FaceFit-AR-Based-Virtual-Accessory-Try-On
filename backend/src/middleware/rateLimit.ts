@@ -15,7 +15,9 @@ interface Window {
 }
 
 // Fixed window counters in process memory. With several replicas each keeps its own count.
-export const rateLimit = (options: RateLimitOptions): MiddlewareHandler => {
+export const rateLimit = (
+  options: RateLimitOptions,
+): MiddlewareHandler<{ Variables: { requestId: string } }> => {
   const now = options.now ?? Date.now;
   const maxTracked = options.maxTrackedClients ?? 10_000;
   const windows = new Map<string, Window>();
@@ -24,7 +26,8 @@ export const rateLimit = (options: RateLimitOptions): MiddlewareHandler => {
     for (const [key, window] of windows) {
       if (window.resetAt <= at) windows.delete(key);
     }
-    // Insertion order puts the oldest windows first, so a flood of new keys cannot grow the map.
+    // Windows are re-inserted when they renew, so insertion order is oldest window start first.
+    // A flood of new keys evicts the stalest windows and cannot grow the map.
     for (const key of windows.keys()) {
       if (windows.size < maxTracked) break;
       windows.delete(key);
@@ -38,6 +41,8 @@ export const rateLimit = (options: RateLimitOptions): MiddlewareHandler => {
     if (!window || window.resetAt <= at) {
       if (windows.size >= maxTracked) sweep(at);
       window = { count: 0, resetAt: at + options.windowMs };
+      // Deleting first moves a renewed key to the end of the map's insertion order.
+      windows.delete(key);
       windows.set(key, window);
     }
     window.count += 1;
@@ -50,7 +55,7 @@ export const rateLimit = (options: RateLimitOptions): MiddlewareHandler => {
 
     if (window.count > options.max) {
       c.header('Retry-After', String(resetSeconds));
-      return c.json({ error: 'Too many requests' }, 429);
+      return c.json({ error: 'Too many requests', requestId: c.get('requestId') }, 429);
     }
     await next();
     return undefined;

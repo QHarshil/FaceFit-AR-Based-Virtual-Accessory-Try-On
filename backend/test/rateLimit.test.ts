@@ -86,3 +86,85 @@ describe('rate limits on the API', () => {
     expect((await app.request('/api/products', from('6.6.6.6'))).status).toBe(200);
   });
 });
+
+describe('rate limits beyond the API routes', () => {
+  let database: Database;
+  beforeAll(async () => {
+    database = await seededDatabase();
+  });
+  afterAll(async () => {
+    await database.close();
+  });
+
+  it('counts preflight requests', async () => {
+    const { app } = buildApp(database, { rateLimitMax: 3 });
+    const statuses: number[] = [];
+    for (let index = 0; index < 6; index += 1) {
+      const response = await app.request('/api/telemetry', {
+        method: 'OPTIONS',
+        headers: { origin: 'http://localhost:3000', ...from('7.7.7.7').headers },
+      });
+      statuses.push(response.status);
+    }
+    expect(statuses).toEqual([204, 204, 204, 429, 429, 429]);
+  });
+
+  it('counts unknown paths outside /api', async () => {
+    const { app } = buildApp(database, { rateLimitMax: 2 });
+    const statuses: number[] = [];
+    for (let index = 0; index < 4; index += 1) {
+      statuses.push((await app.request(`/scan/${String(index)}`, from('7.7.7.8'))).status);
+    }
+    expect(statuses).toEqual([404, 404, 429, 429]);
+  });
+
+  it('caps the path length written to the access log', async () => {
+    const { app, lines } = buildApp(database);
+    await app.request(`/${'a'.repeat(5_000)}`);
+    expect(lines.join('\n').length).toBeLessThan(1_000);
+  });
+
+  it('includes the request id in 404, 413, 415, 403 and 429 bodies', async () => {
+    const { app } = buildApp(database, { rateLimitMax: 6 });
+    const headers = from('7.7.7.9').headers;
+    const bodies = [
+      await app.request('/api/products/99', { headers }),
+      await app.request('/nope', { headers }),
+      await postJson(app, `{"pad":"${'x'.repeat(4_096)}"}`, headers),
+      await app.request('/api/telemetry', {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'text/plain' },
+        body: '{}',
+      }),
+      await app.request('/api/products', {
+        headers: { ...headers, origin: 'https://evil.example' },
+      }),
+      await app.request('/api/products', { headers }),
+    ];
+    const limited = await app.request('/api/products', { headers });
+    const expected = [404, 404, 413, 415, 403, 200];
+    expect(bodies.map((response) => response.status)).toEqual(expected);
+    expect(limited.status).toBe(429);
+    for (const response of [...bodies.slice(0, 5), limited]) {
+      const body = (await response.json()) as { requestId?: string };
+      expect(body.requestId).toBe(response.headers.get('x-request-id'));
+    }
+  });
+
+  it('keeps a steady client when renewed windows share the map with newer keys', async () => {
+    let clock = 0;
+    const app = limitedApp({ max: 1, now: () => clock, maxTrackedClients: 4 });
+    await app.request('/', from('1.0.0.1'));
+    clock = 500;
+    await app.request('/', from('1.0.0.2'));
+    clock = 600;
+    await app.request('/', from('1.0.0.3'));
+    clock = 1_000;
+    await app.request('/', from('1.0.0.1'));
+    clock = 1_050;
+    await app.request('/', from('1.0.0.4'));
+    clock = 1_100;
+    await app.request('/', from('1.0.0.5'));
+    expect((await app.request('/', from('1.0.0.1'))).status).toBe(429);
+  });
+});

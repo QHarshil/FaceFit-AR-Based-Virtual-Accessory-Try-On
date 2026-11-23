@@ -14,18 +14,17 @@ export const cors = (allowedOrigins: readonly string[]): MiddlewareHandler => {
     const permitted = origin !== undefined && allowed.has(origin);
     c.header('Vary', 'Origin', { append: true });
 
-    if (c.req.method === 'OPTIONS') {
-      if (!permitted) return c.body(null, 204);
+    if (c.req.method === 'OPTIONS' && permitted) {
       c.header('Access-Control-Allow-Origin', origin);
       c.header('Access-Control-Allow-Credentials', 'true');
       c.header('Access-Control-Allow-Methods', ALLOWED_METHODS);
       c.header('Access-Control-Allow-Headers', ALLOWED_HEADERS);
       c.header('Access-Control-Max-Age', PREFLIGHT_MAX_AGE_SECONDS);
-      return c.body(null, 204);
     }
 
+    // Preflights continue down the chain so the rate limiter counts them.
     await next();
-    if (permitted) {
+    if (permitted && c.req.method !== 'OPTIONS') {
       c.header('Access-Control-Allow-Origin', origin);
       c.header('Access-Control-Allow-Credentials', 'true');
       c.header('Access-Control-Expose-Headers', 'X-Request-Id, RateLimit-Remaining, Retry-After');

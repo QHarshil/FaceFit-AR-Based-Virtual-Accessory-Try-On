@@ -96,7 +96,7 @@ describe('products', () => {
     const { app } = buildApp(database);
     const missing = await app.request('/api/products/99');
     expect(missing.status).toBe(404);
-    expect(await missing.json()).toEqual({ error: 'Product not found' });
+    expect(await missing.json()).toMatchObject({ error: 'Product not found' });
     expect((await app.request('/api/unknown')).status).toBe(404);
   });
 

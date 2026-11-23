@@ -35,6 +35,8 @@ interface Env {
 }
 
 const MAX_TELEMETRY_BYTES = 2_048;
+const MAX_LOGGED_PATH = 200;
+const JSON_CONTENT_TYPE = /^application\/json\s*(;|$)/i;
 const PRODUCTS_CACHE = 'public, max-age=60';
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -103,7 +105,7 @@ export const createApp = ({ config, database, logger, isShuttingDown }: AppDeps)
     logger.info('request', {
       requestId,
       method: c.req.method,
-      path: c.req.path,
+      path: c.req.path.slice(0, MAX_LOGGED_PATH),
       status: c.res.status,
       durationMs: Math.round(performance.now() - started),
     });
@@ -123,15 +125,28 @@ export const createApp = ({ config, database, logger, isShuttingDown }: AppDeps)
     }),
   );
   app.use(cors(config.corsOrigins));
-  app.use('/api/*', timeout(config.requestTimeoutMs));
+  // Every path and method counts, including preflights and unknown routes.
   app.use(
-    '/api/*',
     rateLimit({
       windowMs: config.rateLimitWindowMs,
       max: config.rateLimitMax,
       trustProxy: config.trustProxy,
     }),
   );
+
+  // A cross-origin write that skips preflight (a simple request) would otherwise be accepted.
+  const allowedOrigins = new Set(config.corsOrigins);
+  app.use(async (c, next) => {
+    const origin = c.req.header('origin');
+    if (origin !== undefined && c.req.method !== 'OPTIONS' && !allowedOrigins.has(origin)) {
+      return c.json({ error: 'Origin not allowed', requestId: c.get('requestId') }, 403);
+    }
+    await next();
+    return undefined;
+  });
+
+  app.use('/api/*', timeout(config.requestTimeoutMs));
+  app.options('*', (c) => c.body(null, 204));
 
   app.get('/api/health', (c) => {
     c.header('Cache-Control', 'no-store');
@@ -164,7 +179,7 @@ export const createApp = ({ config, database, logger, isShuttingDown }: AppDeps)
     const { id } = parseInput(productIdParam, c.req.param());
     parseInput(noQuery, c.req.query());
     const product = await databaseCall(() => products.find(id));
-    if (!product) return c.json({ error: 'Product not found' }, 404);
+    if (!product) return c.json({ error: 'Product not found', requestId: c.get('requestId') }, 404);
     c.header('Cache-Control', PRODUCTS_CACHE);
     return c.json(productResponse(product));
   });
@@ -176,9 +191,21 @@ export const createApp = ({ config, database, logger, isShuttingDown }: AppDeps)
       max: config.telemetryRateLimitMax,
       trustProxy: config.trustProxy,
     }),
+    async (c, next) => {
+      if (!JSON_CONTENT_TYPE.test(c.req.header('content-type') ?? '')) {
+        return c.json(
+          { error: 'Content-Type must be application/json', requestId: c.get('requestId') },
+          415,
+        );
+      }
+      await next();
+      return undefined;
+    },
     bodyLimit({
       maxSize: MAX_TELEMETRY_BYTES,
-      onError: (c) => c.json({ error: 'Payload too large' }, 413),
+      onError: () => {
+        throw new HTTPException(413, { message: 'Payload too large' });
+      },
     }),
     async (c) => {
       parseInput(noQuery, c.req.query());
@@ -193,7 +220,7 @@ export const createApp = ({ config, database, logger, isShuttingDown }: AppDeps)
     },
   );
 
-  app.notFound((c) => c.json({ error: 'Not found' }, 404));
+  app.notFound((c) => c.json({ error: 'Not found', requestId: c.get('requestId') }, 404));
 
   app.onError((error, c) => {
     const requestId = c.get('requestId');

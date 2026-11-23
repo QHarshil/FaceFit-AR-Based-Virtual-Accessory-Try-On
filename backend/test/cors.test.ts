@@ -46,10 +46,10 @@ describe('CORS allowlist', () => {
     expect(response.headers.get('access-control-allow-origin')).toBe(ALLOWED_ORIGIN);
   });
 
-  it('adds no CORS headers for an origin outside the allowlist', async () => {
+  it('rejects a request from an origin outside the allowlist and adds no CORS headers', async () => {
     const { app } = buildApp(database);
     const response = await app.request('/api/products', { headers: { origin: BLOCKED_ORIGIN } });
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(403);
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
     expect(response.headers.get('access-control-allow-credentials')).toBeNull();
   });
@@ -62,6 +62,22 @@ describe('CORS allowlist', () => {
     });
     expect(preflight.headers.get('access-control-allow-origin')).toBeNull();
     expect(preflight.headers.get('access-control-allow-methods')).toBeNull();
+  });
+
+  it('rejects a text/plain write from a blocked origin that would skip preflight', async () => {
+    const { app, lines } = buildApp(database);
+    const response = await app.request('/api/telemetry', {
+      method: 'POST',
+      headers: { origin: BLOCKED_ORIGIN, 'content-type': 'text/plain' },
+      body: JSON.stringify({ eventType: 'camera_started' }),
+    });
+    expect(response.status).toBe(403);
+    expect(lines.join('\n')).not.toContain('"msg":"telemetry"');
+  });
+
+  it('allows requests without an Origin header', async () => {
+    const { app } = buildApp(database);
+    expect((await app.request('/api/products')).status).toBe(200);
   });
 
   it('never answers with a wildcard origin', async () => {

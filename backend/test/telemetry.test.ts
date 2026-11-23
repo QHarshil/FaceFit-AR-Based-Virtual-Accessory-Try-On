@@ -68,6 +68,29 @@ describe('POST /api/telemetry', () => {
     expect((await postJson(app, '')).status).toBe(400);
   });
 
+  it.each(['text/plain', 'application/x-www-form-urlencoded', ''])(
+    'rejects the content type "%s" with 415',
+    async (contentType) => {
+      const { app } = buildApp(database);
+      const response = await app.request('/api/telemetry', {
+        method: 'POST',
+        headers: contentType ? { 'content-type': contentType } : {},
+        body: JSON.stringify({ eventType: 'camera_started' }),
+      });
+      expect(response.status).toBe(415);
+    },
+  );
+
+  it('accepts the content type a beacon Blob sends, with a charset', async () => {
+    const { app } = buildApp(database);
+    const response = await app.request('/api/telemetry', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({ eventType: 'camera_started' }),
+    });
+    expect(response.status).toBe(202);
+  });
+
   it('rejects an oversized body with 413', async () => {
     const { app } = buildApp(database);
     const body = JSON.stringify({
