@@ -57,6 +57,4 @@ const openPglite = async (location: string): Promise<Database> => {
 };
 
 export const openDatabase = (url: string): Promise<Database> =>
-  url.startsWith(PGLITE_PREFIX)
-    ? openPglite(url.slice(PGLITE_PREFIX.length))
-    : openPostgres(url);
+  url.startsWith(PGLITE_PREFIX) ? openPglite(url.slice(PGLITE_PREFIX.length)) : openPostgres(url);

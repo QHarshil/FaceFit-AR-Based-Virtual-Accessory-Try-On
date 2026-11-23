@@ -70,25 +70,31 @@ export const catalogToRows = (raw: unknown): ProductRow[] =>
     },
   }));
 
-export const seedProducts = async (db: AppDb, catalogPath = defaultCatalogPath): Promise<number> => {
+export const seedProducts = async (
+  db: AppDb,
+  catalogPath = defaultCatalogPath,
+): Promise<number> => {
   const rows = catalogToRows(JSON.parse(await readFile(catalogPath, 'utf8')) as unknown);
   await db.transaction(async (tx) => {
-    await tx.insert(products).values(rows).onConflictDoUpdate({
-      target: products.id,
-      set: {
-        slug: sql`excluded.slug`,
-        name: sql`excluded.name`,
-        description: sql`excluded.description`,
-        category: sql`excluded.category`,
-        type: sql`excluded.type`,
-        modelPath: sql`excluded.model_path`,
-        dimensionsMm: sql`excluded.dimensions_mm`,
-        dimensionsSource: sql`excluded.dimensions_source`,
-        bridgeOriginMm: sql`excluded.bridge_origin_mm`,
-        anchors: sql`excluded.anchors`,
-        attribution: sql`excluded.attribution`,
-      },
-    });
+    await tx
+      .insert(products)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: products.id,
+        set: {
+          slug: sql`excluded.slug`,
+          name: sql`excluded.name`,
+          description: sql`excluded.description`,
+          category: sql`excluded.category`,
+          type: sql`excluded.type`,
+          modelPath: sql`excluded.model_path`,
+          dimensionsMm: sql`excluded.dimensions_mm`,
+          dimensionsSource: sql`excluded.dimensions_source`,
+          bridgeOriginMm: sql`excluded.bridge_origin_mm`,
+          anchors: sql`excluded.anchors`,
+          attribution: sql`excluded.attribution`,
+        },
+      });
     await tx.delete(products).where(
       notInArray(
         products.id,
