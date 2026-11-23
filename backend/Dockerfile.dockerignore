@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.env
+.git
+frontend
+eval
+assets/source
+assets/out
+assets/renders

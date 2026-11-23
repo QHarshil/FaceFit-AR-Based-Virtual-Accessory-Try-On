@@ -8,20 +8,56 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - facefit-network
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "5055:5055"
     environment:
-      - PORT=5055
+      PORT: "5055"
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-facefit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-facefit}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-120}
+      TELEMETRY_RATE_LIMIT_MAX: ${TELEMETRY_RATE_LIMIT_MAX:-30}
+      REQUEST_TIMEOUT_MS: ${REQUEST_TIMEOUT_MS:-10000}
+      SHUTDOWN_TIMEOUT_MS: ${SHUTDOWN_TIMEOUT_MS:-10000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stop_grace_period: 15s
     networks:
       - facefit-network
+
+  postgres:
+    image: postgres:18.7-alpine3.24@sha256:0115267ab5a509022df9319c77be365cef335adb71556c75f60f5360ee247e71
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-facefit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-facefit}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - facefit-network
+
+volumes:
+  postgres-data:
 
 networks:
   facefit-network:
