@@ -1,125 +1,231 @@
 import { describe, expect, it } from 'vitest';
 import { estimateIntrinsics } from '../src/camera.ts';
+import { solveEpnp } from '../src/epnp.ts';
 import { RIGID_FACE_LANDMARKS } from '../src/faceModel.ts';
+import { mat3Multiply, type Vec2 } from '../src/linalg.ts';
 import { solveHeadPose, type HeadPose, type SolveHeadPoseOptions } from '../src/pnp.ts';
-import { angleBetweenRotations } from '../src/rotation.ts';
-import { seededRandom } from './random.ts';
-import { POSE_RANGE, percentile, projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
+import { angleBetweenRotations, rotationMatrixFromVector } from '../src/rotation.ts';
+import { predictedPoseCovariance, whitenedPoseError } from './expectedError.ts';
+import { seededRandom, type SeededRandom } from './random.ts';
+import { percentile, projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
 
 const intrinsics = estimateIntrinsics({ width: 1280, height: 720, horizontalFovDeg: 62 })!;
-const TRIALS = 500;
 const RAD_TO_DEG = 180 / Math.PI;
+const ALL_POINTS = RIGID_FACE_LANDMARKS.map((_, index) => index);
 
-/**
- * Expected error per pixel of noise at the far limit, from first principles
- * for a frontal face (weak perspective, one parameter at a time):
+/*
+ * Expected error, derived before the first run (docs/geometry.md, "Expected
+ * error"). Each trial's error is whitened by its own first-order covariance,
+ * which carries the distance, the pose and the model spread. For a solver
+ * that attains that covariance, the squared whitened error of the rotation
+ * (and of the translation) is chi-square with 3 degrees of freedom, so its
+ * mean over n trials (the NEES) is 3 with standard deviation sqrt(6 / n).
  *
- * - Out-of-plane rotation (yaw, pitch) moves each point by f * d_i * dtheta / Z,
- *   where d_i is its depth offset from the centroid, so
- *   std = sigma * Z / (f * D), D^2 = (sum w d^2)^2 / sum w^2 d^2. That is the
- *   weighted least-squares variance when the noise is uniform and the weights
- *   are not inverse variances.
- * - Depth moves each point by f * r_i * dZ / Z^2 (r_i the in-plane radius), so
- *   std = sigma * Z^2 / (f * R) with R built like D from r_i. It grows with Z^2.
- * - The reported origin sits |c| behind the centroid, adding |c| times the
- *   rotation error; lateral translation adds sigma * Z / (f * sqrt(Neff)).
- *
- * p95 of an error vector norm is at most 2.8 standard deviations when the
- * largest component dominates (Maxwell distribution). The bound takes the
- * frontal pose at the maximum distance, both worst cases for these terms,
- * and a 1.5x margin for parameter coupling the one-at-a-time model ignores
- * and for Huber's efficiency loss once residuals pass the 3 px scale.
+ * The solver gives up some efficiency on purpose. Allowance kappa, an
+ * inflation of the covariance, treats every point past the Huber scale c and
+ * every point past the rejection threshold tau as carrying no information:
+ * kappa = 1 / ((1 - P(r > c / sigma)) (1 - P(r > tau / sigma))), with r
+ * Rayleigh distributed. Asymptotic Huber theory gives less (1.053 at sigma
+ * 2); with about 13 effective points, the finite-sample loss is larger.
  */
-function expectedP95PerPixel(): { rotationDeg: number; translationMm: number } {
-  const points = RIGID_FACE_LANDMARKS;
-  const totalWeight = points.reduce((sum, p) => sum + p.weight, 0);
-  const centroid = [0, 1, 2].map((d) => points.reduce((sum, p) => sum + p.weight * p.positionMm[d], 0) / totalWeight);
-  const effective = (squared: (p: (typeof points)[number]) => number): number => {
-    const first = points.reduce((sum, p) => sum + p.weight * squared(p), 0);
-    const second = points.reduce((sum, p) => sum + p.weight ** 2 * squared(p), 0);
-    return Math.sqrt((first * first) / second);
-  };
-  const depthSpread = effective((p) => (p.positionMm[2] - centroid[2]!) ** 2);
-  const radialSpread = effective((p) => (p.positionMm[0] - centroid[0]!) ** 2 + (p.positionMm[1] - centroid[1]!) ** 2);
-  const neff = totalWeight ** 2 / points.reduce((sum, p) => sum + p.weight ** 2, 0);
-  const z = POSE_RANGE.maxDistanceMm;
-  const f = intrinsics.fx;
-  const outOfPlaneStd = z / (f * depthSpread);
-  const depthStd = (z * z) / (f * radialSpread);
-  const lateralStd = z / (f * Math.sqrt(neff));
-  const originOffset = Math.hypot(centroid[0]!, centroid[1]!, centroid[2]!);
-  const translationStd = Math.sqrt(depthStd ** 2 + 2 * lateralStd ** 2 + 2 * (originOffset * outOfPlaneStd) ** 2);
-  const maxwellP95 = 2.8;
-  const margin = 1.5;
-  return {
-    rotationDeg: margin * maxwellP95 * outOfPlaneStd * RAD_TO_DEG,
-    translationMm: margin * maxwellP95 * translationStd,
-  };
+const HUBER_SCALE_PX = 3;
+/** median + 3 * 1.4826 * MAD of a Rayleigh variable, in units of sigma. */
+const REJECTION_THRESHOLD_SIGMAS = 3.172;
+const MIN_OUTLIER_THRESHOLD_PX = 2;
+const CLEAN_TRIALS = 2000;
+/** One-sided z for a 0.1% family-wise false failure over the six NEES checks. */
+const NEES_Z = 3.588;
+const ROBUSTNESS_TRIALS = 500;
+/** The 95th percentile of 500 chi-3 samples stays below this with probability 0.999. */
+const CHI3_P95_UPPER_500 = 3.015;
+
+function efficiencyAllowance(sigmaPx: number): number {
+  const huberSigmas = HUBER_SCALE_PX / sigmaPx;
+  const rejectionSigmas = Math.max(REJECTION_THRESHOLD_SIGMAS * sigmaPx, MIN_OUTLIER_THRESHOLD_PX) / sigmaPx;
+  const tail = (sigmas: number): number => Math.exp(-(sigmas ** 2) / 2);
+  return 1 / ((1 - tail(huberSigmas)) * (1 - tail(rejectionSigmas)));
 }
 
-const PER_PIXEL = expectedP95PerPixel();
+function neesBound(sigmaPx: number): number {
+  const kappa = efficiencyAllowance(sigmaPx);
+  return kappa * (3 + NEES_Z * Math.sqrt(6 / CLEAN_TRIALS));
+}
 
-interface TrialErrors {
-  readonly rotationDeg: number[];
-  readonly translationMm: number[];
+/** p95 of whitened error at sigma 1 px over the robustness trials. */
+const SIGMA1_P95_BOUND = Math.sqrt(efficiencyAllowance(1)) * CHI3_P95_UPPER_500;
+
+type Solver = (pixels: readonly Vec2[], sigmaPx: number) => HeadPose | null;
+
+interface Trial {
+  readonly truth: HeadPose;
+  readonly pixels: readonly Vec2[];
+  readonly covariance: Float64Array;
+}
+
+const cleanTrials = new Map<number, readonly Trial[]>();
+
+function cleanTrialsAt(sigmaPx: number): readonly Trial[] {
+  const cached = cleanTrials.get(sigmaPx);
+  if (cached) return cached;
+  const random = seededRandom(200 + sigmaPx * 10);
+  const trials = Array.from({ length: CLEAN_TRIALS }, () => {
+    const truth = sampleHeadPose(random, intrinsics);
+    const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, sigmaPx, random);
+    return { truth, pixels, covariance: predictedPoseCovariance(truth, RIGID_FACE_LANDMARKS, intrinsics, sigmaPx) };
+  });
+  cleanTrials.set(sigmaPx, trials);
+  return trials;
+}
+
+interface Consistency {
+  readonly neesRotation: number;
+  readonly neesTranslation: number;
   readonly failures: number;
 }
 
-function runTrials(
+function consistency(solve: Solver, sigmaPx: number): Consistency {
+  let rotationSum = 0;
+  let translationSum = 0;
+  let solved = 0;
+  for (const trial of cleanTrialsAt(sigmaPx)) {
+    const pose = solve(trial.pixels, sigmaPx);
+    if (!pose) continue;
+    const whitened = whitenedPoseError(trial.truth, pose, trial.covariance);
+    rotationSum += whitened.rotation ** 2;
+    translationSum += whitened.translation ** 2;
+    solved++;
+  }
+  return {
+    neesRotation: rotationSum / solved,
+    neesTranslation: translationSum / solved,
+    failures: CLEAN_TRIALS - solved,
+  };
+}
+
+function passesAccuracyBound(solve: Solver): boolean {
+  return [0.5, 1, 2].every((sigmaPx) => {
+    const measured = consistency(solve, sigmaPx);
+    const bound = neesBound(sigmaPx);
+    return measured.failures === 0 && measured.neesRotation <= bound && measured.neesTranslation <= bound;
+  });
+}
+
+const shippedSolver: Solver = (pixels) => {
+  const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+  return solved.ok ? solved : null;
+};
+
+/** EPnP's closed-form pose with no Levenberg-Marquardt refinement. */
+const epnpOnlySolver: Solver = (pixels) => {
+  const n = RIGID_FACE_LANDMARKS.length;
+  const model = new Float64Array(3 * n);
+  const normalized = new Float64Array(2 * n);
+  const weights = new Float64Array(n);
+  RIGID_FACE_LANDMARKS.forEach((point, index) => {
+    model.set(point.positionMm, 3 * index);
+    normalized[2 * index] = (pixels[index]![0] - intrinsics.cx) / intrinsics.fx;
+    normalized[2 * index + 1] = (pixels[index]![1] - intrinsics.cy) / intrinsics.fy;
+    weights[index] = point.weight * n;
+  });
+  const pose = solveEpnp(model, normalized, weights, ALL_POINTS);
+  return pose ? { rotation: pose.rotation, translationMm: pose.translation } : null;
+};
+
+/** The shipped solver with its pitch biased by 1.5 degrees per pixel of noise. */
+const pitchBiasedSolver: Solver = (pixels, sigmaPx) => {
+  const pose = shippedSolver(pixels, sigmaPx);
+  if (!pose) return null;
+  const bias = rotationMatrixFromVector([(1.5 * sigmaPx) / RAD_TO_DEG, 0, 0]);
+  return { rotation: mat3Multiply(bias, pose.rotation), translationMm: pose.translationMm };
+};
+
+describe('solveHeadPose accuracy on synthetic ground truth', () => {
+  it('recovers noise-free poses to near machine precision', () => {
+    const random = seededRandom(100);
+    let worstRotation = 0;
+    let worstTranslation = 0;
+    for (let trial = 0; trial < ROBUSTNESS_TRIALS; trial++) {
+      const truth = sampleHeadPose(random, intrinsics);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 0, random);
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+      expect(solved.ok).toBe(true);
+      if (!solved.ok) continue;
+      worstRotation = Math.max(worstRotation, angleBetweenRotations(truth.rotation, solved.rotation));
+      worstTranslation = Math.max(
+        worstTranslation,
+        Math.hypot(...[0, 1, 2].map((d) => solved.translationMm[d]! - truth.translationMm[d]!)),
+      );
+    }
+    // Round-off in a ~1000 px residual is ~1e-13 px; divided by the pose
+    // sensitivity (~24 px/rad, ~0.07 px/mm at 900 mm) that is ~1e-14 rad and
+    // ~1e-12 mm. The bounds leave four orders of magnitude for conditioning.
+    expect(worstRotation).toBeLessThan(1e-10);
+    expect(worstTranslation).toBeLessThan(1e-8);
+  });
+
+  it.each([0.5, 1, 2])('keeps per-trial whitened error within the first-principles bound at sigma %f px', (sigmaPx) => {
+    const measured = consistency(shippedSolver, sigmaPx);
+    expect(measured.failures).toBe(0);
+    expect(measured.neesRotation).toBeLessThan(neesBound(sigmaPx));
+    expect(measured.neesTranslation).toBeLessThan(neesBound(sigmaPx));
+  });
+
+  it('fails EPnP without refinement and a solver biased 1.5 deg per pixel in pitch', () => {
+    expect(passesAccuracyBound(shippedSolver)).toBe(true);
+    expect(passesAccuracyBound(epnpOnlySolver)).toBe(false);
+    expect(passesAccuracyBound(pitchBiasedSolver)).toBe(false);
+  });
+});
+
+type Corruption = (pixels: Vec2[], random: SeededRandom) => readonly number[];
+
+interface RobustnessErrors {
+  readonly rotation: number[];
+  readonly translation: number[];
+  readonly failures: number;
+  readonly corruptedKept: number;
+  readonly corruptedTotal: number;
+}
+
+/**
+ * Whitens each error by the covariance of a fit to the uncorrupted points,
+ * the accuracy that perfect rejection would reach.
+ */
+function runCorrupted(
   seed: number,
-  sigmaPx: number,
+  corrupt: Corruption,
   options: SolveHeadPoseOptions = {},
-  corrupt?: (pixels: [number, number][], random: ReturnType<typeof seededRandom>) => void,
-): TrialErrors {
+  trials = ROBUSTNESS_TRIALS,
+): RobustnessErrors {
   const random = seededRandom(seed);
-  const rotationDeg: number[] = [];
-  const translationMm: number[] = [];
+  const rotation: number[] = [];
+  const translation: number[] = [];
   let failures = 0;
-  for (let trial = 0; trial < TRIALS; trial++) {
-    const truth: HeadPose = sampleHeadPose(random, intrinsics);
-    const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, sigmaPx, random) as [number, number][];
-    corrupt?.(pixels, random);
+  let corruptedKept = 0;
+  let corruptedTotal = 0;
+  for (let trial = 0; trial < trials; trial++) {
+    const truth = sampleHeadPose(random, intrinsics);
+    const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
+    const corrupted = corrupt(pixels, random);
     const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, options);
     if (!solved.ok) {
       failures++;
       continue;
     }
-    rotationDeg.push(angleBetweenRotations(truth.rotation, solved.rotation) * RAD_TO_DEG);
-    translationMm.push(
-      Math.hypot(
-        solved.translationMm[0] - truth.translationMm[0],
-        solved.translationMm[1] - truth.translationMm[1],
-        solved.translationMm[2] - truth.translationMm[2],
-      ),
-    );
+    const clean = ALL_POINTS.filter((index) => !corrupted.includes(index));
+    const covariance = predictedPoseCovariance(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, clean);
+    const whitened = whitenedPoseError(truth, solved, covariance);
+    rotation.push(whitened.rotation);
+    translation.push(whitened.translation);
+    corruptedTotal += corrupted.length;
+    corruptedKept += corrupted.filter((index) => solved.inlierIndices.includes(index)).length;
   }
-  return { rotationDeg, translationMm, failures };
+  return { rotation, translation, failures, corruptedKept, corruptedTotal };
 }
-
-describe('solveHeadPose accuracy on synthetic ground truth', () => {
-  it('recovers noise-free poses to near machine precision', () => {
-    const errors = runTrials(100, 0);
-    expect(errors.failures).toBe(0);
-    // Round-off in a ~1000 px residual is ~1e-13 px; divided by the pose
-    // sensitivity (~24 px/rad, ~0.07 px/mm at 900 mm) that is ~1e-14 rad and
-    // ~1e-12 mm. The bounds leave four orders of magnitude for conditioning.
-    expect(Math.max(...errors.rotationDeg) / RAD_TO_DEG).toBeLessThan(1e-10);
-    expect(Math.max(...errors.translationMm)).toBeLessThan(1e-8);
-  });
-
-  it.each([0.5, 1, 2])('keeps p95 error within the first-principles bound at sigma %f px', (sigmaPx) => {
-    const errors = runTrials(200 + sigmaPx * 10, sigmaPx);
-    expect(errors.failures).toBe(0);
-    const rotationP95 = percentile(errors.rotationDeg, 0.95);
-    const translationP95 = percentile(errors.translationMm, 0.95);
-    expect(rotationP95).toBeLessThan(PER_PIXEL.rotationDeg * sigmaPx);
-    expect(translationP95).toBeLessThan(PER_PIXEL.translationMm * sigmaPx);
-  });
-});
 
 describe('solveHeadPose outlier rejection', () => {
   const OUTLIER_FRACTION = 0.1;
-  const displace = (pixels: [number, number][], random: ReturnType<typeof seededRandom>): void => {
+  const displaceRandomPoints: Corruption = (pixels, random) => {
     const count = Math.round(OUTLIER_FRACTION * pixels.length);
     const chosen = new Set<number>();
     while (chosen.size < count) chosen.add(random.integer(pixels.length));
@@ -129,38 +235,26 @@ describe('solveHeadPose outlier rejection', () => {
       const pixel = pixels[index]!;
       pixels[index] = [pixel[0] + distance * Math.cos(angle), pixel[1] + distance * Math.sin(angle)];
     }
+    return [...chosen];
   };
 
   it('stays within 1.5x the sigma 1 bound with 10% of points displaced 20 to 60 px, and beats no rejection', () => {
-    const withRejection = runTrials(300, 1, {}, displace);
-    const withoutRejection = runTrials(300, 1, { rejectOutliers: false }, displace);
+    const withRejection = runCorrupted(300, displaceRandomPoints);
+    const withoutRejection = runCorrupted(300, displaceRandomPoints, { rejectOutliers: false });
     expect(withRejection.failures).toBe(0);
     expect(withoutRejection.failures).toBe(0);
-    const rejectedRotation = percentile(withRejection.rotationDeg, 0.95);
-    const rejectedTranslation = percentile(withRejection.translationMm, 0.95);
-    expect(rejectedRotation).toBeLessThan(1.5 * PER_PIXEL.rotationDeg);
-    expect(rejectedTranslation).toBeLessThan(1.5 * PER_PIXEL.translationMm);
-    expect(rejectedRotation).toBeLessThan(percentile(withoutRejection.rotationDeg, 0.95));
-    expect(rejectedTranslation).toBeLessThan(percentile(withoutRejection.translationMm, 0.95));
+    const rejectedRotation = percentile(withRejection.rotation, 0.95);
+    const rejectedTranslation = percentile(withRejection.translation, 0.95);
+    expect(rejectedRotation).toBeLessThan(1.5 * SIGMA1_P95_BOUND);
+    expect(rejectedTranslation).toBeLessThan(1.5 * SIGMA1_P95_BOUND);
+    expect(rejectedRotation).toBeLessThan(percentile(withoutRejection.rotation, 0.95));
+    expect(rejectedTranslation).toBeLessThan(percentile(withoutRejection.translation, 0.95));
   });
 
   it('drops the displaced points from the inlier set', () => {
-    const random = seededRandom(301);
-    let displacedKept = 0;
-    let displacedTotal = 0;
-    for (let trial = 0; trial < 200; trial++) {
-      const truth = sampleHeadPose(random, intrinsics);
-      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random) as [number, number][];
-      const clean = pixels.map((pixel) => [...pixel]);
-      displace(pixels, random);
-      const displaced = pixels.flatMap((pixel, index) => (pixel[0] !== clean[index]![0] ? [index] : []));
-      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
-      expect(solved.ok).toBe(true);
-      if (!solved.ok) continue;
-      displacedTotal += displaced.length;
-      displacedKept += displaced.filter((index) => solved.inlierIndices.includes(index)).length;
-    }
-    expect(displacedTotal).toBeGreaterThan(0);
-    expect(displacedKept).toBe(0);
+    const errors = runCorrupted(301, displaceRandomPoints, {}, 200);
+    expect(errors.failures).toBe(0);
+    expect(errors.corruptedTotal).toBeGreaterThan(0);
+    expect(errors.corruptedKept).toBe(0);
   });
 });

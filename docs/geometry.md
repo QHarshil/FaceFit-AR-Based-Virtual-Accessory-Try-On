@@ -80,8 +80,18 @@ unweighted, in pixels, over the inliers. For a correct pose it sits near the lan
 
 ## Expected error
 
-For a frontal face at depth $Z$, one parameter at a time, with depth offsets $d_i$ and in-plane radii $r_i$ about the centroid:
+Linearize the projections at the true pose, with $J$ the $2n \times 6$ Jacobian over $(\delta\omega, \delta t)$ and $W$ the weights. Under isotropic pixel noise $\sigma$ the weighted least-squares pose has covariance
+
+$$\Sigma = \sigma^2 \left(J^\top W J\right)^{-1} \left(J^\top W^2 J\right) \left(J^\top W J\right)^{-1},$$
+
+in sandwich form because the weights are not inverse variances. For a frontal face at depth $Z$, one parameter at a time, with depth offsets $d_i$ and in-plane radii $r_i$ about the centroid, it reduces to
 
 $$\sigma_\text{yaw, pitch} \approx \frac{\sigma Z}{f D}, \qquad \sigma_Z \approx \frac{\sigma Z^2}{f R}, \qquad D^2 = \frac{(\sum w_i d_i^2)^2}{\sum w_i^2 d_i^2},$$
 
-and $R$ is built from $r_i$ the same way. Out-of-plane rotation is the weakest because the face is shallower than it is wide, and depth error grows with $Z^2$. The accuracy tests derive their bounds from these expressions.
+and $R$ is built from $r_i$ the same way. Out-of-plane rotation is the weakest because the face is shallower than it is wide, and depth error grows with $Z^2$.
+
+The accuracy tests whiten each trial's rotation error and translation error by that trial's $\Sigma$. For a solver that attains $\Sigma$, the squared whitened error $e^\top \Sigma_{ee}^{-1} e$ is $\chi^2_3$ at any pose and distance, so its mean over $n$ trials (the NEES) is 3 with standard deviation $\sqrt{6/n}$. The bound is $\kappa\,(3 + z\sqrt{6/n})$ with $n = 2000$ and $z = 3.59$, a 0.1% family-wise false failure over six checks. The allowance
+
+$$\kappa = \frac{1}{\left(1 - e^{-c^2/2\sigma^2}\right)\left(1 - e^{-\tau^2/2\sigma^2}\right)}$$
+
+treats points past the Huber scale $c$ or the rejection threshold $\tau$ as carrying no information: 1.0003, 1.018 and 1.49 at $\sigma$ = 0.5, 1 and 2 px. EPnP without refinement and a pitch bias of 1.5 degrees per pixel both exceed the bound. Outlier tests whiten by the covariance of a fit to the uncorrupted points, the accuracy perfect rejection would reach, and bound the 95th percentile of the whitened error.
