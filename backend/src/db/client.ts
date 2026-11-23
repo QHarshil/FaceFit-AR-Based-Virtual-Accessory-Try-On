@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -57,6 +58,8 @@ const openPglite = async (location: string): Promise<Database> => {
   const { PGlite } = await import('@electric-sql/pglite');
   const { drizzle } = await import('drizzle-orm/pglite');
   const { migrate } = await import('drizzle-orm/pglite/migrator');
+  // PGlite creates the data directory but not its parents.
+  if (location !== 'memory') await mkdir(location, { recursive: true });
   const client = new PGlite(location === 'memory' ? undefined : location);
   const db = drizzle({ client, schema });
   return {

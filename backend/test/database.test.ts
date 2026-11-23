@@ -19,7 +19,7 @@ describe('local PGlite database', () => {
   it('serves what separate migrate and seed processes wrote to the same directory', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'facefit-pglite-'));
     cleanups.push(() => rm(dir, { recursive: true, force: true }));
-    const url = `pglite://${dir}/db`;
+    const url = `pglite://${dir}/nested/not-yet-created/db`;
 
     const migrating = await openDatabase(url);
     await migrating.migrate();
