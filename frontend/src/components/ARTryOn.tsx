@@ -24,6 +24,8 @@ interface ARTryOnProps {
   modelPath: string;
   type?: ProductType;
   ref?: Ref<ARTryOnHandle>;
+  /** Called when WebGL cannot start, for example with hardware acceleration off. */
+  onError?: (error: unknown) => void;
 }
 
 interface SmoothedPose {
@@ -71,13 +73,18 @@ const disposeObject = (root: THREE.Object3D) => {
   });
 };
 
-function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
+function ARTryOn({ modelPath, type = 'glasses', ref, onError }: ARTryOnProps) {
   // The pose is applied per camera frame, so the model lives in a ref and the
   // component does not re-render on every landmark update.
   const modelRef = useRef<THREE.Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  // Read inside the scene effect, so a new callback does not rebuild the scene.
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
   const prevPoseRef = useRef<SmoothedPose>({
     position: new THREE.Vector3(),
     quaternion: new THREE.Quaternion(),
@@ -268,6 +275,15 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
     const container = containerRef.current;
     if (!container) return;
 
+    // Three.js throws when no WebGL context can be created.
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    } catch (error) {
+      onErrorRef.current?.(error);
+      return;
+    }
+
     const smoothedPose = prevPoseRef.current;
     // The scene belongs to this effect run. A scene shared across runs kept the
     // lights of every earlier run, which StrictMode doubles in development.
@@ -281,8 +297,6 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
     cameraRef.current = camera;
     let disposed = false;
     let animationFrameId = 0;
-
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x000000, 0);

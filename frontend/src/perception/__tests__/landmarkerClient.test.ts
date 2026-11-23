@@ -189,6 +189,13 @@ describe('landmarker client', () => {
     expect(frameIdsPosted(worker)).toEqual([0]);
   });
 
+  it('turns a worker that cannot be constructed into a worker error', () => {
+    const blocked = () => {
+      throw new DOMException('Refused by worker-src', 'SecurityError');
+    };
+    expect(() => startLandmarker({ ...options, createWorker: blocked })).toThrow(PerceptionError);
+  });
+
   it('rejects a pending ready on stop', async () => {
     const client = startLandmarker(options);
     client.stop();

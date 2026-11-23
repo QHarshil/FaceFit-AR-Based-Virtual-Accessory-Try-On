@@ -26,6 +26,20 @@ Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronous
 
 `@mediapipe/tasks-vision` is pinned to 1.2.3, the latest stable release. 1.2.0 added Web Worker platform detection, 1.2.2 removed the non-SIMD builds, and 1.2.3 renamed APIs behind deprecated aliases; none of the calls used here changed. To upgrade, bump the package and the pins in the vendor script together.
 
+## Errors
+
+Failures surface as `PerceptionError` codes; `tracking/errorMessages.ts` maps them to the try-on error screen.
+
+| Code          | Cause                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| `model-fetch` | The model request failed                                                                                 |
+| `wasm-fetch`  | A delegate failed to start and the WASM files are unreachable                                            |
+| `unsupported` | Both delegates failed with the WASM reachable, or `requestVideoFrameCallback` or `VideoFrame` is missing |
+| `worker`      | The worker script failed to load or start, crashed, or sent a malformed message                          |
+| `inference`   | `detectForVideo` threw; tracking stops                                                                   |
+
+Without WebGL2 in workers the CPU delegate runs and `ready` reports it. Without WebGL at all the overlay cannot render, and `ARTryOn` reports that through `onError`.
+
 ## Privacy
 
 Frames and landmarks stay in the browser. The package also posts usage logs to `odml.pa.googleapis.com` from the worker. The CSP (`csp.ts`) blocks that through `connect-src`, and `sameOriginFetch.ts` rejects any off-origin fetch inside the worker for hosts that serve the files without the header. The eval harness fails a run that requests anything outside localhost.

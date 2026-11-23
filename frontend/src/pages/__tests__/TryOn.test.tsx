@@ -4,10 +4,13 @@ import { StrictMode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PRODUCTS } from '../../test/fixtures';
+import { PerceptionError } from '../../perception/errors';
+import type { PerceptionErrorCode } from '../../perception/protocol';
 import { LANDMARK_COUNT, type LandmarkFrame } from '../../perception/types';
 import type { FaceTrackingCallbacks } from '../../tracking/faceTracking';
 
 const getProductById = vi.hoisted(() => vi.fn());
+const webgl = vi.hoisted(() => ({ available: true }));
 const tracking = vi.hoisted(() => ({
   start: vi.fn(),
   stop: vi.fn(),
@@ -28,6 +31,9 @@ vi.mock('../../tracking/faceTracking', () => ({
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>();
   class FakeRenderer {
+    constructor() {
+      if (!webgl.available) throw new Error('Error creating WebGL context.');
+    }
     domElement = document.createElement('canvas');
     setSize() {}
     setClearColor() {}
@@ -74,6 +80,7 @@ describe('TryOn', () => {
     tracking.start.mockReset().mockResolvedValue(undefined);
     tracking.stop.mockReset();
     tracking.callbacks = undefined;
+    webgl.available = true;
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -130,5 +137,50 @@ describe('TryOn', () => {
     unmount();
 
     expect(tracking.stop).toHaveBeenCalled();
+  });
+
+  it.each<[PerceptionErrorCode, string]>([
+    [
+      'model-fetch',
+      'Could not download the face tracking model. Check your connection and refresh the page.',
+    ],
+    [
+      'wasm-fetch',
+      'Could not load the face tracking engine. Check your connection and refresh the page.',
+    ],
+    [
+      'unsupported',
+      'Face tracking is not supported in this browser. Try a recent Chrome, Edge, Firefox or Safari.',
+    ],
+    ['worker', 'Face tracking ran into a problem. Please refresh the page.'],
+  ])('shows the %s message with a way back when tracking cannot start', async (code, message) => {
+    getProductById.mockResolvedValue(PRODUCTS[0]);
+    tracking.start.mockRejectedValue(new PerceptionError(code, 'detail'));
+    renderTryOn();
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Back to catalogue' }));
+    expect(await screen.findByText('catalogue page')).toBeInTheDocument();
+  });
+
+  it('shows the error screen when the worker fails mid-session', async () => {
+    getProductById.mockResolvedValue(PRODUCTS[0]);
+    renderTryOn();
+    await screen.findByText('Align your face with the camera.');
+
+    act(() => tracking.callbacks?.onError(new PerceptionError('inference', 'context lost')));
+
+    expect(
+      await screen.findByText('Face tracking ran into a problem. Please refresh the page.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a rendering message when WebGL is unavailable', async () => {
+    getProductById.mockResolvedValue(PRODUCTS[0]);
+    webgl.available = false;
+    renderTryOn();
+
+    expect(await screen.findByText(/3D rendering is unavailable/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to catalogue' })).toBeInTheDocument();
   });
 });

@@ -52,7 +52,13 @@ export const startLandmarker = ({
   // Callers may stop before awaiting; the rejection is still delivered to them.
   ready.catch(() => {});
 
-  const worker = createWorker();
+  let worker: Worker;
+  try {
+    worker = createWorker();
+  } catch (error) {
+    // Module workers missing, or the CSP refusing the worker script.
+    throw new PerceptionError('worker', `Cannot start the landmark worker: ${String(error)}`);
+  }
   const post = (message: WorkerRequest) => {
     worker.postMessage(message, transferablesOf(message));
   };
