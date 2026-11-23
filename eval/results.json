@@ -833,6 +833,514 @@
           "smoothedShiftPercentOfInterocular": 1.54
         }
       }
+    },
+    "perception-worker": {
+      "measuredAt": "2026-11-23T23:30:49.172Z",
+      "commit": "7002ae166f383eae53f80c082455b2279012e975",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source recordings --clips <dir> --label perception-worker",
+      "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, GPU delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "26.6.2",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.954,
+        "perceptionDelegate": "GPU"
+      },
+      "input": "webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 299,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "roll-15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "roll-10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "roll-5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "roll5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "roll10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "roll15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "dx-320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "dx-160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "dx160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "dx320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "dy-120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "dy120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "zoom0.75": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "zoom1.33": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "product2": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 19
+        },
+        "product3": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 14
+        },
+        "product4": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 16
+        },
+        "rec-static": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13
+        },
+        "rec-blink": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13
+        }
+      },
+      "network": {
+        "requests": 270,
+        "offDeviceRequests": 0,
+        "cspViolations": 0,
+        "check": "every request from the page and its worker went to localhost (eval/harness/network.mjs)"
+      },
+      "summary": {
+        "latency": {
+          "still": {
+            "captureMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 299,
+              "p50": 0.1,
+              "p95": 0.11
+            },
+            "mainThreadPerFrameMs": {
+              "n": 299,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "inferenceMs": {
+              "n": 299,
+              "p50": 16.7,
+              "p95": 17.9
+            },
+            "frameToLandmarksMs": {
+              "n": 299,
+              "p50": 16.9,
+              "p95": 18.11
+            },
+            "poseMs": {
+              "n": 299,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "captureIntervalMs": {
+              "n": 299,
+              "p50": 33.4,
+              "p95": 35.1
+            },
+            "inferenceIntervalMs": {
+              "n": 298,
+              "p50": 33.3,
+              "p95": 37.045
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 17.9
+            },
+            "pipelineMs": {
+              "n": 299,
+              "p50": 31.6,
+              "p95": 34.6
+            },
+            "ratesHz": {
+              "capture": 30,
+              "inference": 29.9,
+              "render": 60
+            },
+            "framesDropped": 0
+          },
+          "rec-static": {
+            "captureMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.1,
+              "p95": 0.105
+            },
+            "mainThreadPerFrameMs": {
+              "n": 299,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 14.7,
+              "p95": 17.005
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 14.85,
+              "p95": 17.305
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "captureIntervalMs": {
+              "n": 299,
+              "p50": 33.3,
+              "p95": 34.7
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.6,
+              "p95": 35.7
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 17.8
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 17.2,
+              "p95": 33.805
+            },
+            "ratesHz": {
+              "capture": 30,
+              "inference": 30,
+              "render": 60
+            },
+            "framesDropped": 0
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 299,
+            "blinksMasked": 0,
+            "windowSamples": 5,
+            "interocularPx": 179.62,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.311,
+              "rmsHighPass": 0.288,
+              "rmsStep": 0.454
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 0.089,
+              "rmsHighPass": 0.08,
+              "rmsStep": 0.129
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.036,
+              "rmsHighPass": 0.019,
+              "rmsStep": 0.029
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.203,
+              "rmsHighPass": 0.175,
+              "rmsStep": 0.279
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.097,
+              "rmsHighPass": 0.042,
+              "rmsStep": 0.064
+            }
+          },
+          "rec-static": {
+            "samples": 276,
+            "blinksMasked": 1,
+            "windowSamples": 5,
+            "interocularPx": 197.113,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 11.322,
+              "rmsHighPass": 1.588,
+              "rmsStep": 2.535
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 4.643,
+              "rmsHighPass": 0.471,
+              "rmsStep": 0.773
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 4.365,
+              "rmsHighPass": 0.187,
+              "rmsStep": 0.396
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.468,
+              "rmsHighPass": 0.185,
+              "rmsStep": 0.29
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.373,
+              "rmsHighPass": 0.067,
+              "rmsStep": 0.115
+            }
+          }
+        },
+        "roll": {
+          "conditions": [
+            "still",
+            "roll-15",
+            "roll-10",
+            "roll-5",
+            "roll5",
+            "roll10",
+            "roll15"
+          ],
+          "faceAngleDeg": [
+            0.704,
+            -14.764,
+            -9.571,
+            -4.451,
+            5.482,
+            10.628,
+            15.494
+          ],
+          "renderedAngleDeg": [
+            1.237,
+            13.01,
+            9.755,
+            5.722,
+            -3.086,
+            -7.57,
+            -11.425
+          ],
+          "renderedPerFaceDeg": -0.827,
+          "heuristicPitchPerFaceRollDeg": -1.289,
+          "heuristicYawPerFaceRollDeg": -0.003,
+          "heuristicRollPerFaceRollDeg": 0.949
+        },
+        "registration": {
+          "gainX": 0.28,
+          "gainY": 0.496,
+          "offsetPxByCondition": {
+            "still": [
+              -9.789,
+              1.494
+            ],
+            "dx-320": [
+              220.774,
+              1.472
+            ],
+            "dx-160": [
+              105.484,
+              1.505
+            ],
+            "dx160": [
+              -124.985,
+              1.542
+            ],
+            "dx320": [
+              -240.293,
+              1.497
+            ],
+            "dy-120": [
+              -9.716,
+              61.495
+            ],
+            "dy120": [
+              -9.873,
+              -59.714
+            ]
+          },
+          "interocularPx": 179.62
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 274.878,
+            "renderedWidthPx": 1105.083,
+            "renderedOverFace": 4.02
+          },
+          "zoom0.75": {
+            "faceWidthPx": 206.543,
+            "renderedWidthPx": 1102.89,
+            "renderedOverFace": 5.34
+          },
+          "zoom1.33": {
+            "faceWidthPx": 363.997,
+            "renderedWidthPx": 1108.05,
+            "renderedOverFace": 3.044
+          }
+        },
+        "products": {
+          "product1": {
+            "renderedOverFace": 4.02,
+            "centerMinusNoseBridgePx": [
+              -9.789,
+              1.494
+            ]
+          },
+          "product2": {
+            "renderedOverFace": 0.897,
+            "centerMinusNoseBridgePx": [
+              -9.826,
+              3.874
+            ]
+          },
+          "product3": {
+            "renderedOverFace": 0.86,
+            "centerMinusNoseBridgePx": [
+              -9.948,
+              8.743
+            ]
+          },
+          "product4": {
+            "renderedOverFace": 1.624,
+            "centerMinusNoseBridgePx": [
+              -9.812,
+              1.474
+            ]
+          }
+        },
+        "blink": {
+          "samples": 300,
+          "blinks": 3,
+          "interocularPx": 201.283,
+          "rawCenterShiftPx": {
+            "median": 3.85,
+            "max": 3.952
+          },
+          "smoothedCenterShiftPx": {
+            "median": 3.831,
+            "max": 3.996
+          },
+          "noseBridgeLandmarkShiftPx": {
+            "median": 4.998,
+            "max": 5.034
+          },
+          "currentAnchorShiftPx": {
+            "median": 7.756,
+            "max": 7.974
+          },
+          "eyeCornerAnchorShiftPx": {
+            "median": 7.41,
+            "max": 7.886
+          },
+          "smoothedShiftPercentOfInterocular": 1.903
+        }
+      }
     }
   }
 }
