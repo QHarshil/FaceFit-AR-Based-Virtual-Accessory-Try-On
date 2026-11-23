@@ -1,0 +1,13 @@
+{
+  "name": "facefit-eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixtures": "node fixtures/build.mjs",
+    "baseline": "node harness/baseline.mjs",
+    "test": "node --test harness/*.test.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1"
+  }
+}

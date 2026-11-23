@@ -28,3 +28,6 @@ Thumbs.db
 # Docker
 .dockerignore
 
+
+# Eval harness
+eval/.cache/
