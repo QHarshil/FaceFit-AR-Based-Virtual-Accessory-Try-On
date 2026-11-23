@@ -179,20 +179,43 @@ describe('solveHeadPose contract', () => {
     expect(angleBetweenRotations(solved.rotation, FRONTAL.rotation)).toBeLessThan(1e-12);
   });
 
-  it('converges from a warm start near the true pose', () => {
+  it('takes fewer iterations from the previous frame than from a cold start', () => {
+    // Two landmarks glitch by 100 px in the new frame. EPnP has no robust
+    // loss, so they drag its pose, while the previous frame's pose is off by
+    // the head motion only. Without glitches EPnP is already within the noise
+    // scale of the answer and both starts take about four iterations.
     const random = seededRandom(41);
-    for (let trial = 0; trial < 50; trial++) {
-      const truth = sampleHeadPose(random, intrinsics);
-      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 0, random);
-      const nudge = rotationMatrixFromVector([0.05, -0.04, 0.03]);
-      const initialPose: HeadPose = {
-        rotation: mat3Multiply(nudge, truth.rotation),
-        translationMm: [truth.translationMm[0] + 15, truth.translationMm[1] - 10, truth.translationMm[2] + 30],
+    let warmIterations = 0;
+    let coldIterations = 0;
+    for (let trial = 0; trial < 200; trial++) {
+      const previousTruth = sampleHeadPose(random, intrinsics);
+      const previousPixels = projectWithNoise(previousTruth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
+      const previous = solveHeadPose(previousPixels, RIGID_FACE_LANDMARKS, intrinsics);
+      expect(previous.ok).toBe(true);
+      if (!previous.ok) continue;
+      const motion = rotationMatrixFromVector([0.005, -0.004, 0.003]);
+      const truth: HeadPose = {
+        rotation: mat3Multiply(motion, previousTruth.rotation),
+        translationMm: [
+          previousTruth.translationMm[0] + 1,
+          previousTruth.translationMm[1],
+          previousTruth.translationMm[2] - 1,
+        ],
       };
-      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { initialPose });
-      expect(solved.ok).toBe(true);
-      if (solved.ok) expect(angleBetweenRotations(solved.rotation, truth.rotation)).toBeLessThan(1e-10);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
+      for (const index of [random.integer(pixels.length), random.integer(pixels.length)]) {
+        const angle = random.uniform(0, 2 * Math.PI);
+        pixels[index] = [pixels[index]![0] + 100 * Math.cos(angle), pixels[index]![1] + 100 * Math.sin(angle)];
+      }
+      const cold = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+      const warm = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { initialPose: previous });
+      expect(cold.ok && warm.ok).toBe(true);
+      if (!cold.ok || !warm.ok) continue;
+      expect(angleBetweenRotations(warm.rotation, truth.rotation)).toBeLessThan(0.05);
+      coldIterations += cold.iterations;
+      warmIterations += warm.iterations;
     }
+    expect(warmIterations).toBeLessThan(coldIterations);
   });
 
   it('falls back to EPnP when the warm start is far off or behind the camera', () => {
