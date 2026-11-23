@@ -1,7 +1,7 @@
 // Turns the Sketchfab source GLBs into the canonical frame described in README.md:
 // millimetres, origin at the bridge centre, +x wearer's left, +y up, +z out of the face.
 import { createHash } from 'node:crypto';
-import { brotliCompressSync, constants } from 'node:zlib';
+import { constants, gzipSync } from 'node:zlib';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -169,18 +169,18 @@ async function main() {
       sha256: createHash('sha256').update(bytes).digest('hex'),
       scaleMmPerUnit: scale,
       sourceBytes,
-      sourceBrotliBytes: brotliSync(await readFile(join(here, spec.source))).byteLength,
+      sourceGzipBytes: gzipBest(await readFile(join(here, spec.source))).byteLength,
       bytesByCodec: Object.fromEntries(Object.entries(variants).map(([codec, data]) => [codec, data.byteLength])),
-      brotliBytesByCodec: Object.fromEntries(
-        Object.entries(variants).map(([codec, data]) => [codec, brotliSync(data).byteLength]),
+      gzipBytesByCodec: Object.fromEntries(
+        Object.entries(variants).map(([codec, data]) => [codec, gzipBest(data).byteLength]),
       ),
     });
   }
   await writeFile(join(outDir, 'manifest.json'), `${JSON.stringify(report, null, 2)}\n`);
 }
 
-function brotliSync(buffer) {
-  return brotliCompressSync(buffer, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } });
+function gzipBest(buffer) {
+  return gzipSync(buffer, { level: constants.Z_BEST_COMPRESSION });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

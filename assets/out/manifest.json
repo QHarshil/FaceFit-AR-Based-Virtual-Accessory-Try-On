@@ -4,16 +4,16 @@
     "sha256": "44aa3315aba35e95068c9751c106c0e86fe5cd4de694f395ffc6ba2fd38e62c6",
     "scaleMmPerUnit": 11.251023691157373,
     "sourceBytes": 1164908,
-    "sourceBrotliBytes": 361760,
+    "sourceGzipBytes": 540106,
     "bytesByCodec": {
       "none": 755776,
       "meshopt": 168428,
       "draco": 79604
     },
-    "brotliBytesByCodec": {
-      "none": 390934,
-      "meshopt": 64309,
-      "draco": 65883
+    "gzipBytesByCodec": {
+      "none": 506252,
+      "meshopt": 70789,
+      "draco": 67842
     }
   },
   {
@@ -21,16 +21,16 @@
     "sha256": "bc43a429171de30b893d544300a369b696fc0df844e4b3972acf76f546411b8d",
     "scaleMmPerUnit": 70.53261976637444,
     "sourceBytes": 2066096,
-    "sourceBrotliBytes": 1273509,
+    "sourceGzipBytes": 1428428,
     "bytesByCodec": {
       "none": 1881996,
       "meshopt": 1006804,
       "draco": 940072
     },
-    "brotliBytesByCodec": {
-      "none": 1300285,
-      "meshopt": 897927,
-      "draco": 905348
+    "gzipBytesByCodec": {
+      "none": 1508430,
+      "meshopt": 911193,
+      "draco": 908598
     }
   },
   {
@@ -38,16 +38,16 @@
     "sha256": "6a3ececb1b02917d755bae87041a0a419588072de16155ec42f5815f4af315de",
     "scaleMmPerUnit": 115.45319877156523,
     "sourceBytes": 202272,
-    "sourceBrotliBytes": 10813,
+    "sourceGzipBytes": 17111,
     "bytesByCodec": {
       "none": 95376,
       "meshopt": 26088,
       "draco": 7332
     },
-    "brotliBytesByCodec": {
-      "none": 12570,
-      "meshopt": 5884,
-      "draco": 4767
+    "gzipBytesByCodec": {
+      "none": 20043,
+      "meshopt": 6624,
+      "draco": 5053
     }
   },
   {
@@ -55,16 +55,16 @@
     "sha256": "a9bd47538a24f5a4957ef4b0685dfa5378da69d3c31a6383b0baa09ecbe5b9b0",
     "scaleMmPerUnit": 27.410708798972173,
     "sourceBytes": 2652712,
-    "sourceBrotliBytes": 1269595,
+    "sourceGzipBytes": 1566634,
     "bytesByCodec": {
       "none": 2307044,
       "meshopt": 831064,
       "draco": 712084
     },
-    "brotliBytesByCodec": {
-      "none": 1201087,
-      "meshopt": 663041,
-      "draco": 670794
+    "gzipBytesByCodec": {
+      "none": 1684774,
+      "meshopt": 682755,
+      "draco": 676753
     }
   }
 ]
