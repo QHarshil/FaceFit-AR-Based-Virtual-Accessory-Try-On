@@ -4,37 +4,26 @@ import { StrictMode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PRODUCTS } from '../../test/fixtures';
-import type { Landmark } from '../../types';
+import { LANDMARK_COUNT, type LandmarkFrame } from '../../perception/types';
+import type { FaceTrackingCallbacks } from '../../tracking/faceTracking';
 
 const getProductById = vi.hoisted(() => vi.fn());
-const camera = vi.hoisted(() => ({
+const tracking = vi.hoisted(() => ({
   start: vi.fn(),
   stop: vi.fn(),
-  results: undefined as ((results: { multiFaceLandmarks: Landmark[][] }) => void) | undefined,
+  callbacks: undefined as FaceTrackingCallbacks | undefined,
 }));
 
 vi.mock('../../services/apiClient', () => ({ getProductById }));
 vi.mock('../../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
 
-vi.mock('../../tracking/mediapipeGlobals', () => {
-  const Camera = class {
-    start = camera.start;
-    stop = camera.stop;
-  };
-  const FaceMesh = class {
-    setOptions() {}
-    onResults(listener: typeof camera.results) {
-      camera.results = listener;
-    }
-    send() {
-      return Promise.resolve();
-    }
-    close() {
-      return Promise.resolve();
-    }
-  };
-  return { getMediapipe: () => ({ Camera, FaceMesh }) };
-});
+// StrictMode starts tracking twice; the callbacks of the last start are live.
+vi.mock('../../tracking/faceTracking', () => ({
+  startFaceTracking: (_video: HTMLVideoElement, callbacks: FaceTrackingCallbacks) => {
+    tracking.callbacks = callbacks;
+    return { started: tracking.start() as Promise<void>, stop: tracking.stop };
+  },
+}));
 
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>();
@@ -57,11 +46,15 @@ vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
 
 const { default: TryOn } = await import('../TryOn');
 
-const FACE: Landmark[] = Array.from({ length: 468 }, (_, i) => ({
-  x: 0.4 + (i % 7) * 0.02,
-  y: 0.4 + (i % 5) * 0.02,
-  z: 0,
-}));
+const FACE: LandmarkFrame = {
+  timestampMs: 0,
+  width: 1280,
+  height: 720,
+  landmarks: new Float32Array(LANDMARK_COUNT * 3).map((_, i) => 0.4 + (i % 7) * 0.02),
+  faceCount: 1,
+};
+
+const NO_FACE: LandmarkFrame = { ...FACE, landmarks: new Float32Array(0), faceCount: 0 };
 
 const renderTryOn = () =>
   render(
@@ -78,9 +71,9 @@ const renderTryOn = () =>
 describe('TryOn', () => {
   beforeEach(() => {
     getProductById.mockReset();
-    camera.start.mockReset().mockResolvedValue(undefined);
-    camera.stop.mockReset().mockResolvedValue(undefined);
-    camera.results = undefined;
+    tracking.start.mockReset().mockResolvedValue(undefined);
+    tracking.stop.mockReset();
+    tracking.callbacks = undefined;
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
@@ -97,16 +90,16 @@ describe('TryOn', () => {
     renderTryOn();
     await screen.findByText('Align your face with the camera.');
 
-    act(() => camera.results?.({ multiFaceLandmarks: [FACE] }));
+    act(() => tracking.callbacks?.onLandmarks(FACE));
     expect(await screen.findByText('Tracking active.')).toBeInTheDocument();
 
-    act(() => camera.results?.({ multiFaceLandmarks: [] }));
+    act(() => tracking.callbacks?.onLandmarks(NO_FACE));
     expect(await screen.findByText('Align your face with the camera.')).toBeInTheDocument();
   });
 
   it('shows a camera error with a way back when access is denied', async () => {
     getProductById.mockResolvedValue(PRODUCTS[0]);
-    camera.start.mockRejectedValue(new Error('Permission denied'));
+    tracking.start.mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'));
     renderTryOn();
 
     expect(
@@ -126,7 +119,7 @@ describe('TryOn', () => {
     expect(
       await screen.findByText('Product not found. Please choose another frame.'),
     ).toBeInTheDocument();
-    expect(camera.start).not.toHaveBeenCalled();
+    expect(tracking.start).not.toHaveBeenCalled();
   });
 
   it('stops the camera on unmount', async () => {
@@ -136,6 +129,6 @@ describe('TryOn', () => {
 
     unmount();
 
-    expect(camera.stop).toHaveBeenCalled();
+    expect(tracking.stop).toHaveBeenCalled();
   });
 });

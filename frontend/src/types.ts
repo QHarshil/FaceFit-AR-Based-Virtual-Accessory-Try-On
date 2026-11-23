@@ -1,10 +1,4 @@
-export interface Landmark {
-  x: number;
-  y: number;
-  z: number;
-}
-
-export type LandmarkList = readonly Landmark[];
+import type { LandmarkFrame } from './perception/types';
 
 export type ProductType = 'glasses' | 'hat';
 
@@ -19,5 +13,5 @@ export interface Product {
 }
 
 export interface ARTryOnHandle {
-  updateModel: (landmarks: LandmarkList | null) => void;
+  updateModel: (frame: LandmarkFrame | null) => void;
 }

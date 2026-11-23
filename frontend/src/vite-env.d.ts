@@ -7,3 +7,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Version of @mediapipe/tasks-vision, injected by vite.config.ts. */
+declare const __TASKS_VISION_VERSION__: string;

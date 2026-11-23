@@ -2,7 +2,8 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'r
 import type { Ref } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { ARTryOnHandle, Landmark, LandmarkList, ProductType } from '../types';
+import { landmarkPoint, type LandmarkFrame } from '../perception/types';
+import type { ARTryOnHandle, ProductType } from '../types';
 import { probe, probeEnabled } from '../utils/probe';
 
 const LEFT_EYE_INDICES = [33, 133, 159, 145];
@@ -31,21 +32,12 @@ interface SmoothedPose {
   initialized: boolean;
 }
 
-// The face model always returns every index; a missing one is a malformed frame.
-const landmarkAt = (landmarks: LandmarkList, index: number): Landmark => {
-  const landmark = landmarks[index];
-  if (!landmark) {
-    throw new RangeError(`Landmark ${index} is missing`);
-  }
-  return landmark;
-};
-
-const toVector3 = (landmarks: LandmarkList, index: number): THREE.Vector3 => {
-  const landmark = landmarkAt(landmarks, index);
+const toVector3 = (landmarks: LandmarkFrame, index: number): THREE.Vector3 => {
+  const landmark = landmarkPoint(landmarks, index);
   return new THREE.Vector3(landmark.x, landmark.y, landmark.z);
 };
 
-const averageLandmarks = (landmarks: LandmarkList, indices: readonly number[]): THREE.Vector3 => {
+const averageLandmarks = (landmarks: LandmarkFrame, indices: readonly number[]): THREE.Vector3 => {
   const sum = indices.reduce(
     (acc, index) => acc.add(toVector3(landmarks, index)),
     new THREE.Vector3(),
@@ -113,7 +105,7 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
   );
 
   const updateGlasses = useCallback(
-    (landmarks: LandmarkList) => {
+    (landmarks: LandmarkFrame) => {
       const model = modelRef.current;
       if (!model) return;
 
@@ -124,7 +116,7 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
       const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
       const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
       const browPoint = toVector3(landmarks, FOREHEAD_INDEX);
-      const faceAnchorTop = landmarks[1]?.y ?? browPoint.y;
+      const faceAnchorTop = landmarkPoint(landmarks, 1).y;
       const anchor = eyeMidpoint.clone().lerp(noseBridge, 0.18);
 
       const faceWidth = leftTemple.distanceTo(rightTemple);
@@ -186,7 +178,7 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
           targetQuat: targetQuaternion.toArray(),
           smoothedQuat: pose.quaternion.toArray(),
           landmarks: PROBE_LANDMARKS.map((i) => {
-            const point = landmarkAt(landmarks, i);
+            const point = landmarkPoint(landmarks, i);
             return [point.x, point.y, point.z];
           }),
         });
@@ -196,7 +188,7 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
   );
 
   const updateHat = useCallback(
-    (landmarks: LandmarkList) => {
+    (landmarks: LandmarkFrame) => {
       const model = modelRef.current;
       if (!model) return;
 
@@ -253,7 +245,7 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
   useImperativeHandle(
     ref,
     (): ARTryOnHandle => ({
-      updateModel: (landmarks: LandmarkList | null) => {
+      updateModel: (landmarks: LandmarkFrame | null) => {
         if (!landmarks) {
           if (modelRef.current) {
             modelRef.current.visible = false;

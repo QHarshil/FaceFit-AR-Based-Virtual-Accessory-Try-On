@@ -1,6 +1,16 @@
+import { readFileSync } from 'node:fs';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
+
+const tasksVisionVersion = (
+  JSON.parse(
+    readFileSync(
+      new URL('./node_modules/@mediapipe/tasks-vision/package.json', import.meta.url),
+      'utf8',
+    ),
+  ) as { version: string }
+).version;
 
 const LEGACY_MEDIAPIPE =
   /node_modules[\\/]@mediapipe[\\/](face_mesh|camera_utils)[\\/][a-z_]+\.js$/;
@@ -18,6 +28,7 @@ const mediapipeSideEffects = (): Plugin => ({
 
 export default defineConfig({
   plugins: [mediapipeSideEffects(), react()],
+  define: { __TASKS_VISION_VERSION__: JSON.stringify(tasksVisionVersion) },
   optimizeDeps: { exclude: ['@mediapipe/face_mesh', '@mediapipe/camera_utils'] },
   server: { port: 3000 },
   build: { outDir: 'dist', sourcemap: false },

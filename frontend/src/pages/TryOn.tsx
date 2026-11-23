@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ARTryOn from '../components/ARTryOn';
+import { hasFace } from '../perception/types';
 import { getProductById } from '../services/apiClient';
 import { startFaceTracking } from '../tracking/faceTracking';
 import type { ARTryOnHandle, Product } from '../types';
@@ -77,17 +78,20 @@ function TryOn() {
 
     let tracking: ReturnType<typeof startFaceTracking>;
     try {
-      tracking = startFaceTracking(video, (landmarks) => {
-        if (!landmarks) {
-          setFaceDetected(false);
-          return;
-        }
-        setFaceDetected(true);
-        if (arRef.current) {
-          const poseStart = performance.now();
-          arRef.current.updateModel(landmarks);
-          probe({ stage: 'pose', start: poseStart, end: performance.now() });
-        }
+      tracking = startFaceTracking(video, {
+        onLandmarks: (frame) => {
+          if (!hasFace(frame)) {
+            setFaceDetected(false);
+            return;
+          }
+          setFaceDetected(true);
+          if (arRef.current) {
+            const poseStart = performance.now();
+            arRef.current.updateModel(frame);
+            probe({ stage: 'pose', start: poseStart, end: performance.now() });
+          }
+        },
+        onError: reportCameraError,
       });
     } catch (err) {
       reportCameraError(err);
