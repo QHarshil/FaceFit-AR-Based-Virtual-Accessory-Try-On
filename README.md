@@ -60,7 +60,7 @@ facefit-ar/
 │   ├── Dockerfile
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── ARTryOn.tsx # Three.js scene and pose + Three.js pipeline
+│   │   │   └── ARTryOn.tsx # Three.js scene and pose
 │   │   └── pages/
 │   │       ├── Home.tsx    # Product gallery
 │   │       └── TryOn.tsx   # AR interface
