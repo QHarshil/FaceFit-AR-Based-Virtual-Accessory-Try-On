@@ -1,4 +1,4 @@
-import { solveLeastSquares, symmetricEigen, type Mat3, type Vec3 } from './linalg.ts';
+import { mat3MulVec3, solveLeastSquares, symmetricEigen, type Mat3, type Vec3 } from './linalg.ts';
 import { matrixFromQuaternion } from './rotation.ts';
 
 export interface RigidPose {
@@ -301,9 +301,7 @@ function absoluteOrientation(
   const q = { w: vectors[12], x: vectors[13], y: vectors[14], z: vectors[15] };
   if (![q.w, q.x, q.y, q.z].every(Number.isFinite)) return null;
   const rotation = matrixFromQuaternion(q);
-  const rotatedCentroid = [0, 1, 2].map(
-    (r) => rotation[r * 3] * modelCentroid[0] + rotation[r * 3 + 1] * modelCentroid[1] + rotation[r * 3 + 2] * modelCentroid[2],
-  );
+  const rotatedCentroid = mat3MulVec3(rotation, [modelCentroid[0], modelCentroid[1], modelCentroid[2]]);
   const translation: Vec3 = [
     cameraCentroid[0] - rotatedCentroid[0],
     cameraCentroid[1] - rotatedCentroid[1],

@@ -30,7 +30,11 @@ export function sampleHeadPose(random: SeededRandom, intrinsics: CameraIntrinsic
   const v = random.uniform(0.25, 0.75) * intrinsics.height;
   return {
     rotation: mat3Multiply(roll, mat3Multiply(yaw, pitch)),
-    translationMm: [((u - intrinsics.cx) * depth) / intrinsics.fx, ((v - intrinsics.cy) * depth) / intrinsics.fy, depth],
+    translationMm: [
+      ((u - intrinsics.cx) * depth) / intrinsics.fx,
+      ((v - intrinsics.cy) * depth) / intrinsics.fy,
+      depth,
+    ],
   };
 }
 

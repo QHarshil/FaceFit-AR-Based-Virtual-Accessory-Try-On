@@ -29,7 +29,11 @@ function rodrigues(axis: Vec3, angle: number, p: Vec3): Vec3 {
   const c = Math.cos(angle);
   const s = Math.sin(angle);
   const dot = axis[0] * p[0] + axis[1] * p[1] + axis[2] * p[2];
-  const cross: Vec3 = [axis[1] * p[2] - axis[2] * p[1], axis[2] * p[0] - axis[0] * p[2], axis[0] * p[1] - axis[1] * p[0]];
+  const cross: Vec3 = [
+    axis[1] * p[2] - axis[2] * p[1],
+    axis[2] * p[0] - axis[0] * p[2],
+    axis[0] * p[1] - axis[1] * p[0],
+  ];
   const component = (i: 0 | 1 | 2): number => p[i] * c + cross[i] * s + axis[i] * dot * (1 - c);
   return [component(0), component(1), component(2)];
 }

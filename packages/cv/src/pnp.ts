@@ -262,7 +262,8 @@ function principalVariances(points: Float64Array, indices: readonly number[], di
   for (const i of indices) {
     for (let r = 0; r < dims; r++) {
       for (let c = 0; c < dims; c++) {
-        covariance[r * dims + c] += ((points[dims * i + r] - mean[r]) * (points[dims * i + c] - mean[c])) / indices.length;
+        const product = (points[dims * i + r] - mean[r]) * (points[dims * i + c] - mean[c]);
+        covariance[r * dims + c] += product / indices.length;
       }
     }
   }

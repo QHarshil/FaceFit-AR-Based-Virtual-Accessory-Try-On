@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { estimateIntrinsics, type CameraIntrinsics } from '../src/camera.ts';
 import { RIGID_FACE_LANDMARKS } from '../src/faceModel.ts';
-import { mat3Multiply, type Mat3, type Vec2, type Vec3 } from '../src/linalg.ts';
+import { mat3Multiply, mat3MulVec3, type Mat3, type Vec2, type Vec3 } from '../src/linalg.ts';
 import { solveHeadPose, type HeadPose, type HeadPoseResult, type WeightedModelPoint } from '../src/pnp.ts';
 import { angleBetweenRotations, isRotationMatrix, rotationMatrixFromVector } from '../src/rotation.ts';
 import { seededRandom } from './random.ts';
-import { projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
+import { percentile, projectWithNoise, sampleHeadPose } from './syntheticPose.ts';
 
 const intrinsics = estimateIntrinsics({ width: 1280, height: 720, horizontalFovDeg: 62 })!;
 const FRONTAL: HeadPose = { rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1], translationMm: [0, 0, 600] };
@@ -217,5 +217,80 @@ describe('solveHeadPose contract', () => {
     expect(matched.ok).toBe(true);
     if (!matched.ok || !mismatched.ok) return;
     expect(mismatched.rmsReprojectionPx).toBeGreaterThan(10 * matched.rmsReprojectionPx);
+  });
+});
+
+describe('solveHeadPose optimality', () => {
+  const HUBER_PX = 3;
+
+  function weightedHuberCost(pose: HeadPose, pixels: readonly Vec2[], inliers: readonly number[]): number {
+    let cost = 0;
+    for (const index of inliers) {
+      const point = RIGID_FACE_LANDMARKS[index]!;
+      const camera = mat3MulVec3(pose.rotation, point.positionMm);
+      const z = camera[2] + pose.translationMm[2];
+      const u = (intrinsics.fx * (camera[0] + pose.translationMm[0])) / z + intrinsics.cx;
+      const v = (intrinsics.fy * (camera[1] + pose.translationMm[1])) / z + intrinsics.cy;
+      const squared = (u - pixels[index]![0]) ** 2 + (v - pixels[index]![1]) ** 2;
+      const huber = squared <= HUBER_PX ** 2 ? squared : 2 * HUBER_PX * Math.sqrt(squared) - HUBER_PX ** 2;
+      cost += point.weight * huber;
+    }
+    return cost;
+  }
+
+  function perturb(pose: HeadPose, axis: number, step: number): HeadPose {
+    if (axis < 3) {
+      const rotationVector: [number, number, number] = [0, 0, 0];
+      rotationVector[axis] = step;
+      const rotation = mat3Multiply(rotationMatrixFromVector(rotationVector), pose.rotation);
+      return { rotation, translationMm: pose.translationMm };
+    }
+    const translationMm: [number, number, number] = [...pose.translationMm];
+    translationMm[axis - 3] += step;
+    return { rotation: pose.rotation, translationMm };
+  }
+
+  it('returns a stationary point of the weighted Huber objective on its inliers', () => {
+    // Sigma 2 puts about a third of the residuals past the 3 px Huber scale.
+    // Along each axis a Newton step g / h from central differences estimates
+    // the distance to the minimum. The solver stops at a relative cost change
+    // of 1e-12, about 1e-7 rad and 1e-4 mm from the minimum here.
+    const random = seededRandom(46);
+    for (let trial = 0; trial < 50; trial++) {
+      const truth = sampleHeadPose(random, intrinsics);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 2, random);
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, { robustLossScalePx: HUBER_PX });
+      expect(solved.ok).toBe(true);
+      if (!solved.ok) continue;
+      const center = weightedHuberCost(solved, pixels, solved.inlierIndices);
+      for (let axis = 0; axis < 6; axis++) {
+        const step = axis < 3 ? 1e-4 : 1e-2;
+        const plus = weightedHuberCost(perturb(solved, axis, step), pixels, solved.inlierIndices);
+        const minus = weightedHuberCost(perturb(solved, axis, -step), pixels, solved.inlierIndices);
+        const gradient = (plus - minus) / (2 * step);
+        const curvature = (plus + minus - 2 * center) / (step * step);
+        expect(curvature).toBeGreaterThan(0);
+        expect(Math.abs(gradient / curvature)).toBeLessThan(axis < 3 ? 1e-6 : 1e-3);
+      }
+    }
+  });
+
+  it('converges in few iterations when many residuals are past the Huber scale', () => {
+    // Removing the curvature along the residual for linear-branch points
+    // gives Newton-like convergence: about four iterations per refinement,
+    // and usually two refinements. Plain reweighting needs about twice as many.
+    // A point flipping in and out of the inlier set would repeat refinements
+    // up to the round cap; stopping on a repeated set keeps it to about four.
+    const random = seededRandom(47);
+    const iterations: number[] = [];
+    for (let trial = 0; trial < 200; trial++) {
+      const truth = sampleHeadPose(random, intrinsics);
+      const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 2, random);
+      const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics);
+      if (solved.ok) iterations.push(solved.iterations);
+    }
+    expect(iterations).toHaveLength(200);
+    expect(percentile(iterations, 0.5)).toBeLessThanOrEqual(8);
+    expect(Math.max(...iterations)).toBeLessThanOrEqual(16);
   });
 });

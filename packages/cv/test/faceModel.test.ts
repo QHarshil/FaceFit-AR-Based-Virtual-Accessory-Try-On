@@ -54,7 +54,9 @@ describe('rigid face model', () => {
   });
 
   it('downweights blink-affected landmarks relative to Google weights', () => {
-    const procrustes = new Map(CANONICAL_PROCRUSTES_LANDMARKS.map((entry) => [entry.landmarkIndex, entry.procrustesWeight]));
+    const procrustes = new Map(
+      CANONICAL_PROCRUSTES_LANDMARKS.map((entry) => [entry.landmarkIndex, entry.procrustesWeight]),
+    );
     const ratio = (index: number): number => landmark(index).weight / procrustes.get(index)!;
     const unaffected = ratio(129);
     expect(ratio(4) / unaffected).toBeCloseTo(1, 12);
