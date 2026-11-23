@@ -5,6 +5,7 @@ import { Camera } from '@mediapipe/camera_utils';
 import ARTryOn from '../components/ARTryOn';
 import { getProductById } from '../services/apiClient';
 import { sendTelemetry } from '../utils/telemetry';
+import { probe } from '../utils/probe';
 import '../styles/TryOn.css';
 
 function TryOn() {
@@ -78,7 +79,9 @@ function TryOn() {
             setFaceDetected(true);
             const landmarks = results.multiFaceLandmarks[0];
             if (arRef.current) {
+              const poseStart = performance.now();
               arRef.current.updateModel(landmarks);
+              probe({ stage: 'pose', start: poseStart, end: performance.now() });
             }
           } else {
             setFaceDetected(false);
@@ -91,7 +94,9 @@ function TryOn() {
           const camera = new Camera(videoRef.current, {
             onFrame: async () => {
               if (videoRef.current && faceMeshRef.current && isActive) {
+                const sendStart = performance.now();
                 await faceMeshRef.current.send({ image: videoRef.current });
+                probe({ stage: 'send', start: sendStart, end: performance.now() });
               }
             },
             width: 1280,

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { probe, probeEnabled } from '../utils/probe';
 
 const LEFT_EYE_INDICES = [33, 133, 159, 145];
 const RIGHT_EYE_INDICES = [362, 263, 386, 374];
@@ -13,6 +14,8 @@ const VIEW_SCALE = 3.1;
 const DEPTH_BASE = -2.1;
 const DEPTH_MULTIPLIER = 2.6;
 const SMOOTH_ALPHA = 0.3;
+// Landmarks the eval harness needs for jitter, blink and registration metrics.
+const PROBE_LANDMARKS = [1, 10, 33, 133, 145, 159, 168, 234, 263, 362, 374, 386, 454];
 
 const toVector3 = (landmark) => new THREE.Vector3(landmark.x, landmark.y, landmark.z);
 
@@ -118,6 +121,29 @@ const ARTryOn = forwardRef((props, ref) => {
     );
 
     applySmoothedPose(targetPosition, targetQuaternion);
+
+    if (probeEnabled()) {
+      const camera = cameraRef.current;
+      const pose = prevPoseRef.current;
+      const halfWidth = (model.userData.originalWidth * model.scale.x) / 2;
+      const templeEnd = (sign) =>
+        new THREE.Vector3(sign * halfWidth, 0, 0)
+          .applyQuaternion(pose.quaternion)
+          .add(pose.position)
+          .project(camera)
+          .toArray();
+      probe({
+        stage: 'glassesPose',
+        t: performance.now(),
+        euler: [pitch, yaw, roll],
+        targetNdc: targetPosition.clone().project(camera).toArray(),
+        smoothedNdc: pose.position.clone().project(camera).toArray(),
+        smoothedEndsNdc: [templeEnd(-1), templeEnd(1)],
+        targetQuat: targetQuaternion.toArray(),
+        smoothedQuat: pose.quaternion.toArray(),
+        landmarks: PROBE_LANDMARKS.map((i) => [landmarks[i].x, landmarks[i].y, landmarks[i].z]),
+      });
+    }
   }, [model, applySmoothedPose]);
 
   const updateHat = useCallback((landmarks) => {
@@ -269,7 +295,9 @@ const ARTryOn = forwardRef((props, ref) => {
 
     const animate = () => {
       animationFrameId.current = requestAnimationFrame(animate);
+      const renderStart = performance.now();
       renderer.render(scene, camera);
+      probe({ stage: 'render', start: renderStart, end: performance.now() });
     };
     animate();
 
