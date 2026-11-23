@@ -109,7 +109,9 @@ describe('TryOn', () => {
     renderTryOn();
 
     expect(
-      await screen.findByText('Unable to start the camera. Please allow access and refresh the page.'),
+      await screen.findByText(
+        'Unable to start the camera. Please allow access and refresh the page.',
+      ),
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Back to catalogue' }));
@@ -120,7 +122,9 @@ describe('TryOn', () => {
     getProductById.mockRejectedValue(new Error('Product not found'));
     renderTryOn();
 
-    expect(await screen.findByText('Product not found. Please choose another frame.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Product not found. Please choose another frame.'),
+    ).toBeInTheDocument();
     expect(camera.start).not.toHaveBeenCalled();
   });
 

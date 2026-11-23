@@ -31,7 +31,8 @@ vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
 
 const { default: ARTryOn } = await import('../ARTryOn');
 
-const lightsIn = (scene: THREE.Scene) => scene.children.filter((child) => child instanceof THREE.Light);
+const lightsIn = (scene: THREE.Scene) =>
+  scene.children.filter((child) => child instanceof THREE.Light);
 
 describe('ARTryOn under StrictMode', () => {
   beforeEach(() => {

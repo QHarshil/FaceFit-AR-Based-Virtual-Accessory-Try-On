@@ -60,21 +60,29 @@ const originalWidthOf = (model: THREE.Object3D): number => {
   return typeof width === 'number' && width ? width : 1;
 };
 
-const disposeMaterial = (material: THREE.Material | THREE.Material[]) => {
-  (Array.isArray(material) ? material : [material]).forEach((entry) => entry.dispose());
-};
+type TypedMesh = THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
+
+// Mesh narrows to Mesh<any, any>; this gives its parts their real types.
+const isMesh = (object: THREE.Object3D): object is TypedMesh => object instanceof THREE.Mesh;
+
+const materialsOf = (mesh: TypedMesh): THREE.Material[] =>
+  Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 
 const disposeObject = (root: THREE.Object3D) => {
   root.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
+    if (isMesh(child)) {
       child.geometry.dispose();
-      disposeMaterial(child.material);
+      materialsOf(child).forEach((material) => {
+        material.dispose();
+      });
     }
   });
 };
 
 function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
-  const [model, setModel] = useState<THREE.Group | null>(null);
+  // The pose is applied per camera frame, so the model lives in a ref and the
+  // component does not re-render on every landmark update.
+  const modelRef = useRef<THREE.Group | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -84,189 +92,200 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
     initialized: false,
   });
 
-  const applySmoothedPose = useCallback((targetPosition: THREE.Vector3, targetQuaternion: THREE.Quaternion) => {
-    if (!model) return;
-
-    const pose = prevPoseRef.current;
-    if (!pose.initialized) {
-      pose.position.copy(targetPosition);
-      pose.quaternion.copy(targetQuaternion);
-      pose.initialized = true;
-    } else {
-      pose.position.lerp(targetPosition, SMOOTH_ALPHA);
-      pose.quaternion.slerp(targetQuaternion, SMOOTH_ALPHA);
-    }
-
-    model.visible = true;
-    model.position.copy(pose.position);
-    model.quaternion.copy(pose.quaternion);
-    model.updateMatrixWorld(true);
-  }, [model]);
-
-  const updateGlasses = useCallback((landmarks: LandmarkList) => {
-    if (!model) return;
-
-    const leftEye = averageLandmarks(landmarks, LEFT_EYE_INDICES);
-    const rightEye = averageLandmarks(landmarks, RIGHT_EYE_INDICES);
-    const eyeMidpoint = leftEye.clone().add(rightEye).multiplyScalar(0.5);
-    const leftTemple = toVector3(landmarks, LEFT_TEMPLE_INDEX);
-    const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
-    const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
-    const browPoint = toVector3(landmarks, FOREHEAD_INDEX);
-    const faceAnchorTop = landmarks[1]?.y ?? browPoint.y;
-    const anchor = eyeMidpoint.clone().lerp(noseBridge, 0.18);
-
-    const faceWidth = leftTemple.distanceTo(rightTemple);
-    if (!Number.isFinite(faceWidth) || faceWidth < EPSILON) {
-      model.visible = false;
-      prevPoseRef.current.initialized = false;
-      return;
-    }
-
-    const desiredWidth = faceWidth * 10;
-    const originalWidth = originalWidthOf(model);
-    const widthScaleFactor = desiredWidth / Math.max(originalWidth, EPSILON);
-    const clampedScale = Math.min(Math.max(widthScaleFactor, 0.75), 2.8);
-
-    model.scale.set(
-      clampedScale,
-      clampedScale * 0.82,
-      clampedScale * 1.3
-    );
-
-    const depthCompensation = Math.max(0, (clampedScale - 1) * 0.18);
-    const verticalCompensation = (clampedScale - 1) * 0.06;
-    const anchorY = anchor.y * 0.7 + faceAnchorTop * 0.3;
-
-    const targetPosition = new THREE.Vector3(
-      (anchor.x - 0.5) * VIEW_SCALE,
-      -(anchorY - 0.5) * VIEW_SCALE - 0.04 - verticalCompensation,
-      (-noseBridge.z * DEPTH_MULTIPLIER) + DEPTH_BASE - depthCompensation
-    );
-
-    const eyeVector = rightEye.clone().sub(leftEye);
-    const horizontalMagnitude = Math.sqrt(
-      eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z
-    ) || EPSILON;
-
-    const yaw = Math.atan2(eyeVector.z, eyeVector.x) * 0.8;
-    const pitch =
-      Math.atan2(-eyeVector.y, horizontalMagnitude) * 0.75 + 0.08;
-    const verticalReference = browPoint.clone().sub(eyeMidpoint);
-    const roll =
-      Math.atan2(eyeVector.y, eyeVector.x) * 0.55 +
-      verticalReference.y * 0.3;
-
-    const targetQuaternion = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(pitch, yaw, roll, 'XYZ')
-    );
-
-    applySmoothedPose(targetPosition, targetQuaternion);
-
-    const camera = cameraRef.current;
-    if (camera && probeEnabled()) {
+  const applySmoothedPose = useCallback(
+    (model: THREE.Group, targetPosition: THREE.Vector3, targetQuaternion: THREE.Quaternion) => {
       const pose = prevPoseRef.current;
-      const halfWidth = (originalWidthOf(model) * model.scale.x) / 2;
-      const templeEnd = (sign: number) =>
-        new THREE.Vector3(sign * halfWidth, 0, 0)
-          .applyQuaternion(pose.quaternion)
-          .add(pose.position)
-          .project(camera)
-          .toArray();
-      probe({
-        stage: 'glassesPose',
-        t: performance.now(),
-        euler: [pitch, yaw, roll],
-        targetNdc: targetPosition.clone().project(camera).toArray(),
-        smoothedNdc: pose.position.clone().project(camera).toArray(),
-        smoothedEndsNdc: [templeEnd(-1), templeEnd(1)],
-        targetQuat: targetQuaternion.toArray(),
-        smoothedQuat: pose.quaternion.toArray(),
-        landmarks: PROBE_LANDMARKS.map((i) => {
-          const point = landmarkAt(landmarks, i);
-          return [point.x, point.y, point.z];
-        }),
-      });
-    }
-  }, [model, applySmoothedPose]);
+      if (!pose.initialized) {
+        pose.position.copy(targetPosition);
+        pose.quaternion.copy(targetQuaternion);
+        pose.initialized = true;
+      } else {
+        pose.position.lerp(targetPosition, SMOOTH_ALPHA);
+        pose.quaternion.slerp(targetQuaternion, SMOOTH_ALPHA);
+      }
 
-  const updateHat = useCallback((landmarks: LandmarkList) => {
-    if (!model) return;
+      model.visible = true;
+      model.position.copy(pose.position);
+      model.quaternion.copy(pose.quaternion);
+      model.updateMatrixWorld(true);
+    },
+    [],
+  );
 
-    const forehead = toVector3(landmarks, FOREHEAD_INDEX);
-    const leftTemple = toVector3(landmarks, LEFT_TEMPLE_INDEX);
-    const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
-    const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
+  const updateGlasses = useCallback(
+    (landmarks: LandmarkList) => {
+      const model = modelRef.current;
+      if (!model) return;
 
-    const headWidth = leftTemple.distanceTo(rightTemple);
-    if (!Number.isFinite(headWidth) || headWidth < EPSILON) {
-      model.visible = false;
-      prevPoseRef.current.initialized = false;
-      return;
-    }
+      const leftEye = averageLandmarks(landmarks, LEFT_EYE_INDICES);
+      const rightEye = averageLandmarks(landmarks, RIGHT_EYE_INDICES);
+      const eyeMidpoint = leftEye.clone().add(rightEye).multiplyScalar(0.5);
+      const leftTemple = toVector3(landmarks, LEFT_TEMPLE_INDEX);
+      const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
+      const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
+      const browPoint = toVector3(landmarks, FOREHEAD_INDEX);
+      const faceAnchorTop = landmarks[1]?.y ?? browPoint.y;
+      const anchor = eyeMidpoint.clone().lerp(noseBridge, 0.18);
 
-    const desiredWidth = headWidth * 12;
-    const originalWidth = originalWidthOf(model);
-    const widthScaleFactor = desiredWidth / Math.max(originalWidth, EPSILON);
-    const clampedScale = Math.min(Math.max(widthScaleFactor, 0.9), 3.5);
-
-    model.scale.setScalar(clampedScale);
-
-    const targetPosition = new THREE.Vector3(
-      (forehead.x - 0.5) * VIEW_SCALE,
-      -(forehead.y - 0.5) * VIEW_SCALE + 0.5,
-      DEPTH_BASE - forehead.z * DEPTH_MULTIPLIER
-    );
-
-    const xAxis = rightTemple.clone().sub(leftTemple).normalize();
-    const upReference = forehead.clone().sub(noseBridge).normalize();
-
-    if (xAxis.lengthSq() < EPSILON || upReference.lengthSq() < EPSILON) {
-      model.visible = false;
-      prevPoseRef.current.initialized = false;
-      return;
-    }
-
-    const zAxis = new THREE.Vector3().crossVectors(xAxis, upReference).normalize();
-    if (zAxis.lengthSq() < EPSILON) {
-      model.visible = false;
-      prevPoseRef.current.initialized = false;
-      return;
-    }
-
-    const yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis).normalize();
-    const rotationMatrix = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
-    const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
-
-    applySmoothedPose(targetPosition, targetQuaternion);
-  }, [model, applySmoothedPose]);
-
-  useImperativeHandle(ref, (): ARTryOnHandle => ({
-    updateModel: (landmarks: LandmarkList | null) => {
-      if (!landmarks) {
-        if (model) {
-          model.visible = false;
-        }
+      const faceWidth = leftTemple.distanceTo(rightTemple);
+      if (!Number.isFinite(faceWidth) || faceWidth < EPSILON) {
+        model.visible = false;
         prevPoseRef.current.initialized = false;
         return;
       }
 
-      if (type === 'glasses') {
-        updateGlasses(landmarks);
-      } else if (type === 'hat') {
-        updateHat(landmarks);
+      const desiredWidth = faceWidth * 10;
+      const originalWidth = originalWidthOf(model);
+      const widthScaleFactor = desiredWidth / Math.max(originalWidth, EPSILON);
+      const clampedScale = Math.min(Math.max(widthScaleFactor, 0.75), 2.8);
+
+      model.scale.set(clampedScale, clampedScale * 0.82, clampedScale * 1.3);
+
+      const depthCompensation = Math.max(0, (clampedScale - 1) * 0.18);
+      const verticalCompensation = (clampedScale - 1) * 0.06;
+      const anchorY = anchor.y * 0.7 + faceAnchorTop * 0.3;
+
+      const targetPosition = new THREE.Vector3(
+        (anchor.x - 0.5) * VIEW_SCALE,
+        -(anchorY - 0.5) * VIEW_SCALE - 0.04 - verticalCompensation,
+        -noseBridge.z * DEPTH_MULTIPLIER + DEPTH_BASE - depthCompensation,
+      );
+
+      const eyeVector = rightEye.clone().sub(leftEye);
+      const horizontalMagnitude =
+        Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z) || EPSILON;
+
+      const yaw = Math.atan2(eyeVector.z, eyeVector.x) * 0.8;
+      const pitch = Math.atan2(-eyeVector.y, horizontalMagnitude) * 0.75 + 0.08;
+      const verticalReference = browPoint.clone().sub(eyeMidpoint);
+      const roll = Math.atan2(eyeVector.y, eyeVector.x) * 0.55 + verticalReference.y * 0.3;
+
+      const targetQuaternion = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(pitch, yaw, roll, 'XYZ'),
+      );
+
+      applySmoothedPose(model, targetPosition, targetQuaternion);
+
+      const camera = cameraRef.current;
+      if (camera && probeEnabled()) {
+        const pose = prevPoseRef.current;
+        const halfWidth = (originalWidthOf(model) * model.scale.x) / 2;
+        const templeEnd = (sign: number) =>
+          new THREE.Vector3(sign * halfWidth, 0, 0)
+            .applyQuaternion(pose.quaternion)
+            .add(pose.position)
+            .project(camera)
+            .toArray();
+        probe({
+          stage: 'glassesPose',
+          t: performance.now(),
+          euler: [pitch, yaw, roll],
+          targetNdc: targetPosition.clone().project(camera).toArray(),
+          smoothedNdc: pose.position.clone().project(camera).toArray(),
+          smoothedEndsNdc: [templeEnd(-1), templeEnd(1)],
+          targetQuat: targetQuaternion.toArray(),
+          smoothedQuat: pose.quaternion.toArray(),
+          landmarks: PROBE_LANDMARKS.map((i) => {
+            const point = landmarkAt(landmarks, i);
+            return [point.x, point.y, point.z];
+          }),
+        });
       }
-    }
-  }), [type, updateGlasses, updateHat]);
+    },
+    [applySmoothedPose],
+  );
+
+  const updateHat = useCallback(
+    (landmarks: LandmarkList) => {
+      const model = modelRef.current;
+      if (!model) return;
+
+      const forehead = toVector3(landmarks, FOREHEAD_INDEX);
+      const leftTemple = toVector3(landmarks, LEFT_TEMPLE_INDEX);
+      const rightTemple = toVector3(landmarks, RIGHT_TEMPLE_INDEX);
+      const noseBridge = toVector3(landmarks, NOSE_BRIDGE_INDEX);
+
+      const headWidth = leftTemple.distanceTo(rightTemple);
+      if (!Number.isFinite(headWidth) || headWidth < EPSILON) {
+        model.visible = false;
+        prevPoseRef.current.initialized = false;
+        return;
+      }
+
+      const desiredWidth = headWidth * 12;
+      const originalWidth = originalWidthOf(model);
+      const widthScaleFactor = desiredWidth / Math.max(originalWidth, EPSILON);
+      const clampedScale = Math.min(Math.max(widthScaleFactor, 0.9), 3.5);
+
+      model.scale.setScalar(clampedScale);
+
+      const targetPosition = new THREE.Vector3(
+        (forehead.x - 0.5) * VIEW_SCALE,
+        -(forehead.y - 0.5) * VIEW_SCALE + 0.5,
+        DEPTH_BASE - forehead.z * DEPTH_MULTIPLIER,
+      );
+
+      const xAxis = rightTemple.clone().sub(leftTemple).normalize();
+      const upReference = forehead.clone().sub(noseBridge).normalize();
+
+      if (xAxis.lengthSq() < EPSILON || upReference.lengthSq() < EPSILON) {
+        model.visible = false;
+        prevPoseRef.current.initialized = false;
+        return;
+      }
+
+      const zAxis = new THREE.Vector3().crossVectors(xAxis, upReference).normalize();
+      if (zAxis.lengthSq() < EPSILON) {
+        model.visible = false;
+        prevPoseRef.current.initialized = false;
+        return;
+      }
+
+      const yAxis = new THREE.Vector3().crossVectors(zAxis, xAxis).normalize();
+      const rotationMatrix = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
+      const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(rotationMatrix);
+
+      applySmoothedPose(model, targetPosition, targetQuaternion);
+    },
+    [applySmoothedPose],
+  );
+
+  useImperativeHandle(
+    ref,
+    (): ARTryOnHandle => ({
+      updateModel: (landmarks: LandmarkList | null) => {
+        if (!landmarks) {
+          if (modelRef.current) {
+            modelRef.current.visible = false;
+          }
+          prevPoseRef.current.initialized = false;
+          return;
+        }
+
+        if (type === 'glasses') {
+          updateGlasses(landmarks);
+        } else if (type === 'hat') {
+          updateHat(landmarks);
+        }
+      },
+    }),
+    [type, updateGlasses, updateHat],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
+    const smoothedPose = prevPoseRef.current;
     // The scene belongs to this effect run. A scene shared across runs kept the
     // lights of every earlier run, which StrictMode doubles in development.
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000,
+    );
     cameraRef.current = camera;
     let disposed = false;
     let animationFrameId = 0;
@@ -313,11 +332,8 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
 
         loadedModel.position.sub(center);
         loadedModel.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            const materials: THREE.Material[] = Array.isArray(child.material)
-              ? child.material
-              : [child.material];
-            materials.forEach((material) => {
+          if (isMesh(child)) {
+            materialsOf(child).forEach((material) => {
               material.transparent = true;
               material.side = THREE.DoubleSide;
             });
@@ -329,8 +345,8 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
         pivot.add(loadedModel);
         scene.add(pivot);
 
-        setModel(pivot);
-        prevPoseRef.current.initialized = false;
+        modelRef.current = pivot;
+        smoothedPose.initialized = false;
         setIsLoading(false);
       },
       undefined,
@@ -360,20 +376,15 @@ function ARTryOn({ modelPath, type = 'glasses', ref }: ARTryOnProps) {
       disposed = true;
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
-      scene.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
-          object.geometry.dispose();
-          disposeMaterial(object.material);
-        }
-      });
+      disposeObject(scene);
       scene.clear();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
       cameraRef.current = null;
-      setModel(null);
+      modelRef.current = null;
       setIsLoading(true);
-      prevPoseRef.current.initialized = false;
+      smoothedPose.initialized = false;
     };
   }, [modelPath]);
 

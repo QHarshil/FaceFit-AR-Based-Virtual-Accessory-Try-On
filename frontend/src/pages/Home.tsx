@@ -8,16 +8,19 @@ import { sendTelemetry } from '../utils/telemetry';
 const CAPABILITIES = [
   {
     title: 'Robust Landmark Tracking',
-    description: 'MediaPipe Face Mesh delivers 468 3D landmarks per frame, making it possible to align eyewear accurately without training a bespoke model.'
+    description:
+      'MediaPipe Face Mesh delivers 468 3D landmarks per frame, making it possible to align eyewear accurately without training a bespoke model.',
   },
   {
     title: 'Geometric Pose Estimation',
-    description: 'Three.js applies pose matrices derived from inter-eye vectors and forehead anchors, stabilising virtual frames as the user rotates.'
+    description:
+      'Three.js applies pose matrices derived from inter-eye vectors and forehead anchors, stabilising virtual frames as the user rotates.',
   },
   {
     title: 'Reproducible Delivery',
-    description: 'A React SPA and Node.js API run inside Docker containers, so experiments can be repeated on any machine with the same configuration.'
-  }
+    description:
+      'A React SPA and Node.js API run inside Docker containers, so experiments can be repeated on any machine with the same configuration.',
+  },
 ];
 
 const LOADING_PLACEHOLDERS = Array.from({ length: 4 }, (_, index) => index);
@@ -37,15 +40,13 @@ const ILLUSTRATION_THEMES: [IllustrationTheme, ...IllustrationTheme[]] = [
 
 function ProductImage({ product }: { product: Product }) {
   const [failed, setFailed] = useState(false);
-  const theme = ILLUSTRATION_THEMES[(product.id - 1) % ILLUSTRATION_THEMES.length] ?? ILLUSTRATION_THEMES[0];
+  const theme =
+    ILLUSTRATION_THEMES[(product.id - 1) % ILLUSTRATION_THEMES.length] ?? ILLUSTRATION_THEMES[0];
   const hasValidImage = Boolean(product.image) && !failed;
 
   if (!hasValidImage) {
     return (
-      <div
-        className="product-illustration"
-        style={{ backgroundColor: theme.background }}
-      >
+      <div className="product-illustration" style={{ backgroundColor: theme.background }}>
         <span
           className="product-illustration__temple product-illustration__temple--left"
           style={{ backgroundColor: theme.frame }}
@@ -54,10 +55,7 @@ function ProductImage({ product }: { product: Product }) {
           className="product-illustration__lens product-illustration__lens--left"
           style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
         />
-        <span
-          className="product-illustration__bridge"
-          style={{ backgroundColor: theme.accent }}
-        />
+        <span className="product-illustration__bridge" style={{ backgroundColor: theme.accent }} />
         <span
           className="product-illustration__lens product-illustration__lens--right"
           style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
@@ -97,12 +95,14 @@ function Home() {
         const catalogue = await getProducts();
         if (!isMounted) return;
         setProducts(catalogue);
-        sendTelemetry('catalogue_loaded', { count: catalogue.length });
+        void sendTelemetry('catalogue_loaded', { count: catalogue.length });
       } catch (err) {
         if (!isMounted) return;
         console.error('Failed to load products:', err);
         setError('We could not reach the product catalogue. Please retry in a moment.');
-        sendTelemetry('catalogue_failed', { message: err instanceof Error ? err.message : String(err) });
+        void sendTelemetry('catalogue_failed', {
+          message: err instanceof Error ? err.message : String(err),
+        });
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -110,13 +110,16 @@ function Home() {
       }
     };
 
-    loadProducts();
+    void loadProducts();
     return () => {
       isMounted = false;
     };
   }, []);
 
-  const [primaryProductId, secondaryProductId] = useMemo((): [number | undefined, number | undefined] => {
+  const [primaryProductId, secondaryProductId] = useMemo((): [
+    number | undefined,
+    number | undefined,
+  ] => {
     if (products.length === 0) {
       return [undefined, undefined];
     }
@@ -125,7 +128,7 @@ function Home() {
 
   const handleNavigate = (productId: number | undefined) => {
     if (!productId) return;
-    navigate(`/try-on/${productId}`);
+    void navigate(`/try-on/${productId}`);
   };
 
   return (
@@ -134,7 +137,8 @@ function Home() {
         <div className="hero-context">Applied computer vision prototype</div>
         <h1 className="hero-title">FaceFit AR</h1>
         <p className="hero-subtitle">
-          Browser-based eyewear try-on that couples MediaPipe landmark extraction with lightweight pose estimation and Three.js rendering.
+          Browser-based eyewear try-on that couples MediaPipe landmark extraction with lightweight
+          pose estimation and Three.js rendering.
         </p>
         <div className="hero-cta">
           <button
@@ -157,12 +161,16 @@ function Home() {
       <section className="products-section">
         <h2 className="section-title">Select a Frame</h2>
         <p className="section-subtitle">
-          Each item is served by the Express API and rendered in the AR viewport with its associated GLB model.
+          Each item is served by the Express API and rendered in the AR viewport with its associated
+          GLB model.
         </p>
         <div className="products-grid">
           {loading &&
             LOADING_PLACEHOLDERS.map((placeholder) => (
-              <article key={`placeholder-${placeholder}`} className="product-card product-card--loading">
+              <article
+                key={`placeholder-${placeholder}`}
+                className="product-card product-card--loading"
+              >
                 <div className="product-image-container">
                   <div className="loading-skeleton image-skeleton" />
                 </div>
@@ -175,24 +183,28 @@ function Home() {
               </article>
             ))}
 
-          {!loading && !error && products.map((product) => (
-            <article key={product.id} className="product-card">
-              <div className="product-image-container">
-                <ProductImage product={product} />
-              </div>
-              <div className="product-info">
-                <h3 className="product-name">{product.name}</h3>
-                <p className="product-category">{product.category}</p>
-                <p className="product-description">{product.description}</p>
-              </div>
-              <button
-                className="try-on-button"
-                onClick={() => navigate(`/try-on/${product.id}`)}
-              >
-                Open Try-On
-              </button>
-            </article>
-          ))}
+          {!loading &&
+            !error &&
+            products.map((product) => (
+              <article key={product.id} className="product-card">
+                <div className="product-image-container">
+                  <ProductImage product={product} />
+                </div>
+                <div className="product-info">
+                  <h3 className="product-name">{product.name}</h3>
+                  <p className="product-category">{product.category}</p>
+                  <p className="product-description">{product.description}</p>
+                </div>
+                <button
+                  className="try-on-button"
+                  onClick={() => {
+                    void navigate(`/try-on/${product.id}`);
+                  }}
+                >
+                  Open Try-On
+                </button>
+              </article>
+            ))}
 
           {!loading && error && (
             <article className="product-card product-card--error">
@@ -200,10 +212,7 @@ function Home() {
                 <h3 className="product-name">Catalogue unavailable</h3>
                 <p className="product-description">{error}</p>
               </div>
-              <button
-                className="try-on-button"
-                onClick={() => window.location.reload()}
-              >
+              <button className="try-on-button" onClick={() => window.location.reload()}>
                 Retry
               </button>
             </article>

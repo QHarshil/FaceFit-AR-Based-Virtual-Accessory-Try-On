@@ -22,23 +22,30 @@ function TryOn() {
   const [productLoading, setProductLoading] = useState(true);
   const faceStateRef = useRef<boolean | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  // Reset while rendering when the route id changes, so the effect below only
+  // starts the request.
+  const [requestedId, setRequestedId] = useState(id);
+  if (id !== requestedId) {
+    setRequestedId(id);
     setProductLoading(true);
     setError(null);
+  }
+
+  useEffect(() => {
+    let isMounted = true;
 
     const fetchProduct = async () => {
       try {
         const item = await getProductById(id);
         if (!isMounted) return;
         setProduct(item);
-        sendTelemetry('product_viewed', { productId: item.id });
+        void sendTelemetry('product_viewed', { productId: item.id });
       } catch (err) {
         if (!isMounted) return;
         console.error('Product load error:', err);
         setProduct(null);
         setError('Product not found. Please choose another frame.');
-        sendTelemetry('product_load_failed', { productId: id, message: errorMessage(err) });
+        void sendTelemetry('product_load_failed', { productId: id, message: errorMessage(err) });
       } finally {
         if (isMounted) {
           setProductLoading(false);
@@ -46,7 +53,7 @@ function TryOn() {
       }
     };
 
-    fetchProduct();
+    void fetchProduct();
     return () => {
       isMounted = false;
     };
@@ -65,7 +72,7 @@ function TryOn() {
       if (!isActive) return;
       console.error('Camera error:', err);
       setError('Unable to start the camera. Please allow access and refresh the page.');
-      sendTelemetry('camera_error', { productId, message: errorMessage(err) });
+      void sendTelemetry('camera_error', { productId, message: errorMessage(err) });
     };
 
     let tracking: ReturnType<typeof startFaceTracking>;
@@ -90,7 +97,7 @@ function TryOn() {
     tracking.started.then(() => {
       if (!isActive) return;
       setCameraReady(true);
-      sendTelemetry('camera_started', { productId });
+      void sendTelemetry('camera_started', { productId });
     }, reportCameraError);
 
     return () => {
@@ -104,7 +111,7 @@ function TryOn() {
     if (!cameraReady) return;
     if (faceStateRef.current === faceDetected) return;
     faceStateRef.current = faceDetected;
-    sendTelemetry('tracking_state_changed', {
+    void sendTelemetry('tracking_state_changed', {
       productId: product?.id || null,
       faceDetected,
     });
@@ -115,7 +122,12 @@ function TryOn() {
       <div className="try-on-container">
         <div className="error-message">
           <h2>{error}</h2>
-          <button onClick={() => navigate('/')} className="back-button">
+          <button
+            onClick={() => {
+              void navigate('/');
+            }}
+            className="back-button"
+          >
             Back to catalogue
           </button>
         </div>
@@ -128,7 +140,12 @@ function TryOn() {
       <div className="try-on-container">
         <div className="error-message">
           <h2>Product not found</h2>
-          <button onClick={() => navigate('/')} className="back-button">
+          <button
+            onClick={() => {
+              void navigate('/');
+            }}
+            className="back-button"
+          >
             Back to catalogue
           </button>
         </div>
@@ -138,21 +155,18 @@ function TryOn() {
 
   return (
     <div className="try-on-container">
-      <video
-        ref={videoRef}
-        className="video-feed"
-        autoPlay
-        playsInline
-        muted
-      />
+      <video ref={videoRef} className="video-feed" autoPlay playsInline muted />
 
-      {product && (
-        <ARTryOn ref={arRef} modelPath={product.modelPath} type={product.type} />
-      )}
+      {product && <ARTryOn ref={arRef} modelPath={product.modelPath} type={product.type} />}
 
       <div className="ui-overlay">
         <div className="top-bar">
-          <button onClick={() => navigate('/')} className="back-button">
+          <button
+            onClick={() => {
+              void navigate('/');
+            }}
+            className="back-button"
+          >
             Back
           </button>
           <div className="product-info">
