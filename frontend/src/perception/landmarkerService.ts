@@ -5,7 +5,6 @@ import type {
   FaceLandmarker,
   FaceLandmarkerOptions,
   FaceLandmarkerResult,
-  ImageSource,
 } from '@mediapipe/tasks-vision';
 import type {
   ErrorResponse,
@@ -26,7 +25,7 @@ export type WasmFileset = Parameters<typeof FaceLandmarker.createFromOptions>[0]
 
 /** The part of FaceLandmarker this service calls. */
 export interface VideoLandmarker {
-  detectForVideo(frame: ImageSource, timestampMs: number): FaceLandmarkerResult;
+  detectForVideo(frame: TexImageSource, timestampMs: number): FaceLandmarkerResult;
   close(): void;
 }
 
