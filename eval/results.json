@@ -1,0 +1,421 @@
+{
+  "runs": {
+    "baseline-recordings": {
+      "measuredAt": "2026-11-23T19:02:51.094Z",
+      "commit": "b467a8e39879b0b70deb00cc145cfc2510a55799",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source recordings",
+      "pipeline": "@mediapipe/face_mesh 0.4.1633559619 (WASM and model from unpinned jsdelivr), heuristic Euler pose, lerp/slerp alpha 0.3",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "26.6.2",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.778
+      },
+      "input": "webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 601,
+          "pageErrors": 8
+        },
+        "roll-15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "roll-10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "roll-5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "roll5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "roll10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "roll15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "dx-320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "dx-160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 181,
+          "pageErrors": 8
+        },
+        "dx160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "dx320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "dy-120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 181,
+          "pageErrors": 8
+        },
+        "dy120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "zoom0.75": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "zoom1.33": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "product2": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "product3": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "product4": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 180,
+          "pageErrors": 8
+        },
+        "rec-static": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 600,
+          "pageErrors": 8
+        },
+        "rec-blink": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 600,
+          "pageErrors": 8
+        }
+      },
+      "summary": {
+        "latency": {
+          "still": {
+            "inferenceMs": {
+              "n": 601,
+              "p50": 10,
+              "p95": 10.3
+            },
+            "poseMs": {
+              "n": 601,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 601,
+              "p50": 0.2,
+              "p95": 0.3
+            },
+            "inferenceIntervalMs": {
+              "n": 600,
+              "p50": 16.7,
+              "p95": 17.4
+            },
+            "renderIntervalMs": {
+              "n": 600,
+              "p50": 16.7,
+              "p95": 17.4
+            },
+            "pipelineMs": {
+              "n": 600,
+              "p50": 16.7,
+              "p95": 17.4
+            }
+          },
+          "rec-static": {
+            "inferenceMs": {
+              "n": 600,
+              "p50": 6.6,
+              "p95": 10
+            },
+            "poseMs": {
+              "n": 600,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.2,
+              "p95": 0.3
+            },
+            "inferenceIntervalMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 18.2
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 18.2
+            },
+            "pipelineMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 18.2
+            }
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 601,
+            "blinksMasked": 0,
+            "interocularPx": 181.463,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.28,
+              "rmsHighPass": 0.257,
+              "rmsStep": 0.345
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 0.072,
+              "rmsHighPass": 0.066,
+              "rmsStep": 0.088
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.035,
+              "rmsHighPass": 0.022,
+              "rmsStep": 0.023
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.17,
+              "rmsHighPass": 0.156,
+              "rmsStep": 0.21
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.081,
+              "rmsHighPass": 0.051,
+              "rmsStep": 0.053
+            }
+          },
+          "rec-static": {
+            "samples": 569,
+            "blinksMasked": 1,
+            "interocularPx": 195.949,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 11.457,
+              "rmsHighPass": 1.546,
+              "rmsStep": 1.823
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 4.754,
+              "rmsHighPass": 0.457,
+              "rmsStep": 0.557
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 4.583,
+              "rmsHighPass": 0.225,
+              "rmsStep": 0.266
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.595,
+              "rmsHighPass": 0.218,
+              "rmsStep": 0.352
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.522,
+              "rmsHighPass": 0.083,
+              "rmsStep": 0.104
+            }
+          }
+        },
+        "roll": {
+          "conditions": [
+            "still",
+            "roll-15",
+            "roll-10",
+            "roll-5",
+            "roll5",
+            "roll10",
+            "roll15"
+          ],
+          "faceAngleDeg": [
+            0.205,
+            -14.902,
+            -9.944,
+            -4.869,
+            5.413,
+            10.361,
+            15.232
+          ],
+          "renderedAngleDeg": [
+            1.906,
+            13.642,
+            10.277,
+            6.15,
+            -2.817,
+            -7.231,
+            -11.196
+          ],
+          "renderedPerFaceDeg": -0.839,
+          "heuristicPitchPerFaceRollDeg": -1.283,
+          "heuristicYawPerFaceRollDeg": 0.004,
+          "heuristicRollPerFaceRollDeg": 0.945
+        },
+        "registration": {
+          "gainX": 0.279,
+          "gainY": 0.498,
+          "offsetPxByCondition": {
+            "still": [
+              -11.664,
+              1.692
+            ],
+            "dx-320": [
+              218.93,
+              1.753
+            ],
+            "dx-160": [
+              103.624,
+              1.688
+            ],
+            "dx160": [
+              -126.953,
+              1.672
+            ],
+            "dx320": [
+              -242.273,
+              1.651
+            ],
+            "dy-120": [
+              -11.631,
+              62.113
+            ],
+            "dy120": [
+              -10.886,
+              -58.199
+            ]
+          },
+          "interocularPx": 181.463
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 275.243,
+            "renderedWidthPx": 1104.668,
+            "renderedOverFace": 4.013
+          },
+          "zoom0.75": {
+            "faceWidthPx": 206.119,
+            "renderedWidthPx": 1102.347,
+            "renderedOverFace": 5.348
+          },
+          "zoom1.33": {
+            "faceWidthPx": 367.228,
+            "renderedWidthPx": 1108.554,
+            "renderedOverFace": 3.019
+          }
+        },
+        "products": {
+          "product1": {
+            "renderedOverFace": 4.013,
+            "centerMinusNoseBridgePx": [
+              -11.664,
+              1.692
+            ]
+          },
+          "product2": {
+            "renderedOverFace": 0.897,
+            "centerMinusNoseBridgePx": [
+              -11.664,
+              4.07
+            ]
+          },
+          "product3": {
+            "renderedOverFace": 0.86,
+            "centerMinusNoseBridgePx": [
+              -11.826,
+              8.995
+            ]
+          },
+          "product4": {
+            "renderedOverFace": 1.62,
+            "centerMinusNoseBridgePx": [
+              -11.653,
+              1.689
+            ]
+          }
+        },
+        "blink": {
+          "samples": 600,
+          "blinks": 4,
+          "interocularPx": 200.465,
+          "rawCenterShiftPx": {
+            "median": 2.863,
+            "max": 3.237
+          },
+          "smoothedCenterShiftPx": {
+            "median": 2.723,
+            "max": 3.181
+          },
+          "noseBridgeLandmarkShiftPx": {
+            "median": 3.201,
+            "max": 3.97
+          },
+          "currentAnchorShiftPx": {
+            "median": 5.833,
+            "max": 6.566
+          },
+          "eyeCornerAnchorShiftPx": {
+            "median": 5.75,
+            "max": 6.745
+          },
+          "smoothedShiftPercentOfInterocular": 1.358
+        }
+      }
+    }
+  }
+}
