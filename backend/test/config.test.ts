@@ -26,4 +26,23 @@ describe('loadConfig', () => {
   it('requires DATABASE_URL', () => {
     expect(() => loadConfig({})).toThrow();
   });
+
+  it('builds the database URL from parts and encodes the password', () => {
+    const config = loadConfig({
+      POSTGRES_HOST: 'postgres',
+      POSTGRES_USER: 'facefit',
+      POSTGRES_PASSWORD: 'p@ss:w/rd#1',
+      POSTGRES_DB: 'facefit',
+    });
+    expect(config.databaseUrl).toBe('postgres://facefit:p%40ss%3Aw%2Frd%231@postgres:5432/facefit');
+    expect(new URL(config.databaseUrl).password).toBe('p%40ss%3Aw%2Frd%231');
+  });
+
+  it('prefers DATABASE_URL over the parts', () => {
+    expect(loadConfig({ ...base, POSTGRES_HOST: 'postgres' }).databaseUrl).toBe(base.DATABASE_URL);
+  });
+
+  it('asks for the missing parts when DATABASE_URL is unset', () => {
+    expect(() => loadConfig({ POSTGRES_HOST: 'postgres' })).toThrow(/POSTGRES_PASSWORD/);
+  });
 });

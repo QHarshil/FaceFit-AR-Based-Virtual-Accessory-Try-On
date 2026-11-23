@@ -26,7 +26,12 @@ const originList = z
 
 const envSchema = z.object({
   PORT: positiveInt.default(5055),
-  DATABASE_URL: z.string().min(1),
+  DATABASE_URL: z.string().min(1).optional(),
+  POSTGRES_HOST: z.string().min(1).optional(),
+  POSTGRES_PORT: positiveInt.default(5432),
+  POSTGRES_USER: z.string().min(1).optional(),
+  POSTGRES_PASSWORD: z.string().min(1).optional(),
+  POSTGRES_DB: z.string().min(1).optional(),
   CORS_ORIGINS: originList,
   TRUST_PROXY: z
     .enum(['true', 'false'])
@@ -51,11 +56,27 @@ export interface Config {
   shutdownTimeoutMs: number;
 }
 
+type ParsedEnv = z.output<typeof envSchema>;
+
+// Separate variables let compose pass a password with characters that are not valid in a URL.
+const resolveDatabaseUrl = (parsed: ParsedEnv): string => {
+  if (parsed.DATABASE_URL) return parsed.DATABASE_URL;
+  const { POSTGRES_HOST: host, POSTGRES_USER: user, POSTGRES_PASSWORD: password } = parsed;
+  const database = parsed.POSTGRES_DB;
+  if (!host || !user || !password || !database) {
+    throw new Error(
+      'Set DATABASE_URL, or POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB',
+    );
+  }
+  const credentials = `${encodeURIComponent(user)}:${encodeURIComponent(password)}`;
+  return `postgres://${credentials}@${host}:${String(parsed.POSTGRES_PORT)}/${encodeURIComponent(database)}`;
+};
+
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): Config => {
   const parsed = envSchema.parse(env);
   return {
     port: parsed.PORT,
-    databaseUrl: parsed.DATABASE_URL,
+    databaseUrl: resolveDatabaseUrl(parsed),
     corsOrigins: parsed.CORS_ORIGINS,
     trustProxy: parsed.TRUST_PROXY,
     rateLimitWindowMs: parsed.RATE_LIMIT_WINDOW_MS,

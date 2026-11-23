@@ -8,8 +8,12 @@ const config = loadConfig();
 const database = await openDatabase(config.databaseUrl);
 const running = await startServer({ config, database, logger });
 
+let stopping = false;
 const stop = (signal: string): void => {
   logger.info('signal received', { signal });
+  // A repeated signal must not end the process while requests are still draining.
+  if (stopping) return;
+  stopping = true;
   running.shutdown().then(
     () => process.exit(0),
     (error: unknown) => {
@@ -18,9 +22,9 @@ const stop = (signal: string): void => {
     },
   );
 };
-process.once('SIGTERM', () => {
+process.on('SIGTERM', () => {
   stop('SIGTERM');
 });
-process.once('SIGINT', () => {
+process.on('SIGINT', () => {
   stop('SIGINT');
 });

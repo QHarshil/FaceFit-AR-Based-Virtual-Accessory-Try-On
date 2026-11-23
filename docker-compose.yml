@@ -21,7 +21,10 @@ services:
       - "5055:5055"
     environment:
       PORT: "5055"
-      DATABASE_URL: postgres://${POSTGRES_USER:-facefit}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-facefit}
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-facefit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-facefit}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       TRUST_PROXY: ${TRUST_PROXY:-false}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
