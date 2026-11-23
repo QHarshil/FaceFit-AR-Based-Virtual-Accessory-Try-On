@@ -833,6 +833,38 @@
           "smoothedShiftPercentOfInterocular": 1.54
         }
       }
+    },
+    "cv-solveHeadPose": {
+      "measuredAt": "2026-11-23T23:22:03.244Z",
+      "commit": "67e3f666a4aab7ed544fcdc1e6cffc2ba211dab7",
+      "dirty": false,
+      "command": "npm run bench (packages/cv)",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "cores": 14,
+        "memoryGB": 24,
+        "os": "darwin 25.6.0",
+        "node": "v25.1.0"
+      },
+      "setup": {
+        "solves": 1000,
+        "warmupSolves": 200,
+        "landmarks": 33,
+        "sigmaPx": 1,
+        "intrinsics": "1280x720, 62 deg horizontal FOV",
+        "independentPoses": "yaw +-45, pitch +-30, roll +-30 deg, 350 to 900 mm",
+        "trackingPoses": "random walk from one sampled pose, 0.01 rad and 2 mm per axis per frame"
+      },
+      "independentFrames": {
+        "n": 1000,
+        "p50Us": 85.4,
+        "p95Us": 125
+      },
+      "trackingWithWarmStart": {
+        "n": 1000,
+        "p50Us": 83.9,
+        "p95Us": 114
+      }
     }
   }
 }

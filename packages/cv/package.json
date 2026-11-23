@@ -1,0 +1,24 @@
+{
+  "name": "@facefit/cv",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Head-pose geometry for FaceFit: camera intrinsics, GL projection, canonical face model and PnP.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "bench": "node bench/solveHeadPose.bench.ts"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.9",
+    "typescript": "6.0.3",
+    "vitest": "5.1.1"
+  }
+}
