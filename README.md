@@ -1,12 +1,12 @@
 # FaceFit AR
 
-Browser-based eyewear virtual try-on using MediaPipe Face Mesh and Three.js. Runs entirely client-side with a containerized Node.js backend for product catalogue serving.
+Browser-based eyewear virtual try-on using MediaPipe Face Landmarker and Three.js. Runs entirely client-side with a containerized Node.js backend for product catalogue serving.
 
 ## Motivation
 
 This project investigates lightweight facial landmark detection for consumer AR applications:
 
-- **Landmark-based pose estimation** — Uses MediaPipe Face Mesh (468 landmarks) instead of custom CNN detectors, achieving real-time performance on commodity hardware without GPU inference.
+- **Landmark-based pose estimation** — Uses MediaPipe Face Landmarker (478 landmarks) instead of custom CNN detectors, running in a Web Worker at camera rate.
 - **Client-side geometry pipeline** — Computes head pose via classical linear algebra (orthonormal basis from eye/forehead vectors) rather than PnP solving, maintaining 60 FPS on laptop webcams.
 - **Modular AR architecture** — Separates perception (MediaPipe), geometric reasoning (pose computation), and rendering (Three.js) into distinct pipeline stages.
 
@@ -17,7 +17,7 @@ This project investigates lightweight facial landmark detection for consumer AR 
 │                         Frontend (React)                         │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐ │
 │  │   Webcam     │ → │  MediaPipe   │ → │  Three.js Renderer   │ │
-│  │   Stream     │   │  Face Mesh   │   │  (GLB overlay)       │ │
+│  │   Stream     │   │  (worker)    │   │  (GLB overlay)       │ │
 │  └──────────────┘   └──────────────┘   └──────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -30,7 +30,7 @@ This project investigates lightweight facial landmark detection for consumer AR 
 
 | Component | Implementation |
 |-----------|----------------|
-| Landmark detection | MediaPipe Face Mesh (`@mediapipe/face_mesh`), single-face mode, 0.5 confidence threshold |
+| Landmark detection | MediaPipe Tasks Vision `FaceLandmarker` in a module worker, self-hosted and pinned ([details](frontend/src/perception/README.md)) |
 | Pose estimation | Eye-to-eye vector (x-axis), forehead vector (approx. up), cross-product orthonormal basis |
 | Depth/scale | Normalized MediaPipe z-estimates; inter-temple distance for proportional scaling |
 | Rendering | Three.js with transparent WebGL canvas over `<video>` element |
@@ -99,7 +99,7 @@ cd frontend && npm install && npm run dev   # http://localhost:3000
 
 ## Technical Notes
 
-- **State management**: MediaPipe callbacks write landmarks to a React ref, decoupling high-frequency perception updates from React's render cycle.
+- **State management**: Landmarks arrive from the worker and update the Three.js scene through a ref, decoupling high-frequency perception updates from React's render cycle.
 - **Asset pipeline**: GLB models are recentered and bounding-box normalized at load time for consistent placement across different eyewear geometries.
 - **Browser requirements**: Camera API requires `https://` or `localhost`. Chromium-based browsers recommended.
 

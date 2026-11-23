@@ -2,9 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PRODUCTS } from '../test/fixtures';
 
-// Empty stand-ins for the legacy scripts: neither registers FaceMesh or Camera.
-vi.mock('@mediapipe/camera_utils', () => ({}));
-vi.mock('@mediapipe/face_mesh', () => ({}));
 vi.mock('../services/apiClient', () => ({
   getProducts: vi.fn().mockResolvedValue(PRODUCTS),
   getProductById: vi.fn(),
