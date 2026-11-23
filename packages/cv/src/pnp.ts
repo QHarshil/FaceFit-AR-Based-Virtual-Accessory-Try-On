@@ -87,8 +87,9 @@ const DEFAULTS = {
  * Recovers the head pose from 2D-3D correspondences: imagePoints[i] in pixels
  * corresponds to modelPoints[i] in millimetres. Initial pose by EPnP, chosen
  * because it is closed form and O(n), and LM refinement recovers the accuracy
- * it loses under noise. Then weighted Huber Levenberg-Marquardt and MAD-based
- * outlier rejection. Never throws; failures return ok: false.
+ * it loses under noise. Then weighted Huber Levenberg-Marquardt, MAD-based
+ * outlier rejection on an equal-weight fit, and a weighted refit on the
+ * inliers. Never throws; failures return ok: false.
  */
 export function solveHeadPose(
   imagePoints: readonly Vec2[],
@@ -195,20 +196,23 @@ function solve(
   }
   if (!pose) return { ok: false, reason: 'no-solution' };
 
-  let inliers = active;
-  let iterations = 0;
-  // A point near the threshold can flip in and out; stop when a set repeats.
-  const seenInlierSets = new Set<string>([inliers.join(',')]);
-  for (let round = 0; round <= MAX_REJECTION_ROUNDS; round++) {
-    const refined = refinePose(problem, inliers, pose, settings.maxIterations);
-    pose = refined.pose;
-    iterations += refined.iterations;
-    if (!settings.rejectOutliers || round === MAX_REJECTION_ROUNDS) break;
-    const next = selectInliers(problem, active, pose, settings);
-    const key = next.join(',');
-    if (seenInlierSets.has(key)) break;
-    seenInlierSets.add(key);
-    inliers = next;
+  const weightedFit = refinePose(problem, active, pose, settings.maxIterations);
+  pose = weightedFit.pose;
+  let iterations = weightedFit.iterations;
+  let inliers: readonly number[] = active;
+  if (settings.rejectOutliers) {
+    const rejection = rejectWithEqualWeights(problem, active, pose, settings);
+    iterations += rejection.iterations;
+    if (rejection.inliers.length < active.length) {
+      inliers = rejection.inliers;
+      const start =
+        weightedHuberCost(problem, inliers, rejection.pose) < weightedHuberCost(problem, inliers, pose)
+          ? rejection.pose
+          : pose;
+      const inlierFit = refinePose(problem, inliers, start, settings.maxIterations);
+      pose = inlierFit.pose;
+      iterations += inlierFit.iterations;
+    }
   }
 
   const norms = residualNorms(problem, inliers, pose);
@@ -433,6 +437,41 @@ function refinePose(
     if (!accepted || converged) break;
   }
   return { pose, iterations };
+}
+
+/**
+ * Rejection rounds on an equal-weight copy of the problem: refine on the
+ * current inliers, then reselect from all active points by residual. Under the
+ * landmark weights five points carry over half the weight, so a few shifted
+ * heavy points drag the fit toward themselves and keep their own residuals
+ * below the threshold. With equal weights no small group controls the fit,
+ * and every residual is tested against the same noise level.
+ */
+function rejectWithEqualWeights(
+  problem: Problem,
+  active: readonly number[],
+  start: RigidPose,
+  settings: Settings,
+): { inliers: readonly number[]; pose: RigidPose; iterations: number } {
+  const equalWeights = new Float64Array(problem.weights.length);
+  for (const i of active) equalWeights[i] = 1;
+  const equal: Problem = { ...problem, weights: equalWeights };
+  let inliers = active;
+  let pose = start;
+  let iterations = 0;
+  // A point near the threshold can flip in and out; stop when a set repeats.
+  const seenInlierSets = new Set<string>([inliers.join(',')]);
+  for (let round = 0; round < MAX_REJECTION_ROUNDS; round++) {
+    const refined = refinePose(equal, inliers, pose, settings.maxIterations);
+    pose = refined.pose;
+    iterations += refined.iterations;
+    const next = selectInliers(equal, active, pose, settings);
+    const key = next.join(',');
+    if (seenInlierSets.has(key)) break;
+    seenInlierSets.add(key);
+    inliers = next;
+  }
+  return { inliers, pose, iterations };
 }
 
 /**

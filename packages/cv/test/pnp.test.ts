@@ -276,11 +276,16 @@ describe('solveHeadPose optimality', () => {
   });
 
   it('converges in few iterations when many residuals are past the Huber scale', () => {
-    // Removing the curvature along the residual for linear-branch points
-    // gives Newton-like convergence: about four iterations per refinement,
-    // and usually two refinements. Plain reweighting needs about twice as many.
-    // A point flipping in and out of the inlier set would repeat refinements
-    // up to the round cap; stopping on a repeated set keeps it to about four.
+    // A refinement from a start within the noise scale takes about four
+    // iterations: removing the curvature along the residual for linear-branch
+    // points gives Newton-like convergence, three steps reach the 1e-12
+    // relative tolerance and a fourth confirms it. At sigma 2 the Huber active
+    // set can change once more, so allow five. Plain reweighting needs about
+    // twice as many. A solve that rejects nothing runs two refinements, the
+    // weighted fit and one equal-weight round that reselects the same set.
+    // Fewer than half the trials reject a point, so the median is at most
+    // 2 x 5 = 10. Each change of the inlier set adds an equal-weight round,
+    // up to four, plus one weighted refit: at most 6 refinements, 30 iterations.
     const random = seededRandom(47);
     const iterations: number[] = [];
     for (let trial = 0; trial < 200; trial++) {
@@ -290,7 +295,7 @@ describe('solveHeadPose optimality', () => {
       if (solved.ok) iterations.push(solved.iterations);
     }
     expect(iterations).toHaveLength(200);
-    expect(percentile(iterations, 0.5)).toBeLessThanOrEqual(8);
-    expect(Math.max(...iterations)).toBeLessThanOrEqual(16);
+    expect(percentile(iterations, 0.5)).toBeLessThanOrEqual(10);
+    expect(Math.max(...iterations)).toBeLessThanOrEqual(30);
   });
 });

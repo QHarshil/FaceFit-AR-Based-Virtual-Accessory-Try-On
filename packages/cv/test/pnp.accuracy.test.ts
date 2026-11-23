@@ -177,7 +177,8 @@ describe('solveHeadPose accuracy on synthetic ground truth', () => {
   });
 });
 
-type Corruption = (pixels: Vec2[], random: SeededRandom) => readonly number[];
+/** Changes some of the noisy pixels in place and returns their indices. */
+type Corruption = (pixels: Vec2[], random: SeededRandom, truth: HeadPose) => readonly number[];
 
 interface RobustnessErrors {
   readonly rotation: number[];
@@ -191,22 +192,17 @@ interface RobustnessErrors {
  * Whitens each error by the covariance of a fit to the uncorrupted points,
  * the accuracy that perfect rejection would reach.
  */
-function runCorrupted(
-  seed: number,
-  corrupt: Corruption,
-  options: SolveHeadPoseOptions = {},
-  trials = ROBUSTNESS_TRIALS,
-): RobustnessErrors {
+function runCorrupted(seed: number, corrupt: Corruption, options: SolveHeadPoseOptions = {}): RobustnessErrors {
   const random = seededRandom(seed);
   const rotation: number[] = [];
   const translation: number[] = [];
   let failures = 0;
   let corruptedKept = 0;
   let corruptedTotal = 0;
-  for (let trial = 0; trial < trials; trial++) {
+  for (let trial = 0; trial < ROBUSTNESS_TRIALS; trial++) {
     const truth = sampleHeadPose(random, intrinsics);
     const pixels = projectWithNoise(truth, RIGID_FACE_LANDMARKS, intrinsics, 1, random);
-    const corrupted = corrupt(pixels, random);
+    const corrupted = corrupt(pixels, random, truth);
     const solved = solveHeadPose(pixels, RIGID_FACE_LANDMARKS, intrinsics, options);
     if (!solved.ok) {
       failures++;
@@ -252,9 +248,54 @@ describe('solveHeadPose outlier rejection', () => {
   });
 
   it('drops the displaced points from the inlier set', () => {
-    const errors = runCorrupted(301, displaceRandomPoints, {}, 200);
+    const errors = runCorrupted(301, displaceRandomPoints);
     expect(errors.failures).toBe(0);
     expect(errors.corruptedTotal).toBeGreaterThan(0);
     expect(errors.corruptedKept).toBe(0);
+  });
+});
+
+describe('solveHeadPose rejection of heavily weighted landmarks', () => {
+  const indexOf = (landmarkIndex: number): number =>
+    RIGID_FACE_LANDMARKS.findIndex((point) => point.landmarkIndex === landmarkIndex);
+
+  it('rejects the four heaviest landmarks when they move 20 px together', () => {
+    // 129, 358, 4 and 136 carry 45% of the weight, enough to drag a weighted fit.
+    const heavy = [129, 358, 4, 136].map(indexOf);
+    const shiftHeavy: Corruption = (pixels, random) => {
+      const angle = random.uniform(0, 2 * Math.PI);
+      for (const index of heavy) {
+        const pixel = pixels[index]!;
+        pixels[index] = [pixel[0] + 20 * Math.cos(angle), pixel[1] + 20 * Math.sin(angle)];
+      }
+      return heavy;
+    };
+    const errors = runCorrupted(302, shiftHeavy);
+    expect(errors.failures).toBe(0);
+    expect(errors.corruptedKept).toBe(0);
+    expect(percentile(errors.rotation, 0.95)).toBeLessThan(1.5 * SIGMA1_P95_BOUND);
+  });
+
+  it('keeps a 5 mm jaw drop within the sigma 1 bound', () => {
+    // The jaw line (136, 365) moves 5 mm down in the face frame and its upper
+    // neighbours (132, 361) 1.5 mm, as when the mouth opens.
+    const jawDropMm = new Map([
+      [indexOf(136), 5],
+      [indexOf(365), 5],
+      [indexOf(132), 1.5],
+      [indexOf(361), 1.5],
+    ]);
+    const dropJaw: Corruption = (pixels, random, truth) => {
+      for (const [index, dropMm] of jawDropMm) {
+        const point = RIGID_FACE_LANDMARKS[index]!;
+        const [x, y, z] = point.positionMm;
+        const moved = { ...point, positionMm: [x, y + dropMm, z] as const };
+        pixels[index] = projectWithNoise(truth, [moved], intrinsics, 1, random)[0]!;
+      }
+      return [...jawDropMm.keys()];
+    };
+    const errors = runCorrupted(303, dropJaw);
+    expect(errors.failures).toBe(0);
+    expect(percentile(errors.rotation, 0.95)).toBeLessThan(SIGMA1_P95_BOUND);
   });
 });

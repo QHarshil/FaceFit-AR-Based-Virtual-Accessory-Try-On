@@ -64,11 +64,11 @@ Marquardt's diagonal scaling makes the damping independent of units (radians aga
 
 ## Outlier rejection
 
-After each refinement, with $e_i = \lVert r_i \rVert$ over all points:
+Rejection runs on an equal-weight copy of the problem, starting from the weighted fit. Five landmarks carry over half the weight (an effective count of 13 of 33), so a few shifted heavy landmarks drag a weighted fit toward themselves and keep their own residuals small. With equal weights no small group controls the fit, and every residual is tested against the same noise level. Each round refines on the current inliers, then takes $e_i = \lVert r_i \rVert$ over all points and
 
 $$\tau = \max\!\left(\operatorname{med}(e) + k \cdot 1.4826 \cdot \operatorname{MAD}(e),\ \tau_\text{min}\right), \qquad k = 3,\ \tau_\text{min} = 2\text{ px}.$$
 
-Points with $e_i \le \tau$ are inliers, and the six lowest residuals are always kept. The pose is re-solved from the current estimate until the inlier set repeats, up to four rounds. Since $\tau \ge \operatorname{med}(e)$, a round drops at most half the points.
+Points with $e_i \le \tau$ are inliers, and the six lowest residuals are always kept. Rounds stop when the inlier set repeats, after at most four. If any point was rejected, a weighted refinement on the inliers gives the pose, so the weights still decide the fit but not which points enter it. Since $\tau \ge \operatorname{med}(e)$, a round drops at most half the points.
 
 For isotropic Gaussian noise of $\sigma$ per axis, $e$ is Rayleigh distributed, so $\operatorname{med}(e) = \sigma\sqrt{2\ln 2} \approx 1.18\sigma$, $\operatorname{MAD}(e) \approx 0.45\sigma$ and $\tau \approx 3.2\sigma$. An inlier exceeds it with probability $e^{-\tau^2/2\sigma^2} \approx 0.7\%$.
 
