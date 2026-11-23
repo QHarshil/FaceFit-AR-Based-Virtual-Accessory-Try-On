@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:#f4f4f2}canvas{display:block}</style>
+<script type="importmap">
+{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+const params = new URLSearchParams(location.search);
+const size = Number(params.get('size') || 800);
+const view = params.get('view');
+const anchors = JSON.parse(params.get('anchors') || '{}');
+
+// Camera position and screen-up per view, chosen so +x is always screen-right.
+const VIEWS = {
+  front: { dir: [0, 0, 1], up: [0, 1, 0], right: 'x', vertical: 'y' },
+  top: { dir: [0, 1, 0], up: [0, 0, -1], right: 'x', vertical: 'z' },
+  side: { dir: [-1, 0, 0], up: [0, 1, 0], right: 'z', vertical: 'y' },
+};
+const spec = VIEWS[view];
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(size, size);
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf4f4f2);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+sun.position.set(...spec.dir.map((v) => v * 100)).add(new THREE.Vector3(30, 60, 30));
+scene.add(sun);
+
+const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+const gltf = await loader.loadAsync(params.get('glb'));
+scene.add(gltf.scene);
+
+const markerColors = {
+  bridgeCenter: 0xff00ff,
+  nosePadLeft: 0x0066ff,
+  nosePadRight: 0x00aa44,
+  hingeLeft: 0xff8800,
+  hingeRight: 0xcc0000,
+};
+for (const [name, p] of Object.entries(anchors)) {
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(name === 'bridgeCenter' ? 1.6 : 1.2, 16, 12),
+    new THREE.MeshBasicMaterial({ color: markerColors[name], depthTest: false }),
+  );
+  marker.position.set(...p);
+  marker.renderOrder = 10;
+  scene.add(marker);
+}
+const axisLength = 20;
+for (const [axis, color] of [[[1, 0, 0], 0xff0000], [[0, 1, 0], 0x00aa00], [[0, 0, 1], 0x0000ff]]) {
+  const geometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(), new THREE.Vector3(...axis).multiplyScalar(axisLength),
+  ]);
+  const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color, depthTest: false }));
+  line.renderOrder = 9;
+  scene.add(line);
+}
+
+const box = new THREE.Box3().setFromObject(gltf.scene);
+const center = box.getCenter(new THREE.Vector3());
+const extent = box.getSize(new THREE.Vector3());
+const axisIndex = { x: 'x', y: 'y', z: 'z' };
+const half = Math.max(extent[axisIndex[spec.right]], extent[axisIndex[spec.vertical]]) * 0.6 + 4;
+const camera = new THREE.OrthographicCamera(-half, half, half, -half, 0.1, 1000);
+camera.up.set(...spec.up);
+camera.position.copy(center).add(new THREE.Vector3(...spec.dir).multiplyScalar(300));
+camera.lookAt(center);
+renderer.render(scene, camera);
+window.renderDone = true;
+</script>
