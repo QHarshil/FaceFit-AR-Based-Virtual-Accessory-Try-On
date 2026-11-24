@@ -11,7 +11,7 @@ export interface IrisPoints {
 export interface IrisFitOptions {
   /**
    * A centre estimate, or the horizontal pair's midpoint, counts as
-   * inconsistent when it is further than the tolerance from the robust
+   * inconsistent when it is further than the tolerance from the median
    * centre: this fraction of the iris radius, but at least minTolerancePx.
    */
   readonly toleranceFraction?: number;
@@ -34,7 +34,7 @@ export interface IrisFit {
    * tells which.
    */
   readonly horizontalDiameter: number | null;
-  /** Mean of the centre estimates that agree with the robust centre. */
+  /** Mean of the centre estimates that agree with the median centre. */
   readonly centre: Vec2;
 }
 
@@ -93,12 +93,12 @@ export function fitIris(points: IrisPoints, frame: IrisFitFrame = {}, options: I
   if (!(radius > 0) || !(right[0] > left[0])) return { ok: false, reason: 'degenerate' };
   const tolerance = Math.max(toleranceFraction * radius, minTolerancePx * unitsPerPixel);
 
-  const robustU = median([centre[0], upper[0], lower[0]]);
-  const robustV = median([centre[1], left[1], right[1]]);
+  const medianU = median([centre[0], upper[0], lower[0]]);
+  const medianV = median([centre[1], left[1], right[1]]);
   const horizontalMidpoint = 0.5 * (left[0] + right[0]);
-  const horizontalConsistent = Math.abs(horizontalMidpoint - robustU) <= tolerance;
-  const u0 = meanWithin([centre[0], upper[0], lower[0], horizontalMidpoint], robustU, tolerance);
-  const v0 = meanWithin([centre[1], left[1], right[1], 0.5 * (upper[1] + lower[1])], robustV, tolerance);
+  const horizontalConsistent = Math.abs(horizontalMidpoint - medianU) <= tolerance;
+  const u0 = meanWithin([centre[0], upper[0], lower[0], horizontalMidpoint], medianU, tolerance);
+  const v0 = meanWithin([centre[1], left[1], right[1], 0.5 * (upper[1] + lower[1])], medianV, tolerance);
   return {
     ok: true,
     horizontalDiameter: horizontalConsistent ? right[0] - left[0] : null,

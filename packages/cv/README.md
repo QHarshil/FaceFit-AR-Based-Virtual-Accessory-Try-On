@@ -39,7 +39,7 @@ if (scale.ok) {
 }
 ```
 
-- `fitIris(points, frame, options)` fits an iris's horizontal diameter and centre from its five landmarks, robust to one bad point; `irisDiameterPx(landmarksPx, eye)` applies it in pixels along the eye corners. `EYE_LANDMARKS` and `FACE_WIDTH_LANDMARKS` name the indices used.
+- `fitIris(points, frame, options)` fits an iris's horizontal diameter and centre from its five landmarks and tolerates one bad point; `irisDiameterPx(landmarksPx, eye)` applies it in pixels along the eye corners. `EYE_LANDMARKS` and `FACE_WIDTH_LANDMARKS` name the indices used.
 - `estimateFaceScale` casts each eye's iris landmarks onto that eye's iris plane at the pose's canonical scale and returns `faceScale` (assumed iris diameter over the measured one, the wearer's size relative to the canonical face), `irisDepthMm`, `pnpDepthMm` and `mmPerPixel`. The assumed diameter is `POPULATION_IRIS_DIAMETER_MM`; the plane sits `IRIS_PLANE_OFFSET_MM` in front of the eye corners (SD `IRIS_PLANE_OFFSET_SD_MM`).
 - `measurePupillaryDistance` gives near PD along the head's x axis and the fixation distance; `nearToDistancePd` converts to distance PD with a lever of `PUPIL_TO_ROTATION_CENTRE_MM` (SD `PUPIL_TO_ROTATION_CENTRE_SD_MM`). `measureFaceWidth` gives the width between landmarks 127 and 356 and `focalElasticity`, its sensitivity to the focal length.
 - `measureFaceFrame(landmarksPx, poseResult, intrinsics)` runs all of the above for one frame and adds the signals a frame gate needs: line-of-sight yaw and pitch, eye openness, reprojection RMS in mm and rotation SD. It also turns the face width's focal sensitivity into an SD with `FOCAL_LENGTH_RELATIVE_SD`.
