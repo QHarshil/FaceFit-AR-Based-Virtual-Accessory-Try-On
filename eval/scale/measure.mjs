@@ -3,7 +3,12 @@
 // writes runs["metric-scale"] to eval/results.json.
 //
 //   node eval/scale/measure.mjs --clips <dir>
-//   node eval/scale/measure.mjs --clips <dir> --allow-dirty   (writes eval/.cache/results-dirty.json)
+//   node eval/scale/measure.mjs --clips <dir> --allow-dirty      (writes eval/.cache/results-dirty.json)
+//   node eval/scale/measure.mjs --clips <dir> --keep-landmarks   (keeps the cached landmark tracks)
+//
+// The recordings' landmark tracks are cached under eval/.cache while the
+// script runs and deleted when it ends, also on failure, unless
+// --keep-landmarks is passed.
 //
 // <dir> holds rec-static.y4m and rec-blink.y4m (eval/fixtures/build.mjs
 // --source recordings). PD and face width are biometric: for recorded clips
@@ -35,7 +40,7 @@ import { seededRandom } from '../../packages/cv/test/random.ts';
 import { measureSyntheticFrames, noiseOnlyCoverage, populationCoverage } from '../../packages/cv/test/scaleExperiments.ts';
 import { AVERAGE_SUBJECT } from '../../packages/cv/test/syntheticFace.ts';
 import { projectWithNoise } from '../../packages/cv/test/syntheticPose.ts';
-import { CLIP_LANDMARKER_OPTIONS, clipLandmarks } from './clipLandmarks.mjs';
+import { CLIP_LANDMARKER_OPTIONS, clipLandmarks, discardClipLandmarks } from './clipLandmarks.mjs';
 import { clipRecord, landmarkDiagnostics, measureClip, medianChangePercent } from './summary.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -46,10 +51,14 @@ const CLIPS = ['rec-static', 'rec-blink'];
 const APP_FOV_DEG = 60;
 const DEG = Math.PI / 180;
 
-const arg = (name, fallback) => {
-  const i = process.argv.indexOf(`--${name}`);
-  return i > 0 ? process.argv[i + 1] : fallback;
-};
+export function parseMeasureArgs(argv) {
+  const i = argv.indexOf('--clips');
+  return {
+    clipsDir: resolve(i >= 0 && argv[i + 1] ? argv[i + 1] : join(EVAL, '.cache', 'clips', 'recordings')),
+    allowDirty: argv.includes('--allow-dirty'),
+    keepLandmarks: argv.includes('--keep-landmarks'),
+  };
+}
 const git = (...args) => execFileSync('git', ['-C', EVAL, ...args], { encoding: 'utf8' }).trim();
 const round = (value, digits = 3) => Number(value.toFixed(digits));
 const median = (values) => {
@@ -200,12 +209,16 @@ async function recordings(clipsDir) {
 }
 
 async function main() {
-  const allowDirty = process.argv.includes('--allow-dirty');
-  const clipsDir = resolve(arg('clips', join(EVAL, '.cache', 'clips', 'recordings')));
+  const { clipsDir, allowDirty, keepLandmarks } = parseMeasureArgs(process.argv.slice(2));
   const dirty = git('status', '--porcelain').split('\n').filter((line) => line && !line.endsWith('eval/results.json'));
   if (dirty.length && !allowDirty) throw new Error(`refusing to record from a dirty tree:\n${dirty.join('\n')}`);
 
-  const recorded = await recordings(clipsDir);
+  let recorded;
+  try {
+    recorded = await recordings(clipsDir);
+  } finally {
+    if (!keepLandmarks) console.log(`discarded cached landmarks: ${discardClipLandmarks(CLIPS).join(', ') || 'none'}`);
+  }
   console.log('synthetic accuracy, coverage and pose covariance ...');
   const entry = {
     measuredAt: new Date().toISOString(),

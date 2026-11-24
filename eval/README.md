@@ -8,7 +8,7 @@ Two checks follow the conditions, and either failing also blocks results. The gu
 
 The head-pose accuracy benchmark on AFLW2000-3D lives in `benchmark/` and `datasets/`; see [docs/pose-benchmark.md](../docs/pose-benchmark.md).
 
-`scale/measure.mjs` measures metric scale (iris-based PD and face width) on the recordings and on synthetic faces, and writes `runs["metric-scale"]`. For recordings it records frame counts, relative spreads and relative interval widths, never a PD or face width; see [docs/metric-scale.md](../docs/metric-scale.md).
+`scale/measure.mjs` measures metric scale (iris-based PD and face width) on the recordings and on synthetic faces, and writes `runs["metric-scale"]`. For recordings it records only fields that cannot rebuild a PD, face width or face scale; see [docs/metric-scale.md](../docs/metric-scale.md). It caches the recordings' landmark tracks in `.cache/landmarks/clips/` while it runs and deletes them when it ends, unless `--keep-landmarks` is passed.
 
 ## Run
 

@@ -1,12 +1,14 @@
 // Runs MediaPipe FaceLandmarker over every frame of a Y4M clip in headless
 // Chrome and caches the landmarks under eval/.cache/landmarks/clips/. VIDEO
 // mode at the clip's frame rate, as in the app; CPU delegate so reruns match.
+// Landmarks of a recorded face are biometric, so callers discard the cache
+// with discardClipLandmarks when they are done.
 //
 // Frames are served from 127.0.0.1 and every other request is aborted, so
 // frames and landmarks stay on this machine.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,6 +90,21 @@ function serve(clip) {
     res.end();
   });
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
+}
+
+/**
+ * Deletes the cached landmarks of the named clips, and the cache folder once
+ * it is empty. Returns the names whose cache existed.
+ */
+export function discardClipLandmarks(names, cacheDir = CLIP_LANDMARK_CACHE) {
+  const removed = names.filter((name) => {
+    const path = join(cacheDir, `${name}.json`);
+    if (!existsSync(path)) return false;
+    rmSync(path);
+    return true;
+  });
+  if (existsSync(cacheDir) && readdirSync(cacheDir).length === 0) rmdirSync(cacheDir);
+  return removed;
 }
 
 /**
