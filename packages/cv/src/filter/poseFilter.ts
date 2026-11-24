@@ -14,7 +14,8 @@ export interface PoseFilter {
   /**
    * The filtered pose extrapolated at constant velocity to `timestampMs`,
    * clamped to the range from the last update to `maxPredictionMs` after it.
-   * Null before the first update and after a reset.
+   * Null before the first update, after a reset, and more than `maxGapMs`
+   * after the last update, where the next update restarts the filter.
    */
   predict(timestampMs: number): HeadPose | null;
   /** Forgets the state, for example when the face is lost. */
@@ -64,11 +65,17 @@ export function continuesSequence(lastMs: number | null, timestampMs: number, ma
   return lastMs !== null && timestampMs > lastMs && timestampMs - lastMs <= maxGapMs;
 }
 
-/** Prediction horizon in seconds, clamped to [0, maxPredictionMs]; 0 for a non-finite time. */
-export function horizonSeconds(lastMs: number, timestampMs: number, maxPredictionMs: number): number {
+/**
+ * Prediction horizon in seconds, clamped to [0, maxPredictionMs]; 0 for a NaN
+ * time. Null more than maxGapMs after the last update: the velocity is stale
+ * there, and extrapolating it would move the overlay after a hidden tab or a
+ * stalled worker.
+ */
+export function horizonSeconds(lastMs: number, timestampMs: number, timing: ResolvedTiming): number | null {
   const aheadMs = timestampMs - lastMs;
-  if (!Number.isFinite(aheadMs)) return 0;
-  return Math.min(Math.max(aheadMs, 0), maxPredictionMs) / 1000;
+  if (Number.isNaN(aheadMs)) return 0;
+  if (aheadMs > timing.maxGapMs) return null;
+  return Math.min(Math.max(aheadMs, 0), timing.maxPredictionMs) / 1000;
 }
 
 /** Rejects input the filter state could not recover from. */

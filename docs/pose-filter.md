@@ -4,7 +4,7 @@ Two temporal filters for the solved head pose, compared by measurement: a One Eu
 
 ## Shared interface
 
-`update(pose, t)` filters a pose measured at capture time $t$ and returns the estimate at $t$; `predict(t)` extrapolates it at constant velocity, clamped to $[t_\text{last}, t_\text{last} + 100\,\text{ms}]$; `reset()` drops the state. A gap over 200 ms or a non-increasing timestamp restarts the filter from the new pose: past six frames at 30 Hz the velocity is stale, and a restart has no lag. Rotations are unit quaternions differenced through the log map, which returns the shorter arc whatever the signs, so the sign flip `quaternionFromMatrix` makes where the rotation angle passes $\pi$ never reaches the filter.
+`update(pose, t)` filters a pose measured at capture time $t$ and returns the estimate at $t$; `predict(t)` extrapolates it at constant velocity, clamped to $[t_\text{last}, t_\text{last} + 100\,\text{ms}]$; `reset()` drops the state. A gap over 200 ms or a non-increasing timestamp restarts the filter from the new pose: past six frames at 30 Hz the velocity is stale, and a restart has no lag. For the same reason `predict` returns nothing more than 200 ms after the last update, so a hidden tab or a stalled worker does not send the overlay along the old velocity; the app then keeps the overlay where the last render put it. Rotations are unit quaternions differenced through the log map, which returns the shorter arc whatever the signs, so the sign flip `quaternionFromMatrix` makes where the rotation angle passes $\pi$ never reaches the filter.
 
 ## One Euro on SE(3)
 

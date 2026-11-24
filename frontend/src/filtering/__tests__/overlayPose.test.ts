@@ -1,4 +1,4 @@
-import { type HeadPose } from '@facefit/cv';
+import { DEFAULT_MAX_GAP_MS, type HeadPose } from '@facefit/cv';
 import { describe, expect, it } from 'vitest';
 import { rotationFromDegrees } from '../../test/syntheticFace';
 import {
@@ -58,6 +58,20 @@ describe('createOverlayPose', () => {
       expect(ahead.pose.translationMm[0]).toBeGreaterThan(
         reference.predict(last)!.translationMm[0],
       );
+    },
+  );
+
+  it.each(['one-euro', 'kalman'] as const)(
+    '%s: draws nothing once the newest frame is past the gap the filter survives',
+    (setting) => {
+      const overlay = createOverlayPose(setting);
+      for (let k = 0; k < 30; k++) overlay.update(at(3 * k), k * FRAME_MS);
+      const last = 29 * FRAME_MS;
+      overlay.present(last + DEFAULT_MAX_GAP_MS);
+      expect(overlay.poseForRender()).not.toBeNull();
+      // A tab back from hidden: the frame on screen is far past the last pose.
+      overlay.present(last + DEFAULT_MAX_GAP_MS + 1);
+      expect(overlay.poseForRender()).toBeNull();
     },
   );
 

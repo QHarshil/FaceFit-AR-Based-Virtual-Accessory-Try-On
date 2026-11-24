@@ -300,8 +300,18 @@ describe('poseKalman state handling', () => {
     const last = 99 * DT_MS;
     const posterior = filter.predict(last)!.translationMm[0];
     expect(filter.predict(last - 20)!.translationMm[0]).toBe(posterior);
-    expect(filter.predict(last + 500)!.translationMm[0]).toBeCloseTo(filter.predict(last + 50)!.translationMm[0], 12);
+    expect(filter.predict(last + 150)!.translationMm[0]).toBeCloseTo(filter.predict(last + 50)!.translationMm[0], 12);
     expect(filter.predict(last + 50)!.translationMm[0]).toBeCloseTo(posterior + 90 * 0.05, 6);
+  });
+
+  it('stops predicting past maxGapMs after the last update', () => {
+    const filter = poseKalman(OPTIONS);
+    for (let k = 0; k < 30; k++) filter.update(at(k * 3), k * DT_MS);
+    const last = 29 * DT_MS;
+    expect(filter.predict(last + DEFAULT_MAX_GAP_MS)).not.toBeNull();
+    expect(filter.predict(last + DEFAULT_MAX_GAP_MS + 1)).toBeNull();
+    expect(filter.predict(last + 300_000)).toBeNull();
+    expect(filter.predict(Number.POSITIVE_INFINITY)).toBeNull();
   });
 
   it('rejects non-finite input and invalid parameters', () => {

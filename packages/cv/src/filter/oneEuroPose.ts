@@ -97,7 +97,7 @@ const poseOf = (rotation: Quaternion, translationMm: Vec3): HeadPose => ({
 export function oneEuroPose(options: OneEuroPoseOptions): PoseFilter {
   checkChannel('rotation', options.rotation);
   checkChannel('translation', options.translation);
-  const { maxGapMs, maxPredictionMs } = resolveTiming(options);
+  const timing = resolveTiming(options);
   const { rotation: rot, translation: trans } = options;
   let state: State | null = null;
 
@@ -105,7 +105,7 @@ export function oneEuroPose(options: OneEuroPoseOptions): PoseFilter {
     update(pose, timestampMs) {
       assertFinitePose(pose, timestampMs);
       const measured = quaternionFromMatrix(pose.rotation);
-      if (!state || !continuesSequence(state.timestampMs, timestampMs, maxGapMs)) {
+      if (!state || !continuesSequence(state.timestampMs, timestampMs, timing.maxGapMs)) {
         state = {
           timestampMs,
           rawRotation: measured,
@@ -150,7 +150,8 @@ export function oneEuroPose(options: OneEuroPoseOptions): PoseFilter {
 
     predict(timestampMs) {
       if (!state) return null;
-      const h = horizonSeconds(state.timestampMs, timestampMs, maxPredictionMs);
+      const h = horizonSeconds(state.timestampMs, timestampMs, timing);
+      if (h === null) return null;
       const rotation = quaternionMultiply(quaternionFromRotationVector(scale(state.angularVelocity, h)), state.rotation);
       return poseOf(rotation, [
         state.translation[0] + state.velocity[0] * h,

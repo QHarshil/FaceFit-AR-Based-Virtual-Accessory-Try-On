@@ -64,7 +64,10 @@ export interface OverlayPose {
   lose(): void;
   /** A camera frame captured at `timestampMs` is now on screen. */
   present(timestampMs: number): void;
-  /** Pose for the current render, or null before the first pose and after a loss. */
+  /**
+   * Pose for the current render. Null before the first pose, after a loss, and
+   * when the newest frame is past the gap the filter survives.
+   */
   poseForRender(): RenderPose | null;
 }
 

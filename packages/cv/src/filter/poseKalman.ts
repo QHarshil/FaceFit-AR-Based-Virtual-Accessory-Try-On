@@ -267,7 +267,7 @@ export function poseKalman(options: PoseKalmanOptions): PoseFilter {
   if (!positive.every((v) => v > 0 && Number.isFinite(v))) {
     throw new RangeError('poseKalman noise levels must be positive and finite');
   }
-  const { maxGapMs, maxPredictionMs } = resolveTiming(options);
+  const timing = resolveTiming(options);
   const rotationVariances: Vec3 = [square(rotationNoiseRad), square(rotationNoiseRad), square(rotationNoiseRad)];
   const translationVariances: Vec3 = [
     square(translationNoiseMm[0]),
@@ -317,7 +317,7 @@ export function poseKalman(options: PoseKalmanOptions): PoseFilter {
     update(pose, timestampMs) {
       assertFinitePose(pose, timestampMs);
       const measured = quaternionFromMatrix(pose.rotation);
-      if (!state || !continuesSequence(state.timestampMs, timestampMs, maxGapMs)) {
+      if (!state || !continuesSequence(state.timestampMs, timestampMs, timing.maxGapMs)) {
         state = restart(measured, pose.translationMm, timestampMs);
         return poseOf(state);
       }
@@ -358,7 +358,8 @@ export function poseKalman(options: PoseKalmanOptions): PoseFilter {
 
     predict(timestampMs) {
       if (!state) return null;
-      const h = horizonSeconds(state.timestampMs, timestampMs, maxPredictionMs);
+      const h = horizonSeconds(state.timestampMs, timestampMs, timing);
+      if (h === null) return null;
       const w = state.angularVelocity;
       const v = state.velocity;
       return {
