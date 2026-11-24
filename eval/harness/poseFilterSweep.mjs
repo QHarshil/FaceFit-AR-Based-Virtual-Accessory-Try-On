@@ -15,7 +15,6 @@
 // point is the least jitter among points with a lag under the target, or the
 // least lag when none is. results.json keeps each stage's Pareto front and
 // operating point; the script and the cached runs reproduce the full grid.
-import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +23,7 @@ import { FRAME, MOTION, motionTruth } from './conditions.mjs';
 import { blinkShift, findBlinks, lineAngle, median, outsideBlinks, renderedJitter, rotationJitter, sampleGeometry, shownPoses } from './metrics.mjs';
 import { motionMetrics, presentationRate, presentedFrames, renderedSamples } from './motionMetrics.mjs';
 import { replayRun } from './poseReplay.mjs';
+import { assertHeadUnchanged, dirtyPaths, gitIn, startCommit } from './provenance.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EVAL, '..');
@@ -53,7 +53,7 @@ const arg = (name) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > 0 ? process.argv[i + 1] : undefined;
 };
-const git = (...args) => execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
+const git = gitIn(REPO);
 const round = (obj) => JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === 'number' ? Number(v.toPrecision(4)) : v)));
 
 export const loadRuns = (label) => {
@@ -242,11 +242,12 @@ const main = () => {
   const labels = (arg('runs') ?? '').split(',').filter(Boolean);
   if (!labels.length) throw new Error('pass --runs <label>[,<label>]');
   const allowDirty = process.argv.includes('--allow-dirty');
-  const dirty = git('status', '--porcelain').split('\n').filter((line) => line && !line.endsWith('eval/results.json'));
+  const dirty = dirtyPaths(git);
   if (dirty.length && !allowDirty) {
     console.error(`working tree is dirty; commit first or pass --allow-dirty\n${dirty.join('\n')}`);
     process.exit(1);
   }
+  const commit = startCommit(git);
   const results = JSON.parse(readFileSync(RESULTS, 'utf8'));
   const configurations = labels.map((label) => {
     const dirtyResults = join(EVAL, '.cache', 'results-dirty.json');
@@ -278,7 +279,7 @@ const main = () => {
   });
   const entry = round({
     measuredAt: new Date().toISOString(),
-    commit: git('rev-parse', 'HEAD'),
+    commit,
     dirty: dirty.length > 0,
     command: `node eval/harness/poseFilterSweep.mjs ${process.argv.slice(2).join(' ')}`.trim(),
     method: 'Offline replay of runs recorded with the filter off: each shown pose sample updates the filter at its frame capture time, a lost face resets it, and each render predicts to the newest presented frame (eval/harness/poseReplay.mjs). Jitter is the RMS high-pass of what renders drew on rec-static (blinks masked); lags are on the motion clips against the frame on screen.',
@@ -289,6 +290,7 @@ const main = () => {
     recommended: recommend(configurations),
     configurations,
   });
+  assertHeadUnchanged(git, commit);
   const out = dirty.length ? join(EVAL, '.cache', 'results-dirty.json') : RESULTS;
   const target = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : { runs: {} };
   target.runs[SWEEP_KEY] = entry;

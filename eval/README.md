@@ -16,7 +16,7 @@ Requires ffmpeg, Google Chrome and `npm ci` in `frontend/` and `backend/`. The h
 cd eval && npm install
 fixtures/record.sh static 12 && fixtures/record.sh blink 12   # webcam clips, macOS
 node fixtures/build.mjs --source recordings                   # Y4M clips in .cache/ (about 2 GB)
-node harness/baseline.mjs --source recordings                 # refuses a dirty working tree
+node harness/baseline.mjs --source recordings                 # refuses a dirty tree, and a commit made during the run
 node harness/baseline.mjs --source recordings --clips <dir> --label <name>   # clips from another checkout, results key
 node harness/baseline.mjs --source recordings --pose-filter off --label <name>   # VITE_POSE_FILTER for the build
 node fixtures/build.mjs --source recordings --only motion --recordings <dir>  # motion clips only

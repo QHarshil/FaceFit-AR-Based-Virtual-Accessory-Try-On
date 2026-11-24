@@ -30,6 +30,7 @@ import { CONDITIONS, FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDE
 import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, ndcToPx, outsideBlinks, pointJitter, renderedJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { frameSamples, mediaTimeMismatchShare, motionMetrics, presentationRate, presentedFrames, readCenterX, readLineAngle, renderedSamples } from './motionMetrics.mjs';
 import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
+import { assertHeadUnchanged, dirtyPaths, gitIn, startCommit } from './provenance.mjs';
 import { runCondition, selfTestWorkerGuard } from './run.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -58,13 +59,15 @@ if (poseFilter !== undefined && !['off', 'one-euro', 'kalman'].includes(poseFilt
 }
 // The clip directory is machine-specific, so the recorded command omits its value.
 const commandArgs = process.argv.slice(2).map((a, i, all) => (all[i - 1] === '--clips' ? '<dir>' : a));
-const git = (...args) => execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
+const git = gitIn(REPO);
 
-const dirty = git('status', '--porcelain').split('\n').filter((line) => line && !line.endsWith('eval/results.json'));
+const dirty = dirtyPaths(git);
 if (dirty.length && !allowDirty) {
   console.error(`working tree is dirty; commit first or pass --allow-dirty\n${dirty.join('\n')}`);
   process.exit(1);
 }
+// The build below is from this commit, whatever HEAD is when the run ends.
+const commit = startCommit(git);
 
 const clipDir = arg('clips') ? resolve(arg('clips')) : join(EVAL, '.cache', 'clips', source);
 const runDir = join(EVAL, '.cache', 'runs', label);
@@ -381,7 +384,7 @@ const tasksVisionVersion = JSON.parse(readFileSync(join(FRONTEND, 'node_modules'
 const delegates = [...new Set(Object.values(runs).map((run) => run.delegate))];
 const entry = roundAll({
   measuredAt: new Date().toISOString(),
-  commit: git('rev-parse', 'HEAD'),
+  commit,
   dirty: dirty.length > 0,
   command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
   pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces ${numFaces}, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; ${poseDescription}`,
@@ -422,6 +425,12 @@ const entry = roundAll({
   summary,
 });
 
+try {
+  assertHeadUnchanged(git, commit);
+} catch (error) {
+  console.error(`${error.message}; results not written`);
+  process.exit(1);
+}
 const out = allowDirty && dirty.length ? join(EVAL, '.cache', 'results-dirty.json') : RESULTS;
 const results = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : { runs: {} };
 results.runs[label] = entry;
