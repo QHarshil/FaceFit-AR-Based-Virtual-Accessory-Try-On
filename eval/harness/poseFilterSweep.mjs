@@ -9,10 +9,10 @@
 //
 // Each label names a baseline.mjs run in results.json and its raw runs in
 // eval/.cache/runs/<label>/. Rotation and translation are swept in turn: the
-// rotation parameters against rotation jitter on rec-static and the delay on
-// the roll sinusoid, then the translation parameters, with the chosen
-// rotation, against position jitter and the position lag, the larger of the
-// lag to 90% on the step and the delay on the ramp. Each stage's operating
+// rotation parameters against rotation jitter on rec-static and the larger
+// delay on the two roll sinusoids, then the translation parameters, with the
+// chosen rotation, against position jitter and the position lag, the largest
+// of the lag to 90% on the step and the delays on the three ramps. Each stage's operating
 // point is the least jitter among points with a lag under the target, or the
 // least lag when none is. The detail file keeps each stage's Pareto front and
 // operating point; the script and the cached runs reproduce the full grid.
@@ -33,24 +33,33 @@ export const SWEEP_KEY = 'pose-filter-sweep';
 // The detail file, relative to the results file whose summary names it.
 export const SWEEP_DETAIL = 'results/pose-filter-sweep.json';
 
-// The step lag target also bounds the ramp delay and the roll delay: a step
+// The step lag target also bounds the delay on every ramp and roll: a step
 // alone rewards a filter that is fast on large jumps and slow at moderate
-// speed, and the roll clip is the only rotation motion.
+// speed.
 export const TARGETS = { rotationJitterDeg: 0.1, positionJitterPx: 0.5, lagMs: 50 };
 
+// Clips whose worst lag bounds each channel. A One Euro filter trails
+// constant motion by 1 / (2 pi f_c), and f_c falls with the speed, so the
+// slowest clip can lag most.
+export const POSITION_LAG_CLIPS = { step: 'step-x', delays: ['ramp-x', 'ramp-x-60', 'ramp-x-30'] };
+export const ROTATION_LAG_CLIPS = ['sine-roll', 'sine-roll-slow'];
+const DELAY_CLIPS = [...POSITION_LAG_CLIPS.delays, ...ROTATION_LAG_CLIPS];
+
+// Each grid reaches past the operating points it produced, so none sits on
+// an edge (gridEdges reports it if one does).
 const ONE_EURO_GRID = {
-  minCutoffHz: [0.02, 0.05, 0.1, 0.2, 0.4, 0.7, 1, 1.5, 2.5],
-  rotationBeta: [0, 1, 3, 10, 30, 100],
-  translationBeta: [0, 0.003, 0.01, 0.03, 0.1, 0.3, 1],
-  derivativeCutoffHz: [0.5, 1, 2, 4],
+  minCutoffHz: [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.4, 0.7, 1, 1.5, 2, 2.5, 3, 4, 6, 10],
+  rotationBeta: [0, 0.1, 0.3, 1, 3, 10, 30, 100, 300],
+  translationBeta: [0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3],
+  derivativeCutoffHz: [0.25, 0.5, 1, 2, 4, 8],
 };
 const geometric = (from, to, count) => Array.from({ length: count }, (_, i) => from * (to / from) ** (i / (count - 1)));
 const KALMAN_GRID = {
-  angularAccelerationNoise: geometric(0.003, 30, 13),
-  linearAccelerationNoiseMm: geometric(0.3, 3000, 13),
+  angularAccelerationNoise: geometric(0.0003, 300, 19),
+  linearAccelerationNoiseMm: geometric(0.03, 30000, 19),
 };
 
-const CONDITIONS = ['still', 'rec-static', 'rec-blink', 'step-x', 'ramp-x', 'sine-roll'];
+const CONDITIONS = ['still', 'rec-static', 'rec-blink', ...MOTION.map((m) => m.id)];
 
 const arg = (name) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -131,9 +140,9 @@ export const evaluate = (runs, prepared, createFilter) => {
     const read = condition.motion.axis === 'roll' ? (e) => lineAngle(e.endsPx[0], e.endsPx[1]) : (e) => e.centerPx[0];
     return motionMetrics(renderedSamples(asRenderEvents(replays[id].renders), frames, truthOf, read), frames, condition, fps, truthOf);
   };
-  const step = motion('step-x');
-  const ramp = motion('ramp-x');
-  const sine = motion('sine-roll');
+  const step = motion(POSITION_LAG_CLIPS.step);
+  const delayed = Object.fromEntries(DELAY_CLIPS.map((id) => [id, motion(id)]));
+  const byClip = (read, ids = DELAY_CLIPS) => Object.fromEntries(ids.map((id) => [id, read(delayed[id])]));
   return {
     still: jitter('still', prepared.still),
     recStatic: jitter('rec-static', prepared.recStatic),
@@ -142,11 +151,11 @@ export const evaluate = (runs, prepared, createFilter) => {
     stepLagMaxMs: step.stepLagMs.max,
     stepOvershootPercent: step.overshootPercent.median,
     stepErrorRmsPx: step.error.rms,
-    rampDelayMs: ramp.delayMs,
-    rampLagMs: ramp.constantVelocityLagMs,
-    rampErrorRmsPx: ramp.error.rms,
-    sineDelayMs: sine.delayMs,
-    sineErrorRmsDeg: sine.error.rms,
+    // Phase delay of each clip's fundamental; null where the filter kept less than half its amplitude.
+    delayMs: byClip((m) => m.delayMs),
+    constantVelocityLagMs: byClip((m) => m.constantVelocityLagMs, POSITION_LAG_CLIPS.delays),
+    // px on the ramps, degrees on the rolls.
+    errorRms: byClip((m) => m.error.rms),
   };
 };
 
@@ -168,30 +177,43 @@ export const paretoFront = (points, lagOf, jitterOf) => {
 
 export const rotationJitterOf = (p) => p.metrics.recStatic.rotationDeg;
 export const positionJitterOf = (p) => p.metrics.recStatic.positionPx;
-export const rotationLagOf = (p) => p.metrics.sineDelayMs;
-export const positionLagOf = (p) => (p.metrics.stepLagMs == null || p.metrics.rampDelayMs == null ? null : Math.max(p.metrics.stepLagMs, p.metrics.rampDelayMs));
+// The largest lag, or null when any is missing: a motion smoothed away has no bounded lag.
+const worstLag = (lags) => (lags.some((lag) => lag == null) ? null : Math.max(...lags));
+export const rotationLagOf = (p) => worstLag(ROTATION_LAG_CLIPS.map((id) => p.metrics.delayMs[id]));
+export const positionLagOf = (p) => worstLag([p.metrics.stepLagMs, ...POSITION_LAG_CLIPS.delays.map((id) => p.metrics.delayMs[id])]);
 
-// A stage's sweep as kept in results.json: how many points were tried, the
-// Pareto front as the swept parameters with their lag and jitter, and the
-// operating point with every metric.
-const stage = (points, jitterOf, lagOf, sweptOf) => {
+// Swept parameters of `params` at the first or last value of their grid. A
+// zero lower end is not an edge: no parameter here goes below zero.
+export const gridEdges = (params, grid) => Object.keys(params).filter((key) => {
+  const values = grid[key];
+  if (!values) return false;
+  const lowest = Math.min(...values);
+  return (params[key] === lowest && lowest > 0) || params[key] === Math.max(...values);
+});
+
+// A stage's sweep as kept in the detail file: how many points were tried,
+// the Pareto front as the swept parameters with their lag and jitter, the
+// operating point with every metric, and which of its parameters sit on an
+// edge of the grid.
+const stage = (points, jitterOf, lagOf, sweptOf, grid) => {
   const chosen = operatingPoint(points, jitterOf, lagOf, TARGETS.lagMs);
   const front = paretoFront(points, lagOf, jitterOf).map((p) => ({ params: sweptOf(p.params), lagMs: lagOf(p), jitter: jitterOf(p) }));
-  return { evaluated: points.length, front, chosen };
+  return { evaluated: points.length, front, chosen, chosenAtGridEdge: gridEdges(sweptOf(chosen.params), grid) };
 };
 
 const sweepOneEuro = (runs, prepared) => {
   const grid = (betas) => ONE_EURO_GRID.minCutoffHz.flatMap((minCutoffHz) => betas.flatMap((beta) =>
     ONE_EURO_GRID.derivativeCutoffHz.map((derivativeCutoffHz) => ({ minCutoffHz, beta, derivativeCutoffHz }))));
   const middle = { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 };
+  const axes = (beta) => ({ minCutoffHz: ONE_EURO_GRID.minCutoffHz, beta, derivativeCutoffHz: ONE_EURO_GRID.derivativeCutoffHz });
   const rotation = stage(grid(ONE_EURO_GRID.rotationBeta).map((channel) => {
     const params = { rotation: channel, translation: middle };
     return { params, metrics: evaluate(runs, prepared, () => oneEuroPose(params)) };
-  }), rotationJitterOf, rotationLagOf, (params) => params.rotation);
+  }), rotationJitterOf, rotationLagOf, (params) => params.rotation, axes(ONE_EURO_GRID.rotationBeta));
   const translation = stage(grid(ONE_EURO_GRID.translationBeta).map((channel) => {
     const params = { rotation: rotation.chosen.params.rotation, translation: channel };
     return { params, metrics: evaluate(runs, prepared, () => oneEuroPose(params)) };
-  }), positionJitterOf, positionLagOf, (params) => params.translation);
+  }), positionJitterOf, positionLagOf, (params) => params.translation, axes(ONE_EURO_GRID.translationBeta));
   return { rotation, translation, chosen: translation.chosen };
 };
 
@@ -200,11 +222,11 @@ const sweepKalman = (runs, prepared, noise) => {
   const rotation = stage(KALMAN_GRID.angularAccelerationNoise.map((angularAccelerationNoise) => {
     const params = { ...base, angularAccelerationNoise, linearAccelerationNoiseMm: 100 };
     return { params, metrics: evaluate(runs, prepared, () => poseKalman(params)) };
-  }), rotationJitterOf, rotationLagOf, (params) => ({ angularAccelerationNoise: params.angularAccelerationNoise }));
+  }), rotationJitterOf, rotationLagOf, (params) => ({ angularAccelerationNoise: params.angularAccelerationNoise }), KALMAN_GRID);
   const translation = stage(KALMAN_GRID.linearAccelerationNoiseMm.map((linearAccelerationNoiseMm) => {
     const params = { ...base, angularAccelerationNoise: rotation.chosen.params.angularAccelerationNoise, linearAccelerationNoiseMm };
     return { params, metrics: evaluate(runs, prepared, () => poseKalman(params)) };
-  }), positionJitterOf, positionLagOf, (params) => ({ linearAccelerationNoiseMm: params.linearAccelerationNoiseMm }));
+  }), positionJitterOf, positionLagOf, (params) => ({ linearAccelerationNoiseMm: params.linearAccelerationNoiseMm }), KALMAN_GRID);
   return { rotation, translation, chosen: translation.chosen };
 };
 
@@ -231,6 +253,7 @@ export const sweepSummary = (detail) => {
     chosen: f.chosen,
     positionLagMs: positionLagOf(f.chosen),
     rotationLagMs: rotationLagOf(f.chosen),
+    chosenAtGridEdge: { rotation: f.rotation.chosenAtGridEdge, translation: f.translation.chosenAtGridEdge },
     atJitterTarget: {
       position: atJitterTarget(f.translation.front, detail.targets.positionJitterPx),
       rotation: atJitterTarget(f.rotation.front, detail.targets.rotationJitterDeg),
@@ -316,6 +339,12 @@ const main = () => {
     process.stdout.write('kalman ');
     const kalman = sweepKalman(runs, prepared, noise);
     console.log('done');
+    for (const [name, filter] of Object.entries({ oneEuro, kalman })) {
+      for (const channel of ['rotation', 'translation']) {
+        const edges = filter[channel].chosenAtGridEdge;
+        if (edges.length) console.warn(`${label} ${name} ${channel}: operating point on the grid edge for ${edges.join(', ')}; widen the grid`);
+      }
+    }
     return {
       label,
       numFaces,
@@ -336,7 +365,7 @@ const main = () => {
     command: `node eval/harness/poseFilterSweep.mjs ${process.argv.slice(2).join(' ')}`.trim(),
     method: 'Offline replay of runs recorded with the filter off: each shown pose sample updates the filter at its frame capture time, a lost face resets it, and each render predicts to the newest presented frame (eval/harness/poseReplay.mjs). Jitter is the RMS high-pass of what renders drew on rec-static (blinks masked); lags are on the motion clips against the frame on screen.',
     targets: TARGETS,
-    lags: 'position lag: the larger of the median lag to 90% on step-x and the delay on ramp-x; rotation lag: the delay on sine-roll',
+    lags: `position lag: the largest of the median lag to 90% on ${POSITION_LAG_CLIPS.step} and the delays on ${POSITION_LAG_CLIPS.delays.join(', ')}; rotation lag: the larger delay on ${ROTATION_LAG_CLIPS.join(' and ')}`,
     selection: 'Rotation, then translation with the chosen rotation: the least rec-static jitter among points with a lag under the target, else the least lag. The recommendation is the operating point with both lags under the target and the smallest worst ratio of position and rotation jitter to their targets.',
     grids: { oneEuro: { ...ONE_EURO_GRID, translationDuringRotationSweep: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } }, kalman: { ...KALMAN_GRID, linearAccelerationNoiseMmDuringRotationSweep: 100 } },
     recommended: recommend(configurations),

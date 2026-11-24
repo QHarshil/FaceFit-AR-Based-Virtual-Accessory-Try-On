@@ -4,7 +4,10 @@ import { test } from 'node:test';
 import { matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrixFromVector } from '../../packages/cv/src/index.ts';
 import { seededRandom } from '../../packages/cv/test/random.ts';
 import { renderPlot } from './plotPoseFilter.mjs';
-import { operatingPoint, paretoFront, readSweepDetail, recommend, solvedPoseNoise, SWEEP_DETAIL, SWEEP_KEY, sweepSummary } from './poseFilterSweep.mjs';
+import {
+  gridEdges, operatingPoint, paretoFront, positionLagOf, readSweepDetail, recommend, rotationLagOf, solvedPoseNoise, SWEEP_DETAIL, SWEEP_KEY,
+  sweepSummary,
+} from './poseFilterSweep.mjs';
 import { pageProjection, replayRun } from './poseReplay.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -24,8 +27,33 @@ test('operatingPoint takes the least jitter under the lag target, else the least
   assert.deepEqual(operatingPoint(points, jitterOf, lagOf, 5), point(10, 3));
 });
 
+// Sweep metrics with one position lag on the step and every ramp, and one rotation lag on both rolls.
+const lagMetrics = (positionPx, rotationDeg, positionLagMs, rotationLagMs = positionLagMs) => ({
+  recStatic: { positionPx, rotationDeg },
+  stepLagMs: positionLagMs,
+  delayMs: { 'ramp-x': positionLagMs, 'ramp-x-60': positionLagMs, 'ramp-x-30': positionLagMs, 'sine-roll': rotationLagMs, 'sine-roll-slow': rotationLagMs },
+});
+
+test('the lags are the worst case over the step, every ramp speed and both rolls', () => {
+  const fastOnly = { metrics: { stepLagMs: 35, delayMs: { 'ramp-x': 40, 'ramp-x-60': 120, 'ramp-x-30': 300, 'sine-roll': 30, 'sine-roll-slow': 90 } } };
+  assert.equal(positionLagOf(fastOnly), 300);
+  assert.equal(rotationLagOf(fastOnly), 90);
+  // A clip whose motion the filter smoothed away has no delay: unbounded lag.
+  const flattened = { metrics: { ...fastOnly.metrics, delayMs: { ...fastOnly.metrics.delayMs, 'ramp-x-30': null, 'sine-roll-slow': null } } };
+  assert.equal(positionLagOf(flattened), null);
+  assert.equal(rotationLagOf(flattened), null);
+});
+
+test('gridEdges names the swept parameters of a point at the end of their grid', () => {
+  const grid = { minCutoffHz: [0.01, 0.1, 1], beta: [0, 1, 10], derivativeCutoffHz: [0.5, 1, 2] };
+  assert.deepEqual(gridEdges({ minCutoffHz: 0.1, beta: 1, derivativeCutoffHz: 1 }, grid), []);
+  assert.deepEqual(gridEdges({ minCutoffHz: 0.01, beta: 10, derivativeCutoffHz: 1 }, grid), ['minCutoffHz', 'beta']);
+  // Zero is as far as beta and other non-negative parameters go.
+  assert.deepEqual(gridEdges({ minCutoffHz: 1, beta: 0, derivativeCutoffHz: 0.5 }, grid), ['minCutoffHz', 'derivativeCutoffHz']);
+});
+
 test('recommend prefers operating points with both lags under the target', () => {
-  const metrics = (positionPx, rotationDeg, stepLagMs, sineDelayMs) => ({ metrics: { recStatic: { positionPx, rotationDeg }, stepLagMs, rampDelayMs: stepLagMs, sineDelayMs } });
+  const metrics = (positionPx, rotationDeg, stepLagMs, sineDelayMs) => ({ metrics: lagMetrics(positionPx, rotationDeg, stepLagMs, sineDelayMs) });
   const configurations = [
     { numFaces: 1, oneEuro: { chosen: metrics(0.9, 0.15, 35, 45) }, kalman: { chosen: metrics(0.4, 0.05, 80, 30) } },
     { numFaces: 2, oneEuro: { chosen: metrics(1.0, 0.12, 35, 40) }, kalman: { chosen: metrics(1.4, 0.11, 35, 30) } },
@@ -166,7 +194,7 @@ test('solvedPoseNoise recovers white translation and rotation noise of a known s
 });
 
 test('renderPlot draws one curve per filter and configuration, the unfiltered points and the targets', () => {
-  const metrics = (positionPx, rotationDeg, lagMs) => ({ metrics: { recStatic: { positionPx, rotationDeg }, stepLagMs: lagMs, rampDelayMs: lagMs - 5, sineDelayMs: lagMs } });
+  const metrics = (positionPx, rotationDeg, lagMs) => ({ metrics: lagMetrics(positionPx, rotationDeg, lagMs) });
   const stage = () => ({ front: [{ lagMs: 20, jitter: 1.2 }, { lagMs: 40, jitter: 0.8 }, { lagMs: 400, jitter: 0.5 }], chosen: metrics(0.8, 0.15, 40) });
   const configuration = (numFaces) => ({ numFaces, label: `off-${numFaces}`, unfiltered: metrics(1.4, 0.24, 17).metrics, oneEuro: { rotation: stage(), translation: stage() }, kalman: { rotation: stage(), translation: stage() } });
   const svg = renderPlot({ commit: 'abcdef1234', targets: { positionJitterPx: 0.5, rotationJitterDeg: 0.1, lagMs: 50 }, recommended: { filter: 'oneEuro', numFaces: 1 }, configurations: [configuration(1), configuration(2)] });
@@ -180,7 +208,7 @@ test('renderPlot draws one curve per filter and configuration, the unfiltered po
 });
 
 test('sweepSummary keeps the operating points, the cheapest front point at each target and the detail path', () => {
-  const chosen = (positionPx, rotationDeg, lagMs) => ({ params: { lagMs }, metrics: { recStatic: { positionPx, rotationDeg }, stepLagMs: lagMs, rampDelayMs: lagMs, sineDelayMs: lagMs } });
+  const chosen = (positionPx, rotationDeg, lagMs) => ({ params: { lagMs }, metrics: lagMetrics(positionPx, rotationDeg, lagMs) });
   const front = (target) => [{ lagMs: 20, jitter: 2 * target }, { lagMs: 60, jitter: target }, { lagMs: 90, jitter: target / 2 }];
   const filter = (lagMs) => ({ rotation: { evaluated: 10, front: front(0.1) }, translation: { evaluated: 12, front: front(0.5) }, chosen: chosen(0.9, 0.15, lagMs) });
   const detail = {
