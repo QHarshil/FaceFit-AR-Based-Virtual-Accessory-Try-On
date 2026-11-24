@@ -190,7 +190,43 @@ export const latency = (events, measureSeconds) => {
   };
 };
 
-// Screen-space geometry of one glassesPose sample.
+// Pose samples the app rendered. Gated samples hid the overlay and carry no
+// screen geometry; runs before the gate have no `gated` field.
+export const shownPoses = (events) => events.filter((e) => e.stage === 'glassesPose' && !e.gated);
+
+const spread = (values) => ({ ...summarize(values), p99: percentile(values, 99), max: values.length ? Math.max(...values) : null });
+
+// Solver confidence and the reprojection gate over every pose sample: the
+// share the gate hid and why, and the reprojection RMS of every solve.
+export const solverSummary = (events) => {
+  const poses = events.filter((e) => e.stage === 'glassesPose');
+  const solved = poses.filter((e) => e.rmsReprojectionPx != null);
+  const gated = poses.filter((e) => e.gated);
+  const reasons = {};
+  for (const e of gated) reasons[e.gateReason] = (reasons[e.gateReason] ?? 0) + 1;
+  const inliers = solved.map((e) => e.inliers);
+  return {
+    samples: poses.length,
+    gated: gated.length,
+    gatedShare: poses.length ? gated.length / poses.length : null,
+    gateReasons: reasons,
+    rmsReprojectionPx: spread(solved.map((e) => e.rmsReprojectionPx)),
+    rmsReprojectionMm: spread(solved.map((e) => e.rmsReprojectionMm)),
+    inliers: { ...summarize(inliers), min: inliers.length ? Math.min(...inliers) : null },
+  };
+};
+
+// Largest relative change, in percent, of a per-zoom ratio from its value on
+// the unzoomed clip (`still`). Null without the still value or another zoom.
+export const maxChangeFromStillPercent = (ratiosByZoom) => {
+  const { still } = ratiosByZoom;
+  const others = Object.entries(ratiosByZoom).filter(([zoom, r]) => zoom !== 'still' && r != null).map(([, r]) => r);
+  if (!still || others.length === 0) return null;
+  return Math.max(...others.map((r) => Math.abs(r / still - 1) * 100));
+};
+
+// Screen-space geometry of one glassesPose sample the app rendered (not gated).
+// The rendered ends are the projected hinge anchors, wearer's right first.
 export const sampleGeometry = (sample, video, viewport) => {
   const lm = (index) => landmarkToPx(sample.landmarks[slot(index)], video, viewport);
   const ends = sample.smoothedEndsNdc.map((p) => ndcToPx(p, viewport));
@@ -206,7 +242,7 @@ export const sampleGeometry = (sample, video, viewport) => {
     faceWidth: distance(lm(LANDMARK.rightContour), lm(LANDMARK.leftContour)),
     interocular: distance(rightOuter, leftOuter),
     eyeOpenness: eyeOpenness(sample.landmarks),
-    currentAnchorY: currentAnchorY(sample.landmarks, video, viewport),
+    heuristicAnchorY: heuristicAnchorY(sample.landmarks, video, viewport),
     cornerAnchorY: meanY([LANDMARK.rightEyeOuter, LANDMARK.rightEyeInner, LANDMARK.leftEyeOuter, LANDMARK.leftEyeInner].map(lm)),
     euler: sample.euler.map((v) => v * DEG),
   };
@@ -214,10 +250,11 @@ export const sampleGeometry = (sample, video, viewport) => {
 
 const meanY = (points) => points.reduce((s, p) => s + p[1], 0) / points.length;
 
-// Vertical anchor of the current glasses heuristic (ARTryOn.tsx updateGlasses),
-// in page pixels: the mean of eye corners and eyelids, pulled 18% toward the
-// nose bridge, blended 70/30 with the nose tip.
-export const currentAnchorY = (landmarks, video, viewport) => {
+// Vertical anchor of the eye-line heuristic the app used before solveHeadPose
+// (updateGlasses in ARTryOn.tsx up to commit 1dffe23), in page pixels: the
+// mean of eye corners and eyelids, pulled 18% toward the nose bridge, blended
+// 70/30 with the nose tip. Kept as a reference for blink sensitivity.
+export const heuristicAnchorY = (landmarks, video, viewport) => {
   const y = (index) => landmarks[slot(index)][1];
   const eyes = [LANDMARK.rightEyeOuter, LANDMARK.rightEyeInner, LANDMARK.rightUpper, LANDMARK.rightLower,
     LANDMARK.leftEyeInner, LANDMARK.leftEyeOuter, LANDMARK.leftUpper, LANDMARK.leftLower];

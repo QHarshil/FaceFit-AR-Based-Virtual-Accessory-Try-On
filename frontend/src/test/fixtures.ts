@@ -1,4 +1,13 @@
-import type { Product } from '../types';
+import type { Product, ProductAnchors } from '../types';
+
+// Product 1's anchors in assets/catalog.json.
+export const ANCHORS: ProductAnchors = {
+  bridgeCenter: [0, 0, 0],
+  nosePadLeft: [9, -8, -0.9],
+  nosePadRight: [-9, -8, -0.9],
+  hingeLeft: [69, 0.5, -6.8],
+  hingeRight: [-69, 0.5, -6.8],
+};
 
 export const PRODUCTS: Product[] = [
   {
@@ -6,15 +15,17 @@ export const PRODUCTS: Product[] = [
     name: 'Aviator Glasses',
     category: 'glasses',
     type: 'glasses',
-    modelPath: '/models/glasses1.glb',
+    modelPath: '/models/rectangular-acetate.glb',
     description: 'Classic aviator style glasses',
+    anchors: ANCHORS,
   },
   {
     id: 2,
     name: 'Round Glasses',
     category: 'glasses',
     type: 'glasses',
-    modelPath: '/models/glasses2.glb',
+    modelPath: '/models/oval-wire-sunglasses.glb',
     description: 'Vintage round frame glasses',
+    anchors: ANCHORS,
   },
 ];

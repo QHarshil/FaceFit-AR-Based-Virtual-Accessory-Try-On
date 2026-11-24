@@ -10,7 +10,7 @@ The head-pose accuracy benchmark on AFLW2000-3D lives in `benchmark/` and `datas
 
 ## Run
 
-Requires ffmpeg and Google Chrome.
+Requires ffmpeg, Google Chrome and `npm ci` in `frontend/` and `backend/`. The harness serves the catalog from `backend/` on a fresh PGlite database in `.cache/api-db`, seeded from `assets/catalog.json`.
 
 ```sh
 cd eval && npm install
@@ -30,6 +30,7 @@ npm test
 | `dx±160/320`, `dy±120` | still frame shifted by known output pixels | 3 s each |
 | `zoom0.75`, `zoom1.33` | still frame scaled | 3 s each |
 | `product2` to `product4` | `still` clip with the other catalog models | 3 s each |
+| `product2-zoom0.75` to `product4-zoom1.33` | zoom clips with the other catalog models | 3 s each |
 | `rec-static`, `rec-blink` | recordings as captured | 10 s each |
 
 ## Metrics
@@ -44,11 +45,15 @@ npm test
 | `pipelineMs` | frame callback to the end of the first render after that frame's pose; excludes camera and display latency | lower |
 | `pipelineStepsMs` | each `pipelineMs` sample split into `frameToPost` (frame callback to `postMessage`), `queue` (post to inference start in the worker), `inference`, `delivery` (inference end to the reply arriving on the main thread) and `resultToRender` (reply to the end of the next render). Worker times are converted through `performance.timeOrigin`. Means add up to the mean pipeline | lower |
 | jitter `rmsHighPass` | RMS distance from a centered moving average spanning about 150 ms (`windowSamples`: 9 at 60 Hz, 5 at 30 Hz), blinks masked | lower |
-| `renderedPerFaceDeg` | slope of the rendered frame's screen angle against the face's eye-line angle | 1 |
-| `gainX`, `gainY` | slope of overlay displacement against nose-bridge displacement | 1 |
-| `renderedOverFace` | rendered frame width over face contour width (landmarks 234 to 454) | constant across zoom |
+| `renderedPerFaceDeg` | slope of the screen angle of the line through the rendered hinge anchors against the face's eye-line angle | 1 |
+| `gainX`, `gainY` | slope of the rendered bridge anchor's displacement against nose-bridge (landmark 168) displacement | 1 |
+| `renderedOverFace` | distance between the rendered hinge anchors over face contour width (landmarks 234 to 454) | constant across zoom; `maxChangeFromStillPercent` per product |
+| `gatedShare` | share of pose samples where the app hid the overlay: no face, a failed solve, or reprojection RMS over the gate | 0 on these clips |
+| `rmsReprojectionMm` | solver reprojection RMS over its inliers, times depth over focal length: the residual in millimetres at the face | lower |
 | blink shift | peak vertical displacement during a blink against the open-eye median before it | 0 |
 
-Screen quantities are CSS pixels at a 1280x720 viewport.
+Screen quantities are CSS pixels at a 1280x720 viewport, from the pose samples the app rendered; gated samples count only toward `gatedShare`. The app projects its anchors through the same `object-fit: cover` fit as the video before reporting them.
+
+Runs before `pose-integration` placed the glasses with the eye-line heuristic: every sample was rendered, the rendered ends are the edges of the model's bounding box along its x axis, and the roll and blink keys are `heuristic*PerFaceRollDeg` and `currentAnchorShiftPx`.
 
 Runs before `perception-worker` (`baseline-recordings`, `parity-vite`) ran the legacy Face Mesh on the main thread once per animation frame: their `inferenceMs` is the `FaceMesh.send` duration including the results callback, `inferenceIntervalMs` is the animation frame interval, and the jitter window is 9 samples. Their `pipelineMs` starts at the animation frame callback. The frame callback that starts it in later runs fires in the same rendering step, just before animation frame callbacks, so the two are comparable. Blink windows (`before`, `settle`, the mask margin) count pose updates, not milliseconds.

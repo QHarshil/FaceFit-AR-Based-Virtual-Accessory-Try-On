@@ -2,7 +2,7 @@
 // docs/pose-benchmark.md carries, so the doc can be checked against the artifact.
 
 const METHOD_LABELS = {
-  heuristic: 'Eye-line heuristic (app today)',
+  heuristic: 'Eye-line heuristic (old app pose)',
   mediapipeMatrix: 'MediaPipe transformation matrix',
   solveHeadPose: 'solveHeadPose',
 };

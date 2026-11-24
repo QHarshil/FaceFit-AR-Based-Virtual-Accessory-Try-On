@@ -91,11 +91,8 @@ function TryOn() {
     try {
       tracking = startFaceTracking(video, {
         onLandmarks: (frame) => {
-          if (!hasFace(frame)) {
-            setFaceDetected(false);
-            return;
-          }
-          setFaceDetected(true);
+          setFaceDetected(hasFace(frame));
+          // Frames without a face go to the overlay too, so it hides.
           if (arRef.current) {
             const poseStart = performance.now();
             arRef.current.updateModel(frame);
@@ -185,7 +182,7 @@ function TryOn() {
         <ARTryOn
           ref={arRef}
           modelPath={product.modelPath}
-          type={product.type}
+          anchors={product.anchors}
           onError={reportRenderError}
         />
       )}

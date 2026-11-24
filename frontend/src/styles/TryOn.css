@@ -7,14 +7,26 @@
   color: #ffffff;
 }
 
-.video-feed {
+/* The overlay canvas renders at the video's intrinsic size and takes the same
+   fit and mirror, so each rendered pixel covers the video pixel it was
+   rendered for. */
+.video-feed,
+.overlay-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transform: scaleX(-1);
+}
+
+.video-feed {
   z-index: 1;
+}
+
+.overlay-canvas {
+  z-index: 2;
+  pointer-events: none;
 }
 
 .ui-overlay {

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  PROBE_ORDER, blinkShift, findBlinks, outsideBlinks, landmarkToPx, latency, linearFit, ndcToPx, percentile, pointJitter,
-  rotationJitter, windowSamples, wrapLineAngle,
+  PROBE_ORDER, blinkShift, findBlinks, outsideBlinks, landmarkToPx, latency, linearFit, maxChangeFromStillPercent, ndcToPx,
+  percentile, pointJitter, rotationJitter, shownPoses, solverSummary, windowSamples, wrapLineAngle,
 } from './metrics.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -165,4 +165,44 @@ test('probe landmark order matches the app', async () => {
   const source = await readFile(new URL('../../frontend/src/components/ARTryOn.tsx', import.meta.url), 'utf8');
   const match = source.match(/PROBE_LANDMARKS = \[([^\]]+)\]/);
   assert.deepEqual(match[1].split(',').map(Number), PROBE_ORDER);
+});
+
+test('shownPoses drops gated samples and keeps samples from runs before the gate', () => {
+  const events = [
+    { stage: 'glassesPose', gated: false, t: 1 },
+    { stage: 'glassesPose', gated: true, t: 2 },
+    { stage: 'glassesPose', t: 3 },
+    { stage: 'render', t: 4 },
+  ];
+  assert.deepEqual(shownPoses(events).map((e) => e.t), [1, 3]);
+});
+
+test('solverSummary counts gated samples by reason and spreads the reprojection error of every solve', () => {
+  const pose = (gated, gateReason, rmsReprojectionPx, inliers) => ({
+    stage: 'glassesPose', gated, gateReason, rmsReprojectionPx, rmsReprojectionMm: rmsReprojectionPx == null ? null : rmsReprojectionPx / 2, inliers,
+  });
+  const summary = solverSummary([
+    pose(false, null, 2, 33),
+    pose(false, null, 4, 31),
+    pose(true, 'reprojection', 12, 20),
+    pose(true, 'no-face', null, null),
+    { stage: 'render' },
+  ]);
+  assert.equal(summary.samples, 4);
+  assert.equal(summary.gated, 2);
+  assert.equal(summary.gatedShare, 0.5);
+  assert.deepEqual(summary.gateReasons, { reprojection: 1, 'no-face': 1 });
+  assert.equal(summary.rmsReprojectionPx.n, 3);
+  assert.equal(summary.rmsReprojectionPx.p50, 4);
+  assert.equal(summary.rmsReprojectionPx.max, 12);
+  assert.equal(summary.rmsReprojectionMm.max, 6);
+  assert.equal(summary.inliers.min, 20);
+});
+
+test('maxChangeFromStillPercent takes the largest change from the unzoomed ratio', () => {
+  close(maxChangeFromStillPercent({ 'zoom0.75': 0.99, still: 1, 'zoom1.33': 1.02 }), 2);
+  // The perception-worker run: a fixed rendered width, so the ratio follows the face.
+  close(maxChangeFromStillPercent({ 'zoom0.75': 5.344, still: 4.016, 'zoom1.33': 3.035 }), 33.07, 0.01);
+  assert.equal(maxChangeFromStillPercent({ still: 1 }), null);
+  assert.equal(maxChangeFromStillPercent({ 'zoom0.75': 1 }), null);
 });

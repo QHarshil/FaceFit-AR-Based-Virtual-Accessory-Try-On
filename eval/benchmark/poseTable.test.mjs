@@ -46,7 +46,7 @@ describe('renderPoseTable', () => {
   it('renders counts, the method table and the FOV sweep', () => {
     const lines = renderPoseTable(ENTRY).split('\n');
     assert.match(lines[0], /^AFLW2000-3D, 1948 of 2000 images evaluated: 31 excluded for a label beyond 99 deg, 19 for no detected face, 2 for a failed pose\. solveHeadPose assumes a 63 deg FOV\. Commit `012345678`, Test CPU\.$/);
-    assert.ok(lines.includes('| Eye-line heuristic (app today) | 20.00 | 10.00 | 6.00 | 12.00 | 22.50 | 1.0% / 10.0% / 30.0% |'));
+    assert.ok(lines.includes('| Eye-line heuristic (old app pose) | 20.00 | 10.00 | 6.00 | 12.00 | 22.50 | 1.0% / 10.0% / 30.0% |'));
     assert.ok(lines.includes('| solveHeadPose | 5.00 | 7.00 | 4.00 | 5.33 | 7.50 | 25.0% / 65.0% / 87.5% |'));
     assert.ok(lines.includes('| solveHeadPose FOV (deg) | 30 | 63 |'));
     assert.ok(lines.includes('| Mean MAE (deg) | 6.50 | 5.33 |'));
@@ -58,7 +58,7 @@ describe('renderPoseTable', () => {
     assert.equal(lines[0], "Labels within 30 deg on every axis. Labels against the dataset's fitted landmarks (`pt3d_68`), n = 1200:");
     assert.ok(lines.includes('| Eye-line angle, image y down | roll | + | 0.96 |'));
     assert.ok(lines.includes('| Nose tip below the eyes, over eye-to-mouth distance | pitch | - | n/a |'));
-    assert.ok(lines.includes('| Eye-line heuristic (app today) | 0.01 (+1.50) | 0.90 (-0.25) | -0.95 (+4.00) |'));
+    assert.ok(lines.includes('| Eye-line heuristic (old app pose) | 0.01 (+1.50) | 0.90 (-0.25) | -0.95 (+4.00) |'));
     assert.ok(lines.includes('| MediaPipe transformation matrix | 0.93 (+2.00) | 0.97 (+0.00) | 0.99 (+0.10) |'));
   });
 

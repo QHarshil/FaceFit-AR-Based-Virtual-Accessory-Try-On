@@ -40,6 +40,7 @@ describe('seed', () => {
     for (const model of catalog) {
       const row = rows.find((candidate) => candidate.id === model.id);
       expect(row?.slug).toBe(model.slug);
+      expect(row?.modelPath).toBe(`/models/${model.slug}.glb`);
       expect(row?.name).toBe(model.name);
       expect(row?.dimensionsMm).toEqual({
         total: model.totalWidthMm,

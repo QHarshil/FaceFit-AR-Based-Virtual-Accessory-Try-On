@@ -14,6 +14,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "paths": { "@facefit/cv": ["../packages/cv/types/index.d.ts"] },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src", "vite.config.ts", "csp.ts"]

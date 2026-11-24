@@ -7,7 +7,7 @@ Browser-based eyewear virtual try-on using MediaPipe Face Landmarker and Three.j
 This project investigates lightweight facial landmark detection for consumer AR applications:
 
 - **Landmark-based pose estimation**: MediaPipe Face Landmarker (478 landmarks) in place of custom CNN detectors, running in a Web Worker at camera rate.
-- **Client-side geometry pipeline** — Computes head pose via classical linear algebra (orthonormal basis from eye/forehead vectors) rather than PnP solving, maintaining 60 FPS on laptop webcams.
+- **Client-side geometry pipeline**: head pose from a PnP solve on 33 rigid face landmarks, with intrinsics estimated from an assumed field of view ([details](docs/geometry.md)).
 - **Modular AR architecture** — Separates perception (MediaPipe), geometric reasoning (pose computation), and rendering (Three.js) into distinct pipeline stages.
 
 ## Architecture
@@ -31,10 +31,10 @@ This project investigates lightweight facial landmark detection for consumer AR 
 | Component | Implementation |
 |-----------|----------------|
 | Landmark detection | MediaPipe Tasks Vision `FaceLandmarker` in a module worker, self-hosted and pinned ([details](frontend/src/perception/README.md)) |
-| Pose estimation | Eye-to-eye vector (x-axis), forehead vector (approx. up), cross-product orthonormal basis |
-| Depth/scale | Normalized MediaPipe z-estimates; inter-temple distance for proportional scaling |
-| Rendering | Three.js with transparent WebGL canvas over `<video>` element |
-| Asset format | GLB models, origin-centered at load time |
+| Pose estimation | `solveHeadPose` from [`packages/cv`](packages/cv/README.md): EPnP, then Huber Levenberg-Marquardt with outlier rejection, against MediaPipe's canonical face; hidden when the reprojection error is high |
+| Depth/scale | Metric: depth in millimetres under the assumed FOV, models in millimetres |
+| Rendering | Three.js camera with the projection of the camera intrinsics; the canvas renders at the video's size with the same `object-fit: cover` |
+| Asset format | Normalized, meshopt-compressed GLBs with the origin on the bridge ([assets](assets/README.md)) |
 
 ## Performance
 
@@ -56,7 +56,7 @@ facefit-ar/
 │   │   └── pages/
 │   │       ├── Home.tsx    # Product gallery
 │   │       └── TryOn.tsx   # AR interface
-│   └── public/models/     # GLB eyewear assets
+│   └── public/models/     # GLBs copied from assets/out at build
 ├── docker-compose.yml
 └── start.sh
 ```
@@ -92,7 +92,7 @@ cd frontend && npm install && npm run dev   # http://localhost:3000
 ## Technical Notes
 
 - **State management**: Landmarks arrive from the worker and update the Three.js scene through a ref, decoupling high-frequency perception updates from React's render cycle.
-- **Asset pipeline**: GLB models are recentered and bounding-box normalized at load time for consistent placement across different eyewear geometries.
+- **Asset pipeline**: `assets/normalize.mjs` writes millimetre GLBs with the origin on the bridge, and the app seats that origin on the face model's nose bridge.
 - **Browser requirements**: Camera API requires `https://` or `localhost`. Chromium-based browsers recommended.
 
 ## Extensions

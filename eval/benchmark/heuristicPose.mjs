@@ -1,6 +1,7 @@
-// The app's current eye-line heuristic (frontend/src/components/ARTryOn.tsx,
-// updateGlasses) as a pure function with the same math and constants. It is a
-// heuristic: hand-tuned gains on angles of the eye line, not a fitted model.
+// The eye-line heuristic the app used before solveHeadPose
+// (frontend/src/components/ARTryOn.tsx, updateGlasses, up to commit 1dffe23)
+// as a pure function with the same math and constants. It is a heuristic:
+// hand-tuned gains on angles of the eye line, not a fitted model.
 import { rotationFromEulerXYZ } from './conventions.mjs';
 
 const LEFT_EYE_INDICES = [33, 133, 159, 145];

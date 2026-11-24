@@ -97,3 +97,23 @@ The accuracy tests whiten each trial's rotation error and translation error by t
 $$\kappa = \frac{1}{\left(1 - e^{-c^2/2\sigma^2}\right)\left(1 - e^{-\tau^2/2\sigma^2}\right)}$$
 
 treats points past the Huber scale $c$ or the rejection threshold $\tau$ as carrying no information: 1.0003, 1.018 and 1.49 at $\sigma$ = 0.5, 1 and 2 px. EPnP without refinement and a pitch bias of 1.5 degrees per pixel both exceed the bound. Outlier tests whiten by the covariance of a fit to the uncorrupted points, the accuracy perfect rejection would reach, and bound the 95th percentile of the whitened error.
+
+## In the app
+
+[`frontend/src/geometry/headPose.ts`](../frontend/src/geometry/headPose.ts) runs once per landmark frame. Landmarks map to pixels of the camera frame as $(xW, yH)$, intrinsics come from an assumed 60 degree horizontal FOV, and `solveHeadPose` fits the 33 rigid landmarks, warm-started from the last trusted pose. The overlay hides when the solve fails, when no face is found, when the face's forward axis points away from the camera, or when the reprojection RMS scaled to the face,
+
+$$\text{rms}_\text{mm} = \text{rms} \cdot \frac{t_z}{f_x},$$
+
+exceeds 6 mm. The facing test rejects a mirrored landmark set, which fits the model with a flipped depth and a small RMS. A hidden overlay shows again only below 5 mm. The eval harness measures at most 3.58 mm for a still face and 4.53 mm through blinks, so 5 mm shows a blinking face at once, and a reading between 5 and 6 mm does not flip the overlay every frame.
+
+The scaling removes the face's size in pixels from the gap between the wearer's face and the canonical one, and from the assumed FOV to first order, since $t_z$ scales with $f_x$. It does not remove it from landmark noise. For a fixed noise in pixels the RMS in millimetres grows in proportion to depth, so a far face reaches 6 mm sooner than a near one.
+
+## Seating the frame
+
+Models are in millimetres with the origin on the bridge, $x$ toward the wearer's left, $y$ up and $z$ toward the viewer ([assets/README.md](../assets/README.md)). That frame and the renderer's eye space ($y$ up, looking down $-z$) both differ from the solver's model and camera frames by a half turn about $x$, $H = \operatorname{diag}(1, -1, -1)$. A model point $p$ renders at
+
+$$X_\text{eye} = H\left(R\,\big(s + H(p - b)\big) + t\right),$$
+
+so the model gets rotation $HRH$ and position $H(Rs + t) - HRH\,b$, with $b$ the model's bridge anchor ([`glassesPlacement.ts`](../frontend/src/geometry/glassesPlacement.ts)). The seat $s$ is landmark 168 of the canonical face, $(0, -32.71, -52.36)$ mm, moved 3 mm toward the viewer. Landmark 168 is the midline point between the eyes. The models put the bridge 11 to 13 mm above the middle of the frame front, so this seat leaves the eyes in the upper half of the lenses; landmark 6, at eye level, would put them near the top rim. The 3 mm is a heuristic: the nose ridge rises about 2 mm in front of landmark 168 within the few millimetres below it that a bridge bar covers, plus 1 mm of clearance.
+
+The camera sits at the origin with the projection from `projectionMatrixFromIntrinsics` (near 10 mm, far 10 m). The canvas renders at the video's intrinsic size and takes the video's `object-fit: cover` and mirror, so a rendered pixel covers the video pixel it was computed for.

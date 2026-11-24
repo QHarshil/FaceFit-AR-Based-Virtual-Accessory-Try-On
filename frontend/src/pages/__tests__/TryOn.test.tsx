@@ -35,6 +35,7 @@ vi.mock('three', async (importOriginal) => {
       if (!webgl.available) throw new Error('Error creating WebGL context.');
     }
     domElement = document.createElement('canvas');
+    setPixelRatio() {}
     setSize() {}
     setClearColor() {}
     render() {}
@@ -46,6 +47,7 @@ vi.mock('three', async (importOriginal) => {
 
 vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
   GLTFLoader: class {
+    setMeshoptDecoder() {}
     load() {}
   },
 }));
