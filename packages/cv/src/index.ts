@@ -16,6 +16,7 @@ export {
   type HeadPoseFailureReason,
   type HeadPoseResult,
   type HeadPoseSolution,
+  type HeadPoseUncertainty,
   type SolveHeadPoseOptions,
   type WeightedModelPoint,
 } from './pnp.ts';
