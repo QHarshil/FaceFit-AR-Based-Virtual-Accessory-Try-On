@@ -11,14 +11,15 @@
 // VITE_NUM_FACES for the build (default 1, the app's default).
 //
 // Builds the production bundle, serves it with `vite preview` (which sends the
-// production CSP) and the catalog API, replays each clip in Chrome as the fake
-// camera, and summarizes the probe events. Then checks the worker's guard with
+// production CSP) and the catalog API on a fresh PGlite database seeded from
+// assets/catalog.json, replays each clip in Chrome as the fake camera, and
+// summarizes the probe events. Then checks the worker's guard with
 // off-origin requests issued inside the worker (selfTestWorkerGuard) and the
 // CPU fallback with the first delegate forced to fail. Fails without writing
 // results if any request left localhost, the CSP blocked anything on the page,
 // the guard missed a self-test request, or the fallback did not reach the CPU.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -83,9 +84,41 @@ const startPreview = async () => {
   throw new Error('vite preview did not start');
 };
 
-const api = spawn('node', ['server.js'], { cwd: join(REPO, 'backend'), env: { ...process.env, PORT: String(API_PORT) }, stdio: 'ignore' });
+// The catalog API on its own PGlite database, which allows the preview origin
+// and lifts the rate limits that a run of many page loads would hit.
+const BACKEND = join(REPO, 'backend');
+const apiDatabase = join(EVAL, '.cache', 'api-db');
+const apiEnv = {
+  ...process.env,
+  PORT: String(API_PORT),
+  DATABASE_URL: `pglite://${apiDatabase}`,
+  CORS_ORIGINS: `http://localhost:${WEB_PORT}`,
+  RATE_LIMIT_MAX: '1000000',
+  TELEMETRY_RATE_LIMIT_MAX: '1000000',
+};
+console.log('building backend');
+execFileSync('npm', ['run', 'build'], { cwd: BACKEND, stdio: 'ignore' });
+rmSync(apiDatabase, { recursive: true, force: true });
+for (const step of ['migrate', 'seed']) {
+  execFileSync(process.execPath, [join('dist', 'cli', `${step}.js`)], { cwd: BACKEND, env: apiEnv, stdio: 'ignore' });
+}
+
+const waitFor = async (url, what) => {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      if ((await fetch(url)).ok) return;
+    } catch {
+      // not listening yet
+    }
+    await new Promise((done) => setTimeout(done, 200));
+  }
+  throw new Error(`${what} did not start`);
+};
+
+const api = spawn(process.execPath, [join('dist', 'server.js')], { cwd: BACKEND, env: apiEnv, stdio: 'ignore' });
 let web;
 try {
+  await waitFor(`${API_URL}/api/ready`, 'catalog API');
   web = await startPreview();
 } catch (error) {
   api.kill();

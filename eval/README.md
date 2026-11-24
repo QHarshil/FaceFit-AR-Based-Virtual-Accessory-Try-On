@@ -10,7 +10,7 @@ The head-pose accuracy benchmark on AFLW2000-3D lives in `benchmark/` and `datas
 
 ## Run
 
-Requires ffmpeg and Google Chrome.
+Requires ffmpeg, Google Chrome and `npm ci` in `frontend/` and `backend/`. The harness serves the catalog from `backend/` on a fresh PGlite database in `.cache/api-db`, seeded from `assets/catalog.json`.
 
 ```sh
 cd eval && npm install
