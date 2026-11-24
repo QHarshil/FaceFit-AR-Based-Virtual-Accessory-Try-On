@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { noiseOnlyCoverage, populationCoverage } from './scaleExperiments.ts';
+import { conversionCoverage, noiseOnlyCoverage, populationCoverage } from './scaleExperiments.ts';
 
 describe('interval coverage over synthetic subjects', () => {
   /*
    * Every subject draws its iris diameter from N(11.7, 0.5), the population
    * the interval assumes, plus the other unknowns the interval models: the
    * camera's focal length off the assumed one by a factor exp(N(0, 0.15)),
-   * and the iris plane 3 mm (SD) off the assumed offset. 20 frames each.
+   * the iris plane 3 mm (SD) off the assumed offset, and the rotation-centre
+   * lever from N(10.5, 1.5). 20 frames each.
    * A nominal 95% interval covers the truth in 95% of subjects; over 1,000
    * subjects that rate has SD 0.7%, so it should fall in [0.93, 0.97]. Face
    * width's focal term is linearized and the population term dominates
@@ -18,6 +19,26 @@ describe('interval coverage over synthetic subjects', () => {
       expect(rate).toBeGreaterThan(0.93);
       expect(rate).toBeLessThan(0.97);
     }
+  });
+
+  /*
+   * The population term, 4.3%, swamps the distance-PD conversion SD, about
+   * 0.5%, so the test above passes with or without it. With every iris
+   * 11.7 mm and the population term off, the conversion carries weight: the
+   * lever and fixation distance are drawn from the spreads the interval
+   * states (see conversionCoverage). The noise term from 30 frames covers
+   * about 94% on its own (as below) and the conversion is first order in a
+   * lognormal distance, so over 600 subjects (SD 0.9%) the rate should fall
+   * in [0.91, 0.97]. Without the conversion SD the interval holds only the
+   * noise term, which is smaller than the conversion error, and coverage
+   * must fall below 0.8.
+   */
+  it('covers distance PD at about 95% only with the conversion SD', () => {
+    const withSd = conversionCoverage(600, 7010);
+    expect(withSd.distance).toBeGreaterThan(0.91);
+    expect(withSd.distance).toBeLessThan(0.97);
+    const withoutSd = conversionCoverage(600, 7010, (frame) => ({ ...frame, distancePdCorrectionSdMm: 0 }));
+    expect(withoutSd.distance).toBeLessThan(0.8);
   });
 
   /*

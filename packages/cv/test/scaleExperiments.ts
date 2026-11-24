@@ -6,6 +6,7 @@ import { rotationMatrixFromVector } from '../src/rotation.ts';
 import { aggregateFaceMeasurements, type FaceMeasurementLimits, type MeasurementInterval } from '../src/scale/aggregate.ts';
 import { estimateFaceScale } from '../src/scale/faceScale.ts';
 import { measureFaceFrame, type FaceFrame, type FaceFrameOptions, type FaceFrameResult } from '../src/scale/frame.ts';
+import { FIXATION_DISTANCE_RELATIVE_SD, PUPIL_TO_ROTATION_CENTRE_MM, PUPIL_TO_ROTATION_CENTRE_SD_MM } from '../src/scale/measurements.ts';
 import { seededRandom, type SeededRandom } from './random.ts';
 import { AVERAGE_SUBJECT, renderSyntheticFace, type SyntheticFrame, type SyntheticFrameOptions, type SyntheticSubject } from './syntheticFace.ts';
 
@@ -83,6 +84,7 @@ export function coverage(
   draw: (random: SeededRandom) => SyntheticWearer,
   seed: number,
   limits: Partial<FaceMeasurementLimits> = {},
+  alterFrame: (frame: FaceFrame) => FaceFrame = (frame) => frame,
 ): Coverage {
   const random = seededRandom(seed);
   let near = 0;
@@ -92,7 +94,7 @@ export function coverage(
     const { subject, pose, focalRatio, sigmaPx } = draw(random);
     const camera = { ...ASSUMED_INTRINSICS, fx: ASSUMED_INTRINSICS.fx * focalRatio, fy: ASSUMED_INTRINSICS.fy * focalRatio };
     const run = measureSyntheticFrames(subject, pose, sigmaPx, framesPerSubject, random, camera, ASSUMED_INTRINSICS);
-    const summary = aggregateFaceMeasurements(run.results, limits);
+    const summary = aggregateFaceMeasurements(run.results.map((frame) => (frame.ok ? alterFrame(frame) : frame)), limits);
     if (!summary.ok) throw new Error(`subject ${k}: ${summary.reason} ${JSON.stringify(summary.rejectedFrames)}`);
     if (covers(summary.nearPupillaryDistance, run.truth.nearPdMm)) near++;
     if (covers(summary.distancePupillaryDistance, run.truth.distancePdMm)) distance++;
@@ -121,9 +123,10 @@ export function poseFrom(random: SeededRandom, minDepthMm: number, maxDepthMm: n
 /**
  * Wearers whose iris diameter follows N(11.7, 0.5), with the other unknowns
  * the intervals model: a focal length off the assumed one by a factor
- * exp(N(0, 0.15)) and the iris plane 3 mm (SD) off the assumed offset.
+ * exp(N(0, 0.15)), the iris plane 3 mm (SD) off the assumed offset, and the
+ * pupil-to-rotation-centre lever drawn from N(10.5, 1.5).
  */
-export function populationCoverage(subjects: number, seed: number): Coverage {
+export function populationCoverage(subjects: number, seed: number, alterFrame?: (frame: FaceFrame) => FaceFrame): Coverage {
   return coverage(
     subjects,
     20,
@@ -134,12 +137,45 @@ export function populationCoverage(subjects: number, seed: number): Coverage {
         distancePdMm: 63 + random.gaussian(3.5),
         faceScale: random.uniform(0.9, 1.1),
         irisPlaneShiftMm: random.gaussian(3),
+        pupilToRotationCentreMm: PUPIL_TO_ROTATION_CENTRE_MM + random.gaussian(PUPIL_TO_ROTATION_CENTRE_SD_MM),
       },
       pose: poseFrom(random, 400, 750),
       focalRatio: Math.exp(random.gaussian(0.15)),
       sigmaPx: random.uniform(0.3, 1),
     }),
     seed,
+    {},
+    alterFrame,
+  );
+}
+
+/**
+ * Distance PD with the iris population term off, so the near-to-distance
+ * conversion carries weight: every iris 11.7 mm, the lever drawn from
+ * N(10.5, 1.5), wearers at 380 to 520 mm where the correction is largest,
+ * and 0.2 to 0.4 px of noise over 30 frames. The interval gives the
+ * fixation distance a 20% SD; a focal length off by exp(N(0, 0.2)) moves the
+ * iris-implied distance by that factor and leaves near PD alone, so it
+ * realizes the whole 20%.
+ */
+export function conversionCoverage(subjects: number, seed: number, alterFrame?: (frame: FaceFrame) => FaceFrame): Coverage {
+  return coverage(
+    subjects,
+    30,
+    (random) => ({
+      subject: {
+        ...AVERAGE_SUBJECT,
+        distancePdMm: 63 + random.gaussian(3.5),
+        faceScale: random.uniform(0.9, 1.1),
+        pupilToRotationCentreMm: PUPIL_TO_ROTATION_CENTRE_MM + random.gaussian(PUPIL_TO_ROTATION_CENTRE_SD_MM),
+      },
+      pose: poseFrom(random, 380, 520),
+      focalRatio: Math.exp(random.gaussian(FIXATION_DISTANCE_RELATIVE_SD)),
+      sigmaPx: random.uniform(0.2, 0.4),
+    }),
+    seed,
+    { irisDiameterSdMm: 0 },
+    alterFrame,
   );
 }
 

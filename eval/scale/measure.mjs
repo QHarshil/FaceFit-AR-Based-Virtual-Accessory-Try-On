@@ -37,7 +37,7 @@ import {
   solveHeadPose,
 } from '../../packages/cv/src/index.ts';
 import { seededRandom } from '../../packages/cv/test/random.ts';
-import { measureSyntheticFrames, noiseOnlyCoverage, populationCoverage } from '../../packages/cv/test/scaleExperiments.ts';
+import { conversionCoverage, measureSyntheticFrames, noiseOnlyCoverage, populationCoverage } from '../../packages/cv/test/scaleExperiments.ts';
 import { AVERAGE_SUBJECT } from '../../packages/cv/test/syntheticFace.ts';
 import { projectWithNoise } from '../../packages/cv/test/syntheticPose.ts';
 import { CLIP_LANDMARKER_OPTIONS, clipLandmarks, discardClipLandmarks } from './clipLandmarks.mjs';
@@ -253,6 +253,10 @@ async function main() {
         nominal: 0.95,
         population: populationCoverage(1000, 7001),
         noiseOnly: noiseOnlyCoverage(600, 7002),
+        distancePdConversion: {
+          withConversionSd: conversionCoverage(600, 7010).distance,
+          withoutConversionSd: conversionCoverage(600, 7010, (frame) => ({ ...frame, distancePdCorrectionSdMm: 0 })).distance,
+        },
       },
       poseCovarianceOverMonteCarloSd: poseCovarianceCheck(),
     },
