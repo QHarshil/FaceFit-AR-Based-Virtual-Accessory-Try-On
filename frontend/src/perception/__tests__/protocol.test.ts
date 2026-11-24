@@ -76,7 +76,13 @@ describe('worker responses', () => {
   it('accepts ready, result and error messages', () => {
     expect(isWorkerResponse({ type: 'ready', delegate: 'GPU' })).toBe(true);
     expect(
-      isWorkerResponse({ type: 'result', frameId: 1, inferenceMs: 4, landmarkFrame: faceFrame() }),
+      isWorkerResponse({
+        type: 'result',
+        frameId: 1,
+        inferenceStartMs: 1.7e12,
+        inferenceMs: 4,
+        landmarkFrame: faceFrame(),
+      }),
     ).toBe(true);
     expect(isWorkerResponse({ type: 'error', code: 'model-fetch', detail: 'HTTP 404' })).toBe(true);
     expect(isWorkerResponse({ type: 'error', code: 'inference', detail: 'lost', frameId: 9 })).toBe(
@@ -91,9 +97,13 @@ describe('worker responses', () => {
       isWorkerResponse({
         type: 'result',
         frameId: 1,
+        inferenceStartMs: 1.7e12,
         inferenceMs: 4,
         landmarkFrame: { ...faceFrame(), faceCount: 0 },
       }),
+    ).toBe(false);
+    expect(
+      isWorkerResponse({ type: 'result', frameId: 1, inferenceMs: 4, landmarkFrame: faceFrame() }),
     ).toBe(false);
     expect(isWorkerResponse({ type: 'frame' })).toBe(false);
   });
@@ -107,6 +117,7 @@ describe('transferablesOf', () => {
     const result: ResultResponse = {
       type: 'result',
       frameId: 1,
+      inferenceStartMs: 1.7e12,
       inferenceMs: 4,
       landmarkFrame: faceFrame(),
     };

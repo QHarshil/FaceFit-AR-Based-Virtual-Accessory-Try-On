@@ -4,9 +4,11 @@
 //   node eval/harness/baseline.mjs --source recordings
 //   node eval/harness/baseline.mjs --source recordings --allow-dirty   (writes to eval/.cache only)
 //   node eval/harness/baseline.mjs --source recordings --clips <dir> --label <name>
+//   node eval/harness/baseline.mjs --source recordings --num-faces 2 --label <name>
 //
 // --clips reads the Y4M clips from another checkout. --label is the key under
-// `runs` in results.json (default: baseline-<source>).
+// `runs` in results.json (default: baseline-<source>). --num-faces sets
+// VITE_NUM_FACES for the build (default 1, the app's default).
 //
 // Builds the production bundle, serves it with `vite preview` (which sends the
 // production CSP) and the catalog API, replays each clip in Chrome as the fake
@@ -36,6 +38,11 @@ const arg = (name, fallback) => {
 const source = arg('source', 'recordings');
 const label = arg('label', `baseline-${source}`);
 const allowDirty = process.argv.includes('--allow-dirty');
+const numFaces = Number(arg('num-faces', '1'));
+if (!Number.isInteger(numFaces) || numFaces < 1) {
+  console.error('--num-faces takes a positive integer');
+  process.exit(1);
+}
 // The clip directory is machine-specific, so the recorded command omits its value.
 const commandArgs = process.argv.slice(2).map((a, i, all) => (all[i - 1] === '--clips' ? '<dir>' : a));
 const git = (...args) => execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
@@ -53,7 +60,7 @@ for (const dir of [runDir, screenDir]) mkdirSync(dir, { recursive: true });
 
 const FRONTEND = join(REPO, 'frontend');
 console.log('building frontend');
-execFileSync('npm', ['run', 'build'], { cwd: FRONTEND, env: { ...process.env, VITE_API_URL: API_URL }, stdio: 'ignore' });
+execFileSync('npm', ['run', 'build'], { cwd: FRONTEND, env: { ...process.env, VITE_API_URL: API_URL, VITE_NUM_FACES: String(numFaces) }, stdio: 'ignore' });
 
 const startPreview = async () => {
   const preview = spawn(process.execPath, [join(FRONTEND, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--port', String(WEB_PORT), '--strictPort'], {
@@ -238,7 +245,7 @@ const entry = roundAll({
   commit: git('rev-parse', 'HEAD'),
   dirty: dirty.length > 0,
   command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
-  pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces 2, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3`,
+  pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces ${numFaces}, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3`,
   hardware: {
     cpu: cpus()[0].model,
     memoryGB: Math.round(totalmem() / 2 ** 30),

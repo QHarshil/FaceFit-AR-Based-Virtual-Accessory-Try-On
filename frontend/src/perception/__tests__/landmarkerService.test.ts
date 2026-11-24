@@ -298,6 +298,7 @@ describe('landmarker service frames', () => {
     expect(message?.type).toBe('result');
     if (message?.type !== 'result') return;
     expect(message.frameId).toBe(7);
+    expect(message.inferenceStartMs).toBe(2.5);
     expect(message.inferenceMs).toBe(2.5);
     const { landmarkFrame } = message;
     expect(landmarkFrame).toMatchObject({

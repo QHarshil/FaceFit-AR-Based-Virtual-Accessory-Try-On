@@ -99,6 +99,40 @@ test('latency follows a frame from capture through the worker to the first rende
   assert.deepEqual(result.ratesHz, { capture: 30, inference: 20, render: 30 });
 });
 
+test('the pipeline steps of a frame add up to its pipeline time', () => {
+  const events = [
+    { stage: 'capture', frameId: 0, start: 2, end: 2.5 },
+    { stage: 'frameToPost', frameId: 0, start: 2, end: 2.4 },
+    { stage: 'inference', frameId: 0, durationMs: 12, start: 3, end: 15 },
+    { stage: 'frameToLandmarks', frameId: 0, start: 2, end: 15.5 },
+    { stage: 'result', frameId: 0, start: 15.5, end: 16 },
+    { stage: 'pose', start: 15.6, end: 15.9 },
+    { stage: 'render', start: 16.7, end: 17.2 },
+  ];
+  const { pipelineMs, pipelineStepsMs } = latency(events);
+  const steps = Object.fromEntries(Object.entries(pipelineStepsMs).map(([step, s]) => [step, s.mean]));
+  close(steps.frameToPost, 0.4);
+  close(steps.queue, 0.6);
+  close(steps.inference, 12);
+  close(steps.delivery, 0.5);
+  close(steps.resultToRender, 1.7);
+  close(Object.values(steps).reduce((s, v) => s + v, 0), pipelineMs.p50);
+});
+
+test('frames without worker timings still count for the pipeline but not its steps', () => {
+  const events = [
+    { stage: 'frameToLandmarks', frameId: 0, start: 0, end: 10 },
+    { stage: 'inference', frameId: 0, durationMs: 9 },
+    { stage: 'result', frameId: 0, start: 10, end: 11 },
+    { stage: 'pose', start: 10.1, end: 10.9 },
+    { stage: 'render', start: 16.7, end: 17 },
+  ];
+  const { pipelineMs, pipelineStepsMs } = latency(events);
+  assert.equal(pipelineMs.n, 1);
+  assert.equal(pipelineStepsMs.queue.n, 0);
+  assert.equal(pipelineStepsMs.queue.mean, null);
+});
+
 test('a render that starts before the result is handled does not count for that frame', () => {
   const events = [
     { stage: 'capture', frameId: 0, start: 0, end: 0.2 },

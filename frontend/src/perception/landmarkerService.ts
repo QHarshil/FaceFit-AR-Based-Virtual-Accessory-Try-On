@@ -36,6 +36,11 @@ export interface LandmarkerServiceDeps {
   ) => Promise<VideoLandmarker>;
   fetch: (input: string, init?: RequestInit) => Promise<Response>;
   gpuAvailable: () => boolean;
+  /**
+   * Milliseconds since the Unix epoch at sub-millisecond resolution
+   * (`performance.timeOrigin + performance.now()`), a clock the main thread
+   * can convert to its own.
+   */
   now: () => number;
   post: (message: WorkerResponse) => void;
 }
@@ -232,6 +237,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
       deps.post({
         type: 'result',
         frameId,
+        inferenceStartMs: start,
         inferenceMs,
         landmarkFrame: toLandmarkFrame(
           result,

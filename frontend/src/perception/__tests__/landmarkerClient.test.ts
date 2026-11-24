@@ -42,6 +42,7 @@ const faceFrame = (timestampMs: number): LandmarkFrame => ({
 const result = (frameId: number) => ({
   type: 'result',
   frameId,
+  inferenceStartMs: performance.timeOrigin + 40,
   inferenceMs: 6.5,
   landmarkFrame: faceFrame(1000 + frameId * 33),
 });
@@ -112,19 +113,40 @@ describe('landmarker client', () => {
     expect(onResult).toHaveBeenCalledWith(faceFrame(1000));
   });
 
-  it('probes frame-to-landmarks from capture to receipt and the worker inference time', async () => {
-    const now = vi.spyOn(performance, 'now').mockReturnValue(55);
+  it('probes each step from capture to receipt, with worker times on the main-thread clock', async () => {
+    const now = vi.spyOn(performance, 'now');
+    const client = startLandmarker(options);
+    worker.reply({ type: 'ready', delegate: 'GPU' });
+    await client.ready;
+    now.mockReturnValue(10.5);
+    client.submit(captured(0));
+
+    now.mockReturnValue(55);
+    worker.reply(result(0));
+
+    expect(probes).toEqual([
+      { stage: 'frameToPost', frameId: 0, start: 10, end: 10.5 },
+      { stage: 'frameToLandmarks', frameId: 0, start: 10, end: 55 },
+      { stage: 'inference', frameId: 0, durationMs: 6.5, start: 40, end: 46.5 },
+      { stage: 'result', frameId: 0, start: 55, end: 55 },
+    ]);
+    now.mockRestore();
+  });
+
+  it('probes the post time of a waiting frame when the worker takes it', async () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(20);
     const client = startLandmarker(options);
     worker.reply({ type: 'ready', delegate: 'GPU' });
     await client.ready;
     client.submit(captured(0));
+    client.submit(captured(1));
 
+    now.mockReturnValue(60);
     worker.reply(result(0));
 
-    expect(probes).toEqual([
-      { stage: 'frameToLandmarks', frameId: 0, start: 10, end: 55 },
-      { stage: 'inference', frameId: 0, durationMs: 6.5 },
-      { stage: 'result', frameId: 0, start: 55, end: 55 },
+    expect(probes.filter((event) => event.stage === 'frameToPost')).toEqual([
+      { stage: 'frameToPost', frameId: 0, start: 10, end: 20 },
+      { stage: 'frameToPost', frameId: 1, start: 43, end: 60 },
     ]);
     now.mockRestore();
   });

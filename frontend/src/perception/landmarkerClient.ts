@@ -68,6 +68,7 @@ export const startLandmarker = ({
     send: ({ frameId, timestampMs, frame, capturedAt: at }) => {
       capturedAt.set(frameId, at);
       post({ type: 'frame', frameId, timestampMs, frame });
+      probe({ stage: 'frameToPost', frameId, start: at, end: performance.now() });
     },
     release: ({ frameId, frame }, reason) => {
       frame.close();
@@ -126,7 +127,14 @@ export const startLandmarker = ({
         if (start !== undefined) {
           probe({ stage: 'frameToLandmarks', frameId: message.frameId, start, end: receivedAt });
         }
-        probe({ stage: 'inference', frameId: message.frameId, durationMs: message.inferenceMs });
+        const inferenceStart = message.inferenceStartMs - performance.timeOrigin;
+        probe({
+          stage: 'inference',
+          frameId: message.frameId,
+          durationMs: message.inferenceMs,
+          start: inferenceStart,
+          end: inferenceStart + message.inferenceMs,
+        });
         onResult(message.landmarkFrame);
         probe({
           stage: 'result',

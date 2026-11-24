@@ -128,7 +128,10 @@ export const windowSamples = (times, spanMs = 150) => {
 // capture is the frame callback, result is the main-thread handling of a
 // worker reply including the pose update, inference is measured in the worker.
 // The pipeline runs from the frame callback to the end of the first render
-// after the pose for that frame.
+// after the pose for that frame. Its breakdown splits each pipeline sample
+// into consecutive steps that add up to it: frame callback to post, waiting
+// for the worker, inference, the reply reaching the main thread, and the
+// reply to the end of the next render.
 export const latency = (events, measureSeconds) => {
   const of = (stage) => events.filter((e) => e.stage === stage);
   const captures = of('capture');
@@ -143,15 +146,30 @@ export const latency = (events, measureSeconds) => {
   const captureMs = new Map(captures.map((e) => [e.frameId, e.end - e.start]));
   const mainThread = results.filter((r) => captureMs.has(r.frameId)).map((r) => captureMs.get(r.frameId) + r.end - r.start);
 
-  const resultOf = new Map(results.map((r) => [r.frameId, r]));
+  const byFrame = (list) => new Map(list.map((e) => [e.frameId, e]));
+  const resultOf = byFrame(results);
+  const postOf = byFrame(of('frameToPost'));
+  const inferenceOf = byFrame(of('inference'));
   const pipeline = [];
+  const steps = { frameToPost: [], queue: [], inference: [], delivery: [], resultToRender: [] };
   let k = 0;
   for (const span of toLandmarks) {
     const result = resultOf.get(span.frameId);
     if (!result || !poses.some((p) => p.start >= result.start && p.end <= result.end)) continue;
     while (k < renders.length && renders[k].start < result.end) k += 1;
-    if (k < renders.length) pipeline.push(renders[k].end - span.start);
+    if (k >= renders.length) continue;
+    const renderEnd = renders[k].end;
+    pipeline.push(renderEnd - span.start);
+    const post = postOf.get(span.frameId);
+    const inference = inferenceOf.get(span.frameId);
+    if (!post || inference?.start == null) continue;
+    steps.frameToPost.push(post.end - span.start);
+    steps.queue.push(inference.start - post.end);
+    steps.inference.push(inference.end - inference.start);
+    steps.delivery.push(span.end - inference.end);
+    steps.resultToRender.push(renderEnd - span.end);
   }
+  const mean = (values) => (values.length ? values.reduce((s, v) => s + v, 0) / values.length : null);
   const rate = (list) => (measureSeconds ? list.length / measureSeconds : null);
   return {
     captureMs: summarize(durations(captures)),
@@ -165,6 +183,8 @@ export const latency = (events, measureSeconds) => {
     inferenceIntervalMs: summarize(intervals(toLandmarks.map((e) => e.end))),
     renderIntervalMs: summarize(intervals(renders.map((e) => e.start))),
     pipelineMs: summarize(pipeline),
+    // Means add up to the mean pipeline; percentiles do not.
+    pipelineStepsMs: Object.fromEntries(Object.entries(steps).map(([step, values]) => [step, { ...summarize(values), mean: mean(values) }])),
     ratesHz: { capture: rate(captures), inference: rate(toLandmarks), render: rate(renders) },
     framesDropped: drops.length,
   };

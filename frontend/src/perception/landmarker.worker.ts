@@ -20,7 +20,7 @@ const service = createLandmarkerService({
   createLandmarker: (fileset, options) => FaceLandmarker.createFromOptions(fileset, options),
   fetch: (input, init) => self.fetch(input, init),
   gpuAvailable,
-  now: () => performance.now(),
+  now: () => performance.timeOrigin + performance.now(),
   post: (message) => {
     self.postMessage(message, { transfer: transferablesOf(message) });
   },

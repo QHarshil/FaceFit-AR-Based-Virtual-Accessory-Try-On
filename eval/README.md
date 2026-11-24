@@ -38,6 +38,7 @@ npm test
 | `captureIntervalMs`, `inferenceIntervalMs`, `ratesHz` | time between camera frames and between worker results; events per measured second | inference rate equals camera rate |
 | `framesDropped` | waiting frames replaced by a newer one before the worker took them | 0 |
 | `pipelineMs` | frame callback to the end of the first render after that frame's pose; excludes camera and display latency | lower |
+| `pipelineStepsMs` | each `pipelineMs` sample split into `frameToPost` (frame callback to `postMessage`), `queue` (post to inference start in the worker), `inference`, `delivery` (inference end to the reply arriving on the main thread) and `resultToRender` (reply to the end of the next render). Worker times are converted through `performance.timeOrigin`. Means add up to the mean pipeline | lower |
 | jitter `rmsHighPass` | RMS distance from a centered moving average spanning about 150 ms (`windowSamples`: 9 at 60 Hz, 5 at 30 Hz), blinks masked | lower |
 | `renderedPerFaceDeg` | slope of the rendered frame's screen angle against the face's eye-line angle | 1 |
 | `gainX`, `gainY` | slope of overlay displacement against nose-bridge displacement | 1 |
@@ -46,4 +47,4 @@ npm test
 
 Screen quantities are CSS pixels at a 1280x720 viewport.
 
-Runs before `perception-worker` (`baseline-recordings`, `parity-vite`) ran the legacy Face Mesh on the main thread once per animation frame: their `inferenceMs` is the `FaceMesh.send` duration including the results callback, `inferenceIntervalMs` is the animation frame interval, `pipelineMs` starts at that frame, and the jitter window is 9 samples. Blink windows (`before`, `settle`, the mask margin) count pose updates, not milliseconds.
+Runs before `perception-worker` (`baseline-recordings`, `parity-vite`) ran the legacy Face Mesh on the main thread once per animation frame: their `inferenceMs` is the `FaceMesh.send` duration including the results callback, `inferenceIntervalMs` is the animation frame interval, and the jitter window is 9 samples. Their `pipelineMs` starts at the animation frame callback. The frame callback that starts it in later runs fires in the same rendering step, just before animation frame callbacks, so the two are comparable. Blink windows (`before`, `settle`, the mask margin) count pose updates, not milliseconds.

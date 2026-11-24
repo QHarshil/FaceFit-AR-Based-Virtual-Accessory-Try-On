@@ -34,6 +34,12 @@ export interface ReadyResponse {
 export interface ResultResponse {
   type: 'result';
   frameId: number;
+  /**
+   * `detectForVideo` start as `performance.timeOrigin + performance.now()` in
+   * the worker. Subtracting the main thread's `performance.timeOrigin` gives
+   * the main thread's clock.
+   */
+  inferenceStartMs: number;
   /** `detectForVideo` duration measured in the worker. */
   inferenceMs: number;
   landmarkFrame: LandmarkFrame;
@@ -111,6 +117,7 @@ export const isWorkerResponse = (value: unknown): value is WorkerResponse => {
     case 'result':
       return (
         isFrameId(value.frameId) &&
+        isFiniteNumber(value.inferenceStartMs) &&
         isFiniteNumber(value.inferenceMs) &&
         isLandmarkFrame(value.landmarkFrame)
       );
