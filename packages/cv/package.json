@@ -2,7 +2,7 @@
   "name": "@facefit/cv",
   "version": "0.1.0",
   "private": true,
-  "description": "Head-pose geometry for FaceFit: camera intrinsics, GL projection, canonical face model and PnP.",
+  "description": "Head-pose geometry for FaceFit: camera intrinsics, GL projection, canonical face model, PnP and metric scale from the iris.",
   "license": "UNLICENSED",
   "type": "module",
   "exports": {

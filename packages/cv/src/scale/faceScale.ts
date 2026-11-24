@@ -1,0 +1,201 @@
+import { isValidIntrinsics, type CameraIntrinsics } from '../camera.ts';
+import { mat3MulVec3, vec3Add, vec3Norm, vec3Scale, vec3Sub, type Vec2, type Vec3 } from '../linalg.ts';
+import type { HeadPose } from '../pnp.ts';
+import { isRotationMatrix } from '../rotation.ts';
+import { fitIris, type IrisFitOptions } from './iris.ts';
+import { canonicalPosition, EYE_LANDMARKS, EYES, FACE_MESH_IRIS_LANDMARK_COUNT, type Eye } from './landmarks.ts';
+
+/**
+ * Horizontal visible iris diameter: Google's 11.7 +- 0.5 mm, read here as
+ * mean and SD. Clinical series agree (Tehran, n = 410: mean 11.68 mm, 95%
+ * range 10.76 to 12.60).
+ */
+export const POPULATION_IRIS_DIAMETER_MM = { mean: 11.7, sd: 0.5 } as const;
+
+/**
+ * The visible iris lies in front of the eye corners: the corners sit roughly
+ * 8 to 10 mm behind the corneal apex and the iris seen through the cornea
+ * about 3 mm behind it. A heuristic from typical anatomy, not a fit. PD does
+ * not depend on it to first order; face width and depth shift by about
+ * offset error over distance.
+ */
+export const IRIS_PLANE_OFFSET_MM = 6;
+/** Spread of that offset across faces, read as one SD. */
+export const IRIS_PLANE_OFFSET_SD_MM = 3;
+
+export interface FaceScaleOptions extends IrisFitOptions {
+  /** Assumed horizontal iris diameter; defaults to the population mean. */
+  readonly irisDiameterMm?: number;
+}
+
+export interface FaceScaleEstimate {
+  readonly ok: true;
+  /**
+   * The wearer's size over the canonical model's: the assumed iris diameter
+   * over the iris diameter back-projected at the pose's canonical scale.
+   * Equal to irisDepthMm / pnpDepthMm.
+   */
+  readonly faceScale: number;
+  /** Horizontal iris diameter at canonical scale, the mean over eyesUsed. */
+  readonly canonicalIrisDiameterMm: number;
+  /** Depth of the point between the irises implied by the assumed iris size. Scales with the focal length. */
+  readonly irisDepthMm: number;
+  /** Depth of the same point from the pose, which assumes the canonical model's size. */
+  readonly pnpDepthMm: number;
+  /** Size of one pixel at irisDepthMm, for a surface facing the camera. */
+  readonly mmPerPixel: number;
+  /** Eyes whose horizontal diameter entered faceScale. */
+  readonly eyesUsed: readonly Eye[];
+  /** Fitted iris centres in camera coordinates at canonical scale; multiply by faceScale for millimetres. */
+  readonly irisCentresCanonical: Readonly<Record<Eye, Vec3>>;
+  /** Where each iris plane is assumed to cross the eye, camera coordinates at canonical scale. */
+  readonly eyePointsCanonical: Readonly<Record<Eye, Vec3>>;
+}
+
+export type FaceScaleFailureReason =
+  | 'missing-landmarks'
+  | 'invalid-intrinsics'
+  | 'invalid-pose'
+  | 'invalid-options'
+  | 'ray-misses-plane'
+  | 'iris-fit-failed'
+  | 'inconsistent-iris';
+
+export type FaceScaleResult = FaceScaleEstimate | { readonly ok: false; readonly reason: FaceScaleFailureReason };
+
+/** Model-frame point each iris plane passes through: between the eye corners, moved toward the camera. */
+function eyePointModel(eye: Eye): Vec3 {
+  const [a, b] = EYE_LANDMARKS[eye].corners.map(canonicalPosition) as [Vec3, Vec3];
+  return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2 - IRIS_PLANE_OFFSET_MM];
+}
+
+const EYE_POINTS_MODEL: Readonly<Record<Eye, Vec3>> = { right: eyePointModel('right'), left: eyePointModel('left') };
+
+/**
+ * Metric scale from the iris. Each eye's five iris landmarks are cast as rays
+ * onto that eye's iris plane at the pose's canonical scale, and fitIris
+ * measures the horizontal diameter there. The plane passes through the eye
+ * point and faces the camera: the wearer is assumed to fixate the camera,
+ * which near-PD conversion assumes too. Its horizontal axis is the head's x
+ * axis projected onto it, so roll and the perspective of an off-centre face
+ * are removed. If the eyes follow the head instead of the camera, the iris
+ * turns away by the angle between the head's forward axis and the line of
+ * sight, its diameter reads cos of that angle too small, and PD and face
+ * width read 1 / cos too large; aggregateFaceMeasurements accepts frames
+ * where the angle is small.
+ */
+export function estimateFaceScale(
+  landmarksPx: readonly Vec2[],
+  pose: HeadPose,
+  intrinsics: CameraIntrinsics,
+  options: FaceScaleOptions = {},
+): FaceScaleResult {
+  const irisDiameterMm = options.irisDiameterMm ?? POPULATION_IRIS_DIAMETER_MM.mean;
+  if (!(irisDiameterMm > 0 && Number.isFinite(irisDiameterMm))) return { ok: false, reason: 'invalid-options' };
+  if (!isValidIntrinsics(intrinsics)) return { ok: false, reason: 'invalid-intrinsics' };
+  if (!isValidPose(pose)) return { ok: false, reason: 'invalid-pose' };
+  if (!hasFiniteLandmarks(landmarksPx, IRIS_LANDMARK_INDICES)) return { ok: false, reason: 'missing-landmarks' };
+
+  const headX: Vec3 = [pose.rotation[0], pose.rotation[3], pose.rotation[6]];
+  const diameters: number[] = [];
+  const eyesUsed: Eye[] = [];
+  const irisCentres = {} as Record<Eye, Vec3>;
+  const eyePoints = {} as Record<Eye, Vec3>;
+  for (const eye of EYES) {
+    const indices = EYE_LANDMARKS[eye];
+    const eyePoint = vec3Add(mat3MulVec3(pose.rotation, EYE_POINTS_MODEL[eye]), pose.translationMm);
+    const normal = vec3Scale(eyePoint, -1 / vec3Norm(eyePoint));
+    const axisU = normalize(vec3Sub(headX, vec3Scale(normal, dot(headX, normal))));
+    if (!axisU) return { ok: false, reason: 'invalid-pose' };
+    const axisV = cross(axisU, normal);
+    const onPlane = (index: number): Vec2 | null => {
+      const hit = castOntoPlane(landmarksPx[index]!, intrinsics, eyePoint, normal);
+      if (!hit) return null;
+      const offset = vec3Sub(hit, eyePoint);
+      return [dot(offset, axisU), dot(offset, axisV)];
+    };
+    const centre = onPlane(indices.irisCentre);
+    const horizontal = indices.irisHorizontal.map(onPlane);
+    const vertical = indices.irisVertical.map(onPlane);
+    if (!centre || horizontal.includes(null) || vertical.includes(null)) return { ok: false, reason: 'ray-misses-plane' };
+    const fit = fitIris(
+      { centre, horizontal: [horizontal[0]!, horizontal[1]!], vertical: [vertical[0]!, vertical[1]!] },
+      { unitsPerPixel: vec3Norm(eyePoint) / intrinsics.fx },
+      options,
+    );
+    if (!fit.ok) return { ok: false, reason: 'iris-fit-failed' };
+    irisCentres[eye] = vec3Add(eyePoint, vec3Add(vec3Scale(axisU, fit.centre[0]), vec3Scale(axisV, fit.centre[1])));
+    eyePoints[eye] = eyePoint;
+    if (fit.horizontalDiameter !== null) {
+      diameters.push(fit.horizontalDiameter);
+      eyesUsed.push(eye);
+    }
+  }
+  if (!diameters.length) return { ok: false, reason: 'inconsistent-iris' };
+
+  const canonicalIrisDiameterMm = diameters.reduce((sum, value) => sum + value, 0) / diameters.length;
+  const faceScale = irisDiameterMm / canonicalIrisDiameterMm;
+  const pnpDepthMm = 0.5 * (eyePoints.right[2] + eyePoints.left[2]);
+  const estimate: FaceScaleEstimate = {
+    ok: true,
+    faceScale,
+    canonicalIrisDiameterMm,
+    irisDepthMm: faceScale * pnpDepthMm,
+    pnpDepthMm,
+    mmPerPixel: (faceScale * pnpDepthMm) / intrinsics.fx,
+    eyesUsed,
+    irisCentresCanonical: irisCentres,
+    eyePointsCanonical: eyePoints,
+  };
+  const finite = [faceScale, estimate.irisDepthMm, estimate.mmPerPixel, ...irisCentres.right, ...irisCentres.left].every(Number.isFinite);
+  return finite && faceScale > 0 ? estimate : { ok: false, reason: 'ray-misses-plane' };
+}
+
+const IRIS_LANDMARK_INDICES: readonly number[] = EYES.flatMap((eye) => {
+  const indices = EYE_LANDMARKS[eye];
+  return [indices.irisCentre, ...indices.irisHorizontal, ...indices.irisVertical];
+});
+
+/** True when landmarksPx has the full Face Mesh length and finite pixels at the given indices. */
+export function hasFiniteLandmarks(landmarksPx: readonly Vec2[], indices: readonly number[]): boolean {
+  if (!Array.isArray(landmarksPx) || landmarksPx.length < FACE_MESH_IRIS_LANDMARK_COUNT) return false;
+  return indices.every((index) => {
+    const pixel = landmarksPx[index];
+    return Array.isArray(pixel) && Number.isFinite(pixel[0]) && Number.isFinite(pixel[1]);
+  });
+}
+
+/** Intersection of the pixel's viewing ray with the plane through point with the given normal; null behind the camera or parallel. */
+export function castOntoPlane(pixel: Vec2, intrinsics: CameraIntrinsics, point: Vec3, normal: Vec3): Vec3 | null {
+  const ray: Vec3 = [(pixel[0] - intrinsics.cx) / intrinsics.fx, (pixel[1] - intrinsics.cy) / intrinsics.fy, 1];
+  const along = dot(normal, ray);
+  // A ray within about 0.06 degrees of the plane meets it too far out to mean anything.
+  if (!(Math.abs(along) > 1e-3 * vec3Norm(ray))) return null;
+  const distance = dot(normal, point) / along;
+  return distance > 0 ? vec3Scale(ray, distance) : null;
+}
+
+export function isValidPose(pose: HeadPose): boolean {
+  return (
+    !!pose &&
+    Array.isArray(pose.rotation) &&
+    Array.isArray(pose.translationMm) &&
+    isRotationMatrix(pose.rotation, 1e-6) &&
+    pose.translationMm.length === 3 &&
+    pose.translationMm.every(Number.isFinite) &&
+    pose.translationMm[2] > 0
+  );
+}
+
+export function dot(a: Vec3, b: Vec3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+
+function normalize(v: Vec3): Vec3 | null {
+  const length = vec3Norm(v);
+  return length > 1e-9 ? vec3Scale(v, 1 / length) : null;
+}
