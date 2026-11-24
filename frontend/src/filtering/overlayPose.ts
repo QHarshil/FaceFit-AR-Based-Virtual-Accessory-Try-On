@@ -18,17 +18,22 @@ export const poseFilterSettingFrom = (value: string | undefined): PoseFilterSett
 /** Build-time setting; the eval harness turns the filter off to record raw poses. */
 export const POSE_FILTER = poseFilterSettingFrom(import.meta.env.VITE_POSE_FILTER);
 
-/** Operating points from the parameter sweep in docs/pose-filter.md. */
+/**
+ * Operating points of each filter for `numFaces` 1 from the parameter sweep,
+ * `runs["pose-filter-sweep"]` in eval/results.json: the least jitter on the
+ * recorded still clip with every lag under 50 ms (docs/pose-filter.md).
+ */
 export const ONE_EURO_OPTIONS: OneEuroPoseOptions = {
-  rotation: { minCutoffHz: 1, beta: 0.5, derivativeCutoffHz: 1 },
-  translation: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 },
+  rotation: { minCutoffHz: 0.02, beta: 30, derivativeCutoffHz: 1 },
+  translation: { minCutoffHz: 0.02, beta: 0.03, derivativeCutoffHz: 2 },
 };
 
+/** The measurement noise is that of the solved poses on the recorded still clip. */
 export const KALMAN_OPTIONS: PoseKalmanOptions = {
-  angularAccelerationNoise: 1,
-  linearAccelerationNoiseMm: 100,
-  rotationNoiseRad: (0.2 * Math.PI) / 180,
-  translationNoiseMm: [0.5, 0.5, 5],
+  angularAccelerationNoise: 0.06463,
+  linearAccelerationNoiseMm: 64.63,
+  rotationNoiseRad: 0.002996,
+  translationNoiseMm: [0.7842, 0.2793, 1.792],
 };
 
 export const createPoseFilter = (setting: PoseFilterSetting): PoseFilter | null => {
