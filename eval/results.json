@@ -4096,8 +4096,8 @@
       }
     },
     "metric-scale": {
-      "measuredAt": "2026-11-24T23:48:56.103Z",
-      "commit": "530e1b05e1f78135d26018c1b5dfe16ef3d8b7cf",
+      "measuredAt": "2026-11-24T23:53:50.208Z",
+      "commit": "3ba8c52474965e6f73383b814081329f69812f01",
       "dirty": false,
       "command": "node eval/scale/measure.mjs --clips <dir>",
       "hardware": {
@@ -4148,7 +4148,7 @@
               720
             ],
             "fps": 30,
-            "landmarksExtractedAtCommit": "b25d2ad76be834e9bd214c225b99f2a9ddc69838",
+            "landmarksExtractedAtCommit": "3ba8c52474965e6f73383b814081329f69812f01",
             "landmarksExtractedFromDirtyTree": false,
             "ok": true,
             "frames": 360,
@@ -4227,7 +4227,7 @@
               720
             ],
             "fps": 30,
-            "landmarksExtractedAtCommit": "b25d2ad76be834e9bd214c225b99f2a9ddc69838",
+            "landmarksExtractedAtCommit": "3ba8c52474965e6f73383b814081329f69812f01",
             "landmarksExtractedFromDirtyTree": false,
             "ok": true,
             "frames": 360,
