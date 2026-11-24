@@ -6,17 +6,10 @@ import {
   type PoseFilter,
   type PoseKalmanOptions,
 } from '@facefit/cv';
-
-/** Which temporal filter smooths the head pose; `off` renders each solved pose as is. */
-export type PoseFilterSetting = 'off' | 'one-euro' | 'kalman';
-
-export const DEFAULT_POSE_FILTER: PoseFilterSetting = 'one-euro';
-
-export const poseFilterSettingFrom = (value: string | undefined): PoseFilterSetting =>
-  value === 'off' || value === 'one-euro' || value === 'kalman' ? value : DEFAULT_POSE_FILTER;
+import { parsePoseFilterSetting, type PoseFilterSetting } from './poseFilterSetting';
 
 /** Build-time setting; the eval harness turns the filter off to record raw poses. */
-export const POSE_FILTER = poseFilterSettingFrom(import.meta.env.VITE_POSE_FILTER);
+export const POSE_FILTER = parsePoseFilterSetting(import.meta.env.VITE_POSE_FILTER);
 
 /**
  * Operating points of each filter for `numFaces` 1 from the parameter sweep,

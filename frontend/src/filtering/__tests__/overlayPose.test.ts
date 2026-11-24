@@ -1,26 +1,11 @@
 import { DEFAULT_MAX_GAP_MS, type HeadPose } from '@facefit/cv';
 import { describe, expect, it } from 'vitest';
 import { rotationFromDegrees } from '../../test/syntheticFace';
-import {
-  createOverlayPose,
-  createPoseFilter,
-  DEFAULT_POSE_FILTER,
-  poseFilterSettingFrom,
-} from '../overlayPose';
+import { createOverlayPose, createPoseFilter } from '../overlayPose';
 
 const FRAME_MS = 1000 / 30;
 const ROTATION = rotationFromDegrees(-4, 12, 6);
 const at = (xMm: number): HeadPose => ({ rotation: ROTATION, translationMm: [xMm, 0, 600] });
-
-describe('poseFilterSettingFrom', () => {
-  it('accepts the three settings and falls back to the default', () => {
-    expect(poseFilterSettingFrom('off')).toBe('off');
-    expect(poseFilterSettingFrom('one-euro')).toBe('one-euro');
-    expect(poseFilterSettingFrom('kalman')).toBe('kalman');
-    expect(poseFilterSettingFrom(undefined)).toBe(DEFAULT_POSE_FILTER);
-    expect(poseFilterSettingFrom('Kalman')).toBe(DEFAULT_POSE_FILTER);
-  });
-});
 
 describe('createOverlayPose', () => {
   it('renders each solved pose as is when the filter is off', () => {
