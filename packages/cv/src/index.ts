@@ -35,6 +35,16 @@ export {
   type Quaternion,
 } from './rotation.ts';
 export {
+  DEFAULT_FACE_MEASUREMENT_LIMITS,
+  aggregateFaceMeasurements,
+  type FaceMeasurementFailure,
+  type FaceMeasurementLimits,
+  type FaceMeasurementResult,
+  type FaceMeasurementSummary,
+  type FrameRejection,
+  type MeasurementInterval,
+} from './scale/aggregate.ts';
+export {
   IRIS_PLANE_OFFSET_MM,
   IRIS_PLANE_OFFSET_SD_MM,
   POPULATION_IRIS_DIAMETER_MM,
