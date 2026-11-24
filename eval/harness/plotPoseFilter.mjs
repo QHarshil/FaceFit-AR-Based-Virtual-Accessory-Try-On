@@ -85,11 +85,11 @@ const panel = ({ x0, title, xLabel, yLabel, series: allSeries, markers: allMarke
 };
 
 export const renderPlot = (sweep) => {
-  const series = (stage, lagOf, jitterOf) => sweep.configurations.flatMap((c) => ['oneEuro', 'kalman'].map((filter) => ({
+  const series = (stage) => sweep.configurations.flatMap((c) => ['oneEuro', 'kalman'].map((filter) => ({
     label: `${NAMES[filter]}, numFaces ${c.numFaces}`,
     color: COLORS[filter],
     dashed: c.numFaces !== 1,
-    points: c[filter][stage].front.map((p) => [lagOf(p), jitterOf(p)]),
+    points: c[filter][stage].front.map((p) => [p.lagMs, p.jitter]),
   })));
   const { recommended } = sweep;
   const markers = (stage, lagOf, jitterOf) => sweep.configurations.flatMap((c) => [
@@ -108,8 +108,8 @@ export const renderPlot = (sweep) => {
   const footY = legendY + 24;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${footY + 10}" font-family="sans-serif" font-size="12">
 <rect width="100%" height="100%" fill="white"/>
-${panel({ x0: 0, title: 'Position: rec-static jitter against lag', xLabel: 'larger of step lag to 90% and ramp delay, ms', yLabel: 'high-pass jitter of the bridge anchor, px', series: series('translation', positionLagOf, positionJitterOf), markers: markers('translation', positionLagOf, positionJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.positionJitterPx } })}
-${panel({ x0: PANEL.left + PANEL.width + PANEL.gap, title: 'Rotation: rec-static jitter against roll delay', xLabel: 'delay on the roll sinusoid, ms', yLabel: 'high-pass rotation jitter, deg', series: series('rotation', rotationLagOf, rotationJitterOf), markers: markers('rotation', rotationLagOf, rotationJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.rotationJitterDeg } })}
+${panel({ x0: 0, title: 'Position: rec-static jitter against lag', xLabel: 'larger of step lag to 90% and ramp delay, ms', yLabel: 'high-pass jitter of the bridge anchor, px', series: series('translation'), markers: markers('translation', positionLagOf, positionJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.positionJitterPx } })}
+${panel({ x0: PANEL.left + PANEL.width + PANEL.gap, title: 'Rotation: rec-static jitter against roll delay', xLabel: 'delay on the roll sinusoid, ms', yLabel: 'high-pass rotation jitter, deg', series: series('rotation'), markers: markers('rotation', rotationLagOf, rotationJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.rotationJitterDeg } })}
 ${legend.join('\n')}
 <text x="${PANEL.left}" y="${footY}" fill="#555">${escape(`Replayed from runs recorded with the filter off (${sweep.configurations.map((c) => c.label).join(', ')}), commit ${sweep.commit.slice(0, 9)}. Square: no filter.`)}</text>
 </svg>

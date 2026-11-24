@@ -167,11 +167,13 @@ export const positionJitterOf = (p) => p.metrics.recStatic.positionPx;
 export const rotationLagOf = (p) => p.metrics.sineDelayMs;
 export const positionLagOf = (p) => (p.metrics.stepLagMs == null || p.metrics.rampDelayMs == null ? null : Math.max(p.metrics.stepLagMs, p.metrics.rampDelayMs));
 
-// A stage's sweep as kept in results.json: its Pareto front, its operating
-// point and how many points were tried.
-const stage = (points, jitterOf, lagOf) => {
+// A stage's sweep as kept in results.json: how many points were tried, the
+// Pareto front as the swept parameters with their lag and jitter, and the
+// operating point with every metric.
+const stage = (points, jitterOf, lagOf, sweptOf) => {
   const chosen = operatingPoint(points, jitterOf, lagOf, TARGETS.lagMs);
-  return { evaluated: points.length, front: paretoFront(points, lagOf, jitterOf), chosen };
+  const front = paretoFront(points, lagOf, jitterOf).map((p) => ({ params: sweptOf(p.params), lagMs: lagOf(p), jitter: jitterOf(p) }));
+  return { evaluated: points.length, front, chosen };
 };
 
 const sweepOneEuro = (runs, prepared) => {
@@ -181,11 +183,11 @@ const sweepOneEuro = (runs, prepared) => {
   const rotation = stage(grid(ONE_EURO_GRID.rotationBeta).map((channel) => {
     const params = { rotation: channel, translation: middle };
     return { params, metrics: evaluate(runs, prepared, () => oneEuroPose(params)) };
-  }), rotationJitterOf, rotationLagOf);
+  }), rotationJitterOf, rotationLagOf, (params) => params.rotation);
   const translation = stage(grid(ONE_EURO_GRID.translationBeta).map((channel) => {
     const params = { rotation: rotation.chosen.params.rotation, translation: channel };
     return { params, metrics: evaluate(runs, prepared, () => oneEuroPose(params)) };
-  }), positionJitterOf, positionLagOf);
+  }), positionJitterOf, positionLagOf, (params) => params.translation);
   return { rotation, translation, chosen: translation.chosen };
 };
 
@@ -194,11 +196,11 @@ const sweepKalman = (runs, prepared, noise) => {
   const rotation = stage(KALMAN_GRID.angularAccelerationNoise.map((angularAccelerationNoise) => {
     const params = { ...base, angularAccelerationNoise, linearAccelerationNoiseMm: 100 };
     return { params, metrics: evaluate(runs, prepared, () => poseKalman(params)) };
-  }), rotationJitterOf, rotationLagOf);
+  }), rotationJitterOf, rotationLagOf, (params) => ({ angularAccelerationNoise: params.angularAccelerationNoise }));
   const translation = stage(KALMAN_GRID.linearAccelerationNoiseMm.map((linearAccelerationNoiseMm) => {
     const params = { ...base, angularAccelerationNoise: rotation.chosen.params.angularAccelerationNoise, linearAccelerationNoiseMm };
     return { params, metrics: evaluate(runs, prepared, () => poseKalman(params)) };
-  }), positionJitterOf, positionLagOf);
+  }), positionJitterOf, positionLagOf, (params) => ({ linearAccelerationNoiseMm: params.linearAccelerationNoiseMm }));
   return { rotation, translation, chosen: translation.chosen };
 };
 

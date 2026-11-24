@@ -146,7 +146,7 @@ test('solvedPoseNoise recovers white translation and rotation noise of a known s
 
 test('renderPlot draws one curve per filter and configuration, the unfiltered points and the targets', () => {
   const metrics = (positionPx, rotationDeg, lagMs) => ({ metrics: { recStatic: { positionPx, rotationDeg }, stepLagMs: lagMs, rampDelayMs: lagMs - 5, sineDelayMs: lagMs } });
-  const stage = () => ({ front: [metrics(1.2, 0.2, 20), metrics(0.8, 0.15, 40), metrics(0.5, 0.1, 400)], chosen: metrics(0.8, 0.15, 40) });
+  const stage = () => ({ front: [{ lagMs: 20, jitter: 1.2 }, { lagMs: 40, jitter: 0.8 }, { lagMs: 400, jitter: 0.5 }], chosen: metrics(0.8, 0.15, 40) });
   const configuration = (numFaces) => ({ numFaces, label: `off-${numFaces}`, unfiltered: metrics(1.4, 0.24, 17).metrics, oneEuro: { rotation: stage(), translation: stage() }, kalman: { rotation: stage(), translation: stage() } });
   const svg = renderPlot({ commit: 'abcdef1234', targets: { positionJitterPx: 0.5, rotationJitterDeg: 0.1, lagMs: 50 }, recommended: { filter: 'oneEuro', numFaces: 1 }, configurations: [configuration(1), configuration(2)] });
   assert.ok(svg.startsWith('<svg'));
