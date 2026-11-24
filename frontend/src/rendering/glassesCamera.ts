@@ -5,11 +5,29 @@ import {
   type Vec3,
 } from '@facefit/cv';
 import * as THREE from 'three';
+import { coverFit, type Size } from '../geometry/coverFit';
 import type { RigidTransform } from '../geometry/glassesPlacement';
 
 /** Clip planes in millimetres, around the solver's 100 to 5000 mm depth range plus temple length. */
 export const NEAR_MM = 10;
 export const FAR_MM = 10000;
+
+/** Most device pixels per video pixel the canvas renders at, to bound fill cost and memory. */
+export const MAX_RENDER_PIXEL_RATIO = 2;
+
+/**
+ * Renderer pixel ratio at which the canvas has a device pixel for each one it
+ * is displayed on. The canvas has the video's size and is scaled by the cover
+ * fit to the page, so it covers the display at the cover scale times the
+ * device pixel ratio. Never below 1, and capped at MAX_RENDER_PIXEL_RATIO.
+ * The projection stays that of the video: normalized device coordinates do not
+ * depend on the buffer's resolution.
+ */
+export function renderPixelRatio(video: Size, display: Size, devicePixelRatio: number): number {
+  const fit = coverFit(video, display);
+  if (!fit || !(devicePixelRatio > 0)) return 1;
+  return Math.min(MAX_RENDER_PIXEL_RATIO, Math.max(1, fit.scale * devicePixelRatio));
+}
 
 /**
  * Gives a camera at the origin the projection of the video's intrinsics, so a

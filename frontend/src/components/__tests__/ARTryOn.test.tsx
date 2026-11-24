@@ -2,8 +2,10 @@ import { estimateIntrinsics, projectionMatrixFromIntrinsics, type HeadPose } fro
 import { act, render } from '@testing-library/react';
 import { createRef, StrictMode } from 'react';
 import * as THREE from 'three';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { glassesTransform, transformPoint } from '../../geometry/glassesPlacement';
 import { DEFAULT_HORIZONTAL_FOV_DEG } from '../../geometry/headPose';
+import { eyeToVideoPixel } from '../../rendering/glassesCamera';
 import type { LandmarkFrame } from '../../perception/types';
 import { ANCHORS } from '../../test/fixtures';
 import {
@@ -16,14 +18,20 @@ import type { ARTryOnHandle } from '../../types';
 const renderedScenes: THREE.Scene[] = [];
 const renderedCameras: THREE.Camera[] = [];
 const canvasSizes: [number, number, boolean | undefined][] = [];
+const drawingBuffers: [number, number][] = [];
 const loadCallbacks: ((gltf: { scene: THREE.Object3D }) => void)[] = [];
 
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>();
   class FakeRenderer {
     domElement = document.createElement('canvas');
+    pixelRatio = 1;
+    setPixelRatio(ratio: number) {
+      this.pixelRatio = ratio;
+    }
     setSize(width: number, height: number, updateStyle?: boolean) {
       canvasSizes.push([width, height, updateStyle]);
+      drawingBuffers.push([width * this.pixelRatio, height * this.pixelRatio]);
     }
     setClearColor() {}
     render(scene: THREE.Scene, camera: THREE.Camera) {
@@ -84,6 +92,7 @@ describe('ARTryOn under StrictMode', () => {
     renderedScenes.length = 0;
     renderedCameras.length = 0;
     canvasSizes.length = 0;
+    drawingBuffers.length = 0;
     loadCallbacks.length = 0;
     vi.stubGlobal('requestAnimationFrame', () => 1);
     vi.stubGlobal('cancelAnimationFrame', () => {});
@@ -136,6 +145,7 @@ describe('ARTryOn overlay gate', () => {
     renderedScenes.length = 0;
     renderedCameras.length = 0;
     canvasSizes.length = 0;
+    drawingBuffers.length = 0;
     loadCallbacks.length = 0;
     vi.stubGlobal('requestAnimationFrame', () => 1);
     vi.stubGlobal('cancelAnimationFrame', () => {});
@@ -185,5 +195,60 @@ describe('ARTryOn overlay gate', () => {
     handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
     expect(glasses.visible).toBe(true);
     view.unmount();
+  });
+});
+
+describe('ARTryOn drawing buffer', () => {
+  beforeEach(() => {
+    renderedCameras.length = 0;
+    canvasSizes.length = 0;
+    drawingBuffers.length = 0;
+    loadCallbacks.length = 0;
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const showAt = (displayWidth: number, displayHeight: number, devicePixelRatio: number) => {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(displayWidth);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(displayHeight);
+    vi.stubGlobal('devicePixelRatio', devicePixelRatio);
+    const { handle, view } = mountWithModel();
+    handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
+    const camera = renderedCameras[renderedCameras.length - 1] as THREE.Camera;
+    const anchorPixel = eyeToVideoPixel(
+      camera,
+      intrinsics,
+      transformPoint(glassesTransform(POSE, ANCHORS.bridgeCenter), ANCHORS.bridgeCenter),
+    );
+    view.unmount();
+    return {
+      buffer: drawingBuffers[drawingBuffers.length - 1],
+      anchorPixel,
+      projection: [...camera.projectionMatrix.elements],
+    };
+  };
+
+  it('scales with the display size and device pixel ratio and leaves the projection alone', () => {
+    const small = showAt(640, 360, 1);
+    const large = showAt(1280, 720, 1);
+    const dense = showAt(1280, 720, 2);
+    const huge = showAt(3840, 2160, 2);
+
+    expect(small.buffer).toEqual([1280, 720]);
+    expect(large.buffer).toEqual([1280, 720]);
+    expect(dense.buffer).toEqual([2560, 1440]);
+    // Capped at 2 for fill cost.
+    expect(huge.buffer).toEqual([2560, 1440]);
+    expect(showAt(1920, 1080, 1).buffer).toEqual([1920, 1080]);
+
+    for (const other of [large, dense, huge]) {
+      expect(other.projection).toEqual(small.projection);
+      expect(other.anchorPixel).toEqual(small.anchorPixel);
+    }
   });
 });

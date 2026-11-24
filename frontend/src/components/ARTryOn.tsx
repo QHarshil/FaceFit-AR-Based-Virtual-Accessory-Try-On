@@ -16,7 +16,12 @@ import {
   type HeadPoseEstimate,
 } from '../geometry/headPose';
 import { hasFace, landmarkPoint, type LandmarkFrame } from '../perception/types';
-import { applyIntrinsics, applyTransform, eyeToVideoPixel } from '../rendering/glassesCamera';
+import {
+  applyIntrinsics,
+  applyTransform,
+  eyeToVideoPixel,
+  renderPixelRatio,
+} from '../rendering/glassesCamera';
 import type { ARTryOnHandle, ProductAnchors } from '../types';
 import { probe, probeEnabled } from '../utils/probe';
 
@@ -66,15 +71,26 @@ const sameIntrinsics = (a: CameraIntrinsics | null, b: CameraIntrinsics) =>
   a.cy === b.cy;
 
 /**
- * Renders at the video's intrinsic size with a projection from its
- * intrinsics. The canvas has the video's `object-fit: cover` and mirror (see
+ * Sizes the drawing buffer to the video times a pixel ratio that covers the
+ * displayed size, so the canvas is not stretched soft on large or high-DPI
+ * screens. The canvas keeps the video's `object-fit: cover` and mirror (see
  * TryOn.css), so its pixels land on the video pixels they were rendered for.
  */
+const resizeRenderer = (stage: Stage) => {
+  if (!stage.intrinsics) return;
+  const display = { width: stage.container.clientWidth, height: stage.container.clientHeight };
+  stage.renderer.setPixelRatio(
+    renderPixelRatio(stage.intrinsics, display, window.devicePixelRatio),
+  );
+  stage.renderer.setSize(stage.intrinsics.width, stage.intrinsics.height, false);
+};
+
+/** Gives the camera the video's projection and sizes the canvas to the video. */
 const fitToVideo = (stage: Stage, intrinsics: CameraIntrinsics) => {
   if (sameIntrinsics(stage.intrinsics, intrinsics)) return;
   if (!applyIntrinsics(stage.camera, intrinsics)) return;
-  stage.renderer.setSize(intrinsics.width, intrinsics.height, false);
   stage.intrinsics = intrinsics;
+  resizeRenderer(stage);
 };
 
 // Screen geometry for eval/harness: page NDC of the unmirrored page, as the
@@ -238,8 +254,18 @@ function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
     };
     animate();
 
+    // The page size changes the pixel ratio the buffer needs.
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            resizeRenderer(stage);
+          });
+    resizeObserver?.observe(container);
+
     return () => {
       disposed = true;
+      resizeObserver?.disconnect();
       cancelAnimationFrame(animationFrameId);
       disposeObject(scene);
       scene.clear();

@@ -18,7 +18,12 @@ import {
 } from '../../geometry/glassesPlacement';
 import { ANCHORS } from '../../test/fixtures';
 import { rotationFromDegrees, syntheticLandmarkFrame } from '../../test/syntheticFace';
-import { applyIntrinsics, applyTransform, eyeToVideoPixel } from '../glassesCamera';
+import {
+  applyIntrinsics,
+  applyTransform,
+  eyeToVideoPixel,
+  renderPixelRatio,
+} from '../glassesCamera';
 
 const SEAT: Vec3 = [
   CANONICAL_NOSE_BRIDGE_MM[0],
@@ -152,4 +157,24 @@ describe('glasses camera', () => {
       }
     },
   );
+});
+
+describe('renderPixelRatio', () => {
+  const video = { width: 1280, height: 720 };
+
+  it.each([
+    { display: { width: 640, height: 360 }, dpr: 1, expected: 1 },
+    { display: { width: 1280, height: 720 }, dpr: 1.5, expected: 1.5 },
+    { display: { width: 1920, height: 1080 }, dpr: 1, expected: 1.5 },
+    // Cover scales by the larger axis ratio: a tall page crops the sides.
+    { display: { width: 720, height: 1440 }, dpr: 1, expected: 2 },
+    { display: { width: 3840, height: 2160 }, dpr: 2, expected: 2 },
+  ])('is $expected for a $display.width px display at ratio $dpr', ({ display, dpr, expected }) => {
+    expect(renderPixelRatio(video, display, dpr)).toBeCloseTo(expected, 9);
+  });
+
+  it('falls back to 1 for an unmeasured display or a bad device ratio', () => {
+    expect(renderPixelRatio(video, { width: 0, height: 0 }, 2)).toBe(1);
+    expect(renderPixelRatio(video, { width: 1280, height: 720 }, Number.NaN)).toBe(1);
+  });
 });
