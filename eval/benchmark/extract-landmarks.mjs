@@ -41,7 +41,7 @@ const BATCH = 25;
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
-async function ensureModel() {
+export async function ensureModel() {
   if (!existsSync(MODEL_PATH)) {
     mkdirSync(dirname(MODEL_PATH), { recursive: true });
     const response = await fetch(MODEL_URL, { signal: AbortSignal.timeout(120_000) });

@@ -8,6 +8,8 @@ Two checks follow the conditions, and either failing also blocks results. The gu
 
 The head-pose accuracy benchmark on AFLW2000-3D lives in `benchmark/` and `datasets/`; see [docs/pose-benchmark.md](../docs/pose-benchmark.md).
 
+`scale/measure.mjs` measures metric scale (iris-based PD and face width) on the recordings and on synthetic faces, and writes `runs["metric-scale"]`. For recordings it records frame counts, relative spreads and relative interval widths, never a PD or face width; see [docs/metric-scale.md](../docs/metric-scale.md).
+
 ## Run
 
 Requires ffmpeg, Google Chrome and `npm ci` in `frontend/` and `backend/`. The harness serves the catalog from `backend/` on a fresh PGlite database in `.cache/api-db`, seeded from `assets/catalog.json`.
@@ -18,6 +20,7 @@ fixtures/record.sh static 12 && fixtures/record.sh blink 12   # webcam clips, ma
 node fixtures/build.mjs --source recordings                   # Y4M clips in .cache/ (about 2 GB)
 node harness/baseline.mjs --source recordings                 # refuses a dirty working tree
 node harness/baseline.mjs --source recordings --clips <dir> --label <name>   # clips from another checkout, results key
+node scale/measure.mjs --clips <dir>                          # metric scale; refuses a dirty working tree
 npm test
 ```
 

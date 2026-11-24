@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { estimateIntrinsics, type CameraIntrinsics } from '../src/camera.ts';
-import { RIGID_FACE_LANDMARKS } from '../src/faceModel.ts';
-import { mat3Multiply, mat3MulVec3, vec3Add, vec3Norm, vec3Scale, vec3Sub, type Mat3, type Vec2, type Vec3 } from '../src/linalg.ts';
-import { canonicalPosition, EYE_LANDMARKS, FACE_WIDTH_LANDMARKS, type Eye } from '../src/scale/landmarks.ts';
-import { solveHeadPose, type HeadPose } from '../src/pnp.ts';
+import { mat3Multiply, mat3MulVec3, vec3Add, vec3Norm, vec3Scale, vec3Sub, type Mat3, type Vec3 } from '../src/linalg.ts';
+import type { HeadPose } from '../src/pnp.ts';
 import { rotationMatrixFromVector } from '../src/rotation.ts';
-import { estimateFaceScale, IRIS_PLANE_OFFSET_MM } from '../src/scale/faceScale.ts';
-import { measureFaceFrame, type FaceFrame } from '../src/scale/frame.ts';
+import { IRIS_PLANE_OFFSET_MM } from '../src/scale/faceScale.ts';
+import { canonicalPosition, EYE_LANDMARKS, FACE_WIDTH_LANDMARKS, type Eye } from '../src/scale/landmarks.ts';
 import { seededRandom } from './random.ts';
-import { AVERAGE_SUBJECT, renderSyntheticFace, type SyntheticFrameOptions, type SyntheticSubject } from './syntheticFace.ts';
+import { measureSyntheticFrames, type SyntheticRun } from './scaleExperiments.ts';
+import { AVERAGE_SUBJECT, type SyntheticFrameOptions, type SyntheticSubject } from './syntheticFace.ts';
 
 const DEG = Math.PI / 180;
 const intrinsics = estimateIntrinsics({ width: 1280, height: 720, horizontalFovDeg: 62 })!;
@@ -23,17 +22,6 @@ function poseAt(yawDeg: number, pitchDeg: number, rollDeg: number, translationMm
   return { rotation: mat3Multiply(roll, mat3Multiply(yaw, pitch)) as Mat3, translationMm };
 }
 
-function rigidPixels(landmarksPx: readonly Vec2[]): Vec2[] {
-  return RIGID_FACE_LANDMARKS.map(({ landmarkIndex }) => landmarksPx[landmarkIndex]!);
-}
-
-interface Run {
-  readonly frames: FaceFrame[];
-  /** Frames where both irises failed the consistency check. */
-  readonly failures: number;
-  readonly truth: ReturnType<typeof renderSyntheticFace>['truth'];
-}
-
 /** Renders frames of one subject at one pose with fresh noise and measures each with the given intrinsics. */
 function run(
   subject: SyntheticSubject,
@@ -43,21 +31,8 @@ function run(
   options: SyntheticFrameOptions = {},
   measuredWith: CameraIntrinsics = intrinsics,
   count = FRAMES,
-): Run {
-  const random = seededRandom(seed);
-  const frames: FaceFrame[] = [];
-  let failures = 0;
-  let truth: Run['truth'] | null = null;
-  for (let k = 0; k < count; k++) {
-    const rendered = renderSyntheticFace(subject, pose, intrinsics, sigmaPx, random, options);
-    truth = rendered.truth;
-    const solved = solveHeadPose(rigidPixels(rendered.landmarksPx), RIGID_FACE_LANDMARKS, measuredWith);
-    const frame = measureFaceFrame(rendered.landmarksPx, solved, measuredWith);
-    if (frame.ok) frames.push(frame);
-    else if (solved.ok && !estimateFaceScale(rendered.landmarksPx, solved, measuredWith).ok) failures++;
-    else throw new Error(`frame ${k} failed: ${frame.reason}`);
-  }
-  return { frames, failures, truth: truth! };
+): SyntheticRun {
+  return measureSyntheticFrames(subject, pose, sigmaPx, count, seededRandom(seed), intrinsics, measuredWith, options);
 }
 
 function median(values: readonly number[]): number {
