@@ -61,7 +61,9 @@ describe('nginx template', () => {
 
   it('is installed as a template with API_ORIGIN set', () => {
     const dockerfile = read('../../Dockerfile');
-    expect(dockerfile).toContain('COPY nginx.conf /etc/nginx/templates/default.conf.template');
+    expect(dockerfile).toContain(
+      'COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template',
+    );
     expect(dockerfile).toMatch(/ENV API_ORIGIN=/);
   });
 });

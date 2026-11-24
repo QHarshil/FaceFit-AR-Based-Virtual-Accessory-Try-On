@@ -30,3 +30,6 @@ eval/.cache/
 
 # Self-hosted MediaPipe runtime and model, written by frontend/scripts/vendor-mediapipe.mjs
 frontend/public/mediapipe/
+
+# Declarations of packages/cv for the frontend's type checks, written by `npm run cv:types`
+packages/cv/types/
