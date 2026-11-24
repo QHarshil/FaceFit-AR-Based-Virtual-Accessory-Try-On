@@ -4096,8 +4096,8 @@
       }
     },
     "metric-scale": {
-      "measuredAt": "2026-11-24T07:30:31.963Z",
-      "commit": "8e02f9954a2d9545e77d6751d8a64f26e04d45a9",
+      "measuredAt": "2026-11-24T07:33:02.782Z",
+      "commit": "69e7148f79878746dd771d1bd82204d2c02cbae8",
       "dirty": false,
       "command": "node eval/scale/measure.mjs --clips <dir>",
       "hardware": {
