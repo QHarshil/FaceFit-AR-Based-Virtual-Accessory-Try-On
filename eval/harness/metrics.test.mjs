@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   PROBE_ORDER, blinkShift, findBlinks, outsideBlinks, landmarkToPx, latency, linearFit, ndcToPx, percentile, pointJitter,
-  rotationJitter, wrapLineAngle,
+  rotationJitter, windowSamples, wrapLineAngle,
 } from './metrics.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -69,21 +69,87 @@ test('rotationJitter recovers a known oscillation about one axis', () => {
   close(rmsStep, 2, 1e-6);
 });
 
-test('latency pairs each frame with the first render after its pose', () => {
+test('latency follows a frame from capture through the worker to the first render after its pose', () => {
   const events = [
     { stage: 'render', start: 0, end: 1 },
-    { stage: 'send', start: 2, end: 10 },
-    { stage: 'pose', start: 8, end: 9 },
-    { stage: 'render', start: 16, end: 18 },
-    { stage: 'send', start: 20, end: 30 },
-    { stage: 'pose', start: 28, end: 29 },
-    { stage: 'render', start: 33, end: 34 },
+    { stage: 'capture', frameId: 0, start: 2, end: 2.5 },
+    { stage: 'frameToLandmarks', frameId: 0, start: 2, end: 14 },
+    { stage: 'inference', frameId: 0, durationMs: 10 },
+    { stage: 'result', frameId: 0, start: 14, end: 15 },
+    { stage: 'pose', start: 14.2, end: 14.8 },
+    { stage: 'render', start: 16.7, end: 18 },
+    { stage: 'capture', frameId: 1, start: 35.3, end: 35.6 },
+    { stage: 'capture', frameId: 2, start: 68.6, end: 68.9 },
+    { stage: 'drop', frameId: 1 },
+    { stage: 'frameToLandmarks', frameId: 2, start: 68.6, end: 80 },
+    { stage: 'inference', frameId: 2, durationMs: 9 },
+    { stage: 'result', frameId: 2, start: 80, end: 80.5 },
+    { stage: 'render', start: 83.4, end: 84 },
   ];
-  const result = latency(events);
-  assert.equal(result.pipelineMs.n, 2);
-  close(result.pipelineMs.p50, 15);
-  close(result.inferenceMs.p50, 9);
-  close(result.renderIntervalMs.p50, 16.5);
+  const result = latency(events, 0.1);
+  // Frame 2 found no face, so it has no pose and no pipeline sample.
+  assert.equal(result.pipelineMs.n, 1);
+  close(result.pipelineMs.p50, 16);
+  close(result.mainThreadPerFrameMs.p50, (1.5 + 0.8) / 2);
+  close(result.inferenceMs.p50, 9.5);
+  close(result.frameToLandmarksMs.p50, (12 + 11.4) / 2);
+  close(result.captureIntervalMs.p50, 33.3, 1e-6);
+  close(result.inferenceIntervalMs.p50, 66);
+  assert.equal(result.framesDropped, 1);
+  assert.deepEqual(result.ratesHz, { capture: 30, inference: 20, render: 30 });
+});
+
+test('the pipeline steps of a frame add up to its pipeline time', () => {
+  const events = [
+    { stage: 'capture', frameId: 0, start: 2, end: 2.5 },
+    { stage: 'frameToPost', frameId: 0, start: 2, end: 2.4 },
+    { stage: 'inference', frameId: 0, durationMs: 12, start: 3, end: 15 },
+    { stage: 'frameToLandmarks', frameId: 0, start: 2, end: 15.5 },
+    { stage: 'result', frameId: 0, start: 15.5, end: 16 },
+    { stage: 'pose', start: 15.6, end: 15.9 },
+    { stage: 'render', start: 16.7, end: 17.2 },
+  ];
+  const { pipelineMs, pipelineStepsMs } = latency(events);
+  const steps = Object.fromEntries(Object.entries(pipelineStepsMs).map(([step, s]) => [step, s.mean]));
+  close(steps.frameToPost, 0.4);
+  close(steps.queue, 0.6);
+  close(steps.inference, 12);
+  close(steps.delivery, 0.5);
+  close(steps.resultToRender, 1.7);
+  close(Object.values(steps).reduce((s, v) => s + v, 0), pipelineMs.p50);
+});
+
+test('frames without worker timings still count for the pipeline but not its steps', () => {
+  const events = [
+    { stage: 'frameToLandmarks', frameId: 0, start: 0, end: 10 },
+    { stage: 'inference', frameId: 0, durationMs: 9 },
+    { stage: 'result', frameId: 0, start: 10, end: 11 },
+    { stage: 'pose', start: 10.1, end: 10.9 },
+    { stage: 'render', start: 16.7, end: 17 },
+  ];
+  const { pipelineMs, pipelineStepsMs } = latency(events);
+  assert.equal(pipelineMs.n, 1);
+  assert.equal(pipelineStepsMs.queue.n, 0);
+  assert.equal(pipelineStepsMs.queue.mean, null);
+});
+
+test('a render that starts before the result is handled does not count for that frame', () => {
+  const events = [
+    { stage: 'capture', frameId: 0, start: 0, end: 0.2 },
+    { stage: 'frameToLandmarks', frameId: 0, start: 0, end: 10 },
+    { stage: 'render', start: 9, end: 9.5 },
+    { stage: 'result', frameId: 0, start: 10, end: 11 },
+    { stage: 'pose', start: 10.1, end: 10.9 },
+    { stage: 'render', start: 25.7, end: 26 },
+  ];
+  close(latency(events).pipelineMs.p50, 26);
+});
+
+test('windowSamples keeps the moving-average span near 150 ms at 60 Hz and 30 Hz', () => {
+  const times = (interval) => Array.from({ length: 20 }, (_, i) => i * interval);
+  assert.equal(windowSamples(times(1000 / 60)), 9);
+  assert.equal(windowSamples(times(1000 / 30)), 5);
+  assert.equal(windowSamples([0]), 3);
 });
 
 test('findBlinks and blinkShift locate a dip and its displacement', () => {

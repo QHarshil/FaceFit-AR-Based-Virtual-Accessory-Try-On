@@ -27,3 +27,6 @@ Thumbs.db
 
 # Eval harness
 eval/.cache/
+
+# Self-hosted MediaPipe runtime and model, written by frontend/scripts/vendor-mediapipe.mjs
+frontend/public/mediapipe/

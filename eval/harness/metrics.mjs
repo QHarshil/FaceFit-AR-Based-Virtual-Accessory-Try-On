@@ -6,7 +6,7 @@ export const LANDMARK = { noseTip: 1, rightEyeOuter: 33, rightEyeInner: 133, rig
   noseBridge: 168, rightContour: 234, leftEyeOuter: 263, leftEyeInner: 362, leftLower: 374, leftUpper: 386,
   leftContour: 454 };
 
-// Order of the landmark subset the app probe emits (PROBE_LANDMARKS in ARTryOn.js).
+// Order of the landmark subset the app probe emits (PROBE_LANDMARKS in ARTryOn.tsx).
 export const PROBE_ORDER = [1, 10, 33, 133, 145, 159, 168, 234, 263, 362, 374, 386, 454];
 const slot = (index) => PROBE_ORDER.indexOf(index);
 
@@ -115,31 +115,78 @@ export const rotationJitter = (quats, window = 9) => {
   return { rmsFromMean: fromMean, rmsHighPass: highPass, rmsStep: n > 1 ? Math.sqrt(step / (n - 1)) : 0 };
 };
 
-// Per-stage timings and the pipeline latency from frame pickup to the end of
-// the first render that includes the new pose.
-export const latency = (events) => {
+// Odd number of samples spanning about `spanMs` at the sampling interval of
+// `times`, so a moving-average window covers the same time at 30 Hz and 60 Hz.
+export const windowSamples = (times, spanMs = 150) => {
+  const interval = median(times.slice(1).map((t, i) => t - times[i]));
+  if (!interval) return 3;
+  const n = Math.round(spanMs / interval);
+  return Math.max(3, n % 2 === 0 ? n + 1 : n);
+};
+
+// Per-stage timings from the worker pipeline (see frontend/src/perception):
+// capture is the frame callback, result is the main-thread handling of a
+// worker reply including the pose update, inference is measured in the worker.
+// The pipeline runs from the frame callback to the end of the first render
+// after the pose for that frame. Its breakdown splits each pipeline sample
+// into consecutive steps that add up to it: frame callback to post, waiting
+// for the worker, inference, the reply reaching the main thread, and the
+// reply to the end of the next render.
+export const latency = (events, measureSeconds) => {
   const of = (stage) => events.filter((e) => e.stage === stage);
-  const sends = of('send');
+  const captures = of('capture');
+  const results = of('result');
+  const toLandmarks = of('frameToLandmarks');
   const poses = of('pose');
   const renders = of('render');
+  const drops = of('drop');
   const durations = (list) => list.map((e) => e.end - e.start);
-  const intervals = (list) => list.slice(1).map((e, i) => e.start - list[i].start);
+  const intervals = (times) => times.slice(1).map((t, i) => t - times[i]);
 
+  const captureMs = new Map(captures.map((e) => [e.frameId, e.end - e.start]));
+  const mainThread = results.filter((r) => captureMs.has(r.frameId)).map((r) => captureMs.get(r.frameId) + r.end - r.start);
+
+  const byFrame = (list) => new Map(list.map((e) => [e.frameId, e]));
+  const resultOf = byFrame(results);
+  const postOf = byFrame(of('frameToPost'));
+  const inferenceOf = byFrame(of('inference'));
   const pipeline = [];
-  let r = 0;
-  for (const send of sends) {
-    const pose = poses.find((p) => p.start >= send.start && p.end <= send.end);
-    if (!pose) continue;
-    while (r < renders.length && renders[r].start < pose.end) r += 1;
-    if (r < renders.length) pipeline.push(renders[r].end - send.start);
+  const steps = { frameToPost: [], queue: [], inference: [], delivery: [], resultToRender: [] };
+  let k = 0;
+  for (const span of toLandmarks) {
+    const result = resultOf.get(span.frameId);
+    if (!result || !poses.some((p) => p.start >= result.start && p.end <= result.end)) continue;
+    while (k < renders.length && renders[k].start < result.end) k += 1;
+    if (k >= renders.length) continue;
+    const renderEnd = renders[k].end;
+    pipeline.push(renderEnd - span.start);
+    const post = postOf.get(span.frameId);
+    const inference = inferenceOf.get(span.frameId);
+    if (!post || inference?.start == null) continue;
+    steps.frameToPost.push(post.end - span.start);
+    steps.queue.push(inference.start - post.end);
+    steps.inference.push(inference.end - inference.start);
+    steps.delivery.push(span.end - inference.end);
+    steps.resultToRender.push(renderEnd - span.end);
   }
+  const mean = (values) => (values.length ? values.reduce((s, v) => s + v, 0) / values.length : null);
+  const rate = (list) => (measureSeconds ? list.length / measureSeconds : null);
   return {
-    inferenceMs: summarize(durations(sends)),
+    captureMs: summarize(durations(captures)),
+    resultMs: summarize(durations(results)),
+    mainThreadPerFrameMs: summarize(mainThread),
+    inferenceMs: summarize(of('inference').map((e) => e.durationMs)),
+    frameToLandmarksMs: summarize(durations(toLandmarks)),
     poseMs: summarize(durations(poses)),
     renderCpuMs: summarize(durations(renders)),
-    inferenceIntervalMs: summarize(intervals(sends)),
-    renderIntervalMs: summarize(intervals(renders)),
+    captureIntervalMs: summarize(intervals(captures.map((e) => e.start))),
+    inferenceIntervalMs: summarize(intervals(toLandmarks.map((e) => e.end))),
+    renderIntervalMs: summarize(intervals(renders.map((e) => e.start))),
     pipelineMs: summarize(pipeline),
+    // Means add up to the mean pipeline; percentiles do not.
+    pipelineStepsMs: Object.fromEntries(Object.entries(steps).map(([step, values]) => [step, { ...summarize(values), mean: mean(values) }])),
+    ratesHz: { capture: rate(captures), inference: rate(toLandmarks), render: rate(renders) },
+    framesDropped: drops.length,
   };
 };
 
@@ -167,7 +214,7 @@ export const sampleGeometry = (sample, video, viewport) => {
 
 const meanY = (points) => points.reduce((s, p) => s + p[1], 0) / points.length;
 
-// Vertical anchor of the current glasses heuristic (ARTryOn.js updateGlasses),
+// Vertical anchor of the current glasses heuristic (ARTryOn.tsx updateGlasses),
 // in page pixels: the mean of eye corners and eyelids, pulled 18% toward the
 // nose bridge, blended 70/30 with the nose tip.
 export const currentAnchorY = (landmarks, video, viewport) => {

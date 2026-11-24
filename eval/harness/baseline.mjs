@@ -4,25 +4,33 @@
 //   node eval/harness/baseline.mjs --source recordings
 //   node eval/harness/baseline.mjs --source recordings --allow-dirty   (writes to eval/.cache only)
 //   node eval/harness/baseline.mjs --source recordings --clips <dir> --label <name>
+//   node eval/harness/baseline.mjs --source recordings --num-faces 2 --label <name>
 //
 // --clips reads the Y4M clips from another checkout. --label is the key under
-// `runs` in results.json (default: baseline-<source>).
+// `runs` in results.json (default: baseline-<source>). --num-faces sets
+// VITE_NUM_FACES for the build (default 1, the app's default).
 //
-// Builds the production bundle, serves it with the catalog API, replays each
-// clip in Chrome as the fake camera, and summarizes the probe events.
+// Builds the production bundle, serves it with `vite preview` (which sends the
+// production CSP) and the catalog API, replays each clip in Chrome as the fake
+// camera, and summarizes the probe events. Then checks the worker's guard with
+// off-origin requests issued inside the worker (selfTestWorkerGuard) and the
+// CPU fallback with the first delegate forced to fail. Fails without writing
+// results if any request left localhost, the CSP blocked anything on the page,
+// the guard missed a self-test request, or the fallback did not reach the CPU.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONDITIONS, PRODUCTS, RECORDED } from './conditions.mjs';
-import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, wrapLineAngle } from './metrics.mjs';
-import { runCondition } from './run.mjs';
-import { serveBuild } from './serve.mjs';
+import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, windowSamples, wrapLineAngle } from './metrics.mjs';
+import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
+import { runCondition, selfTestWorkerGuard } from './run.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EVAL, '..');
 const API_PORT = 5077;
+const API_URL = `http://localhost:${API_PORT}`;
 const WEB_PORT = 4177;
 const RESULTS = join(EVAL, 'results.json');
 
@@ -33,6 +41,11 @@ const arg = (name, fallback) => {
 const source = arg('source', 'recordings');
 const label = arg('label', `baseline-${source}`);
 const allowDirty = process.argv.includes('--allow-dirty');
+const numFaces = Number(arg('num-faces', '1'));
+if (!Number.isInteger(numFaces) || numFaces < 1) {
+  console.error('--num-faces takes a positive integer');
+  process.exit(1);
+}
 // The clip directory is machine-specific, so the recorded command omits its value.
 const commandArgs = process.argv.slice(2).map((a, i, all) => (all[i - 1] === '--clips' ? '<dir>' : a));
 const git = (...args) => execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
@@ -48,19 +61,43 @@ const runDir = join(EVAL, '.cache', 'runs', source);
 const screenDir = join(EVAL, '.cache', 'screens', source);
 for (const dir of [runDir, screenDir]) mkdirSync(dir, { recursive: true });
 
+const FRONTEND = join(REPO, 'frontend');
 console.log('building frontend');
-execFileSync('npm', ['run', 'build'], {
-  cwd: join(REPO, 'frontend'),
-  env: { ...process.env, VITE_API_URL: `http://localhost:${API_PORT}` },
-  stdio: 'ignore',
-});
+execFileSync('npm', ['run', 'build'], { cwd: FRONTEND, env: { ...process.env, VITE_API_URL: API_URL, VITE_NUM_FACES: String(numFaces) }, stdio: 'ignore' });
+
+const startPreview = async () => {
+  const preview = spawn(process.execPath, [join(FRONTEND, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--port', String(WEB_PORT), '--strictPort'], {
+    cwd: FRONTEND,
+    env: { ...process.env, VITE_API_URL: API_URL },
+    stdio: 'ignore',
+  });
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      if ((await fetch(`http://localhost:${WEB_PORT}/`)).ok) return preview;
+    } catch {
+      // not listening yet
+    }
+    await new Promise((done) => setTimeout(done, 200));
+  }
+  preview.kill();
+  throw new Error('vite preview did not start');
+};
+
 const api = spawn('node', ['server.js'], { cwd: join(REPO, 'backend'), env: { ...process.env, PORT: String(API_PORT) }, stdio: 'ignore' });
-const web = await serveBuild(join(REPO, 'frontend', 'dist'), WEB_PORT);
+let web;
+try {
+  web = await startPreview();
+} catch (error) {
+  api.kill();
+  throw error;
+}
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
 const conditions = [...CONDITIONS, ...PRODUCTS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
 const runs = {};
 let environment;
+let guardSelfTest;
+let cpuFallback;
 try {
   for (const condition of conditions) {
     process.stdout.write(`${condition.id} `);
@@ -75,11 +112,47 @@ try {
     environment = run.environment;
     runs[condition.id] = run;
   }
+  const still = conditions.find((c) => c.id === 'still');
+  if (still) {
+    const url = `http://localhost:${WEB_PORT}/try-on/${still.productId}`;
+    process.stdout.write('guard-self-test ');
+    guardSelfTest = await selfTestWorkerGuard({ clip: clipOf(still), url });
+    process.stdout.write('cpu-fallback ');
+    cpuFallback = await runCondition({ clip: clipOf(still), url, warmupSeconds: still.warmupSeconds, measureSeconds: still.measureSeconds, failFirstAttempt: true });
+    writeFileSync(join(runDir, 'cpu-fallback.json'), JSON.stringify(cpuFallback));
+  }
 } finally {
   api.kill();
-  web.close();
+  web.kill();
 }
 console.log();
+
+const checkedRuns = cpuFallback ? { ...runs, 'cpu-fallback': cpuFallback } : runs;
+const network = Object.fromEntries(Object.entries(checkedRuns).map(([id, run]) => [id, {
+  requests: run.requests.length,
+  offDevice: offDeviceRequests(run.requests),
+  workerFetchSeen: sawWorkerFetch(run.requests),
+  cspViolations: run.cspViolations,
+  blocked: run.blocked,
+}]));
+const networkProblems = Object.entries(network).flatMap(([id, n]) => [
+  ...n.offDevice.map((url) => `${id}: request left localhost: ${url}`),
+  ...n.cspViolations.map((violation) => `${id}: CSP violation: ${violation}`),
+  ...(n.workerFetchSeen ? [] : [`${id}: the worker's model request was not captured`]),
+]);
+if (guardSelfTest) {
+  for (const [api, probe] of Object.entries(guardSelfTest.probes)) {
+    if (probe.outcome === 'missed') networkProblems.push(`guard self-test: ${api} to ${probe.url} was neither blocked nor recorded`);
+  }
+} else {
+  networkProblems.push('guard self-test did not run: the still clip is missing');
+}
+if (cpuFallback?.delegate !== 'CPU') networkProblems.push(`cpu fallback: expected the CPU delegate, got ${cpuFallback?.delegate ?? 'no run'}`);
+if (networkProblems.length) {
+  console.error(`checks failed; results not written\n${networkProblems.join('\n')}`);
+  process.exit(1);
+}
+const blockedAttempts = Object.values(network).flatMap((n) => n.blocked);
 
 const geometryOf = (run) => run.events
   .filter((e) => e.stage === 'glassesPose')
@@ -88,7 +161,8 @@ const geometryOf = (run) => run.events
 const round = (value, digits = 2) => (value == null ? null : Number(value.toFixed(digits)));
 const roundAll = (obj) => JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === 'number' ? round(v, 3) : v)));
 
-// Jitter with blinks and their neighbours masked out.
+// Jitter with blinks and their neighbours masked out. The high-pass window
+// spans about 150 ms whatever the pose rate.
 const jitterOf = (allGeometry, run) => {
   const allPoses = run.events.filter((e) => e.stage === 'glassesPose');
   const blinks = findBlinks(allGeometry.map((g) => g.eyeOpenness));
@@ -96,15 +170,17 @@ const jitterOf = (allGeometry, run) => {
   const geometry = keep.map((i) => allGeometry[i]);
   const poses = keep.map((i) => allPoses[i]);
   const iod = median(geometry.map((g) => g.interocular));
+  const window = windowSamples(allPoses.map((e) => e.t));
   return {
     samples: geometry.length,
     blinksMasked: blinks.length,
+    windowSamples: window,
     interocularPx: iod,
-    landmarkNoseBridgePx: pointJitter(geometry.map((g) => g.noseBridge)),
-    rawCenterPx: pointJitter(geometry.map((g) => g.targetCenter)),
-    smoothedCenterPx: pointJitter(geometry.map((g) => g.renderedCenter)),
-    rawRotationDeg: rotationJitter(poses.map((e) => e.targetQuat)),
-    smoothedRotationDeg: rotationJitter(poses.map((e) => e.smoothedQuat)),
+    landmarkNoseBridgePx: pointJitter(geometry.map((g) => g.noseBridge), window),
+    rawCenterPx: pointJitter(geometry.map((g) => g.targetCenter), window),
+    smoothedCenterPx: pointJitter(geometry.map((g) => g.renderedCenter), window),
+    rawRotationDeg: rotationJitter(poses.map((e) => e.targetQuat), window),
+    smoothedRotationDeg: rotationJitter(poses.map((e) => e.smoothedQuat), window),
   };
 };
 
@@ -114,7 +190,7 @@ const medianOf = (id, key) => median(geometry[id].map((g) => g[key]));
 
 for (const id of ['still', 'rec-static']) {
   if (!runs[id]) continue;
-  summary.latency[id] = latency(runs[id].events);
+  summary.latency[id] = latency(runs[id].events, conditions.find((c) => c.id === id).measureSeconds);
   summary.jitter[id] = jitterOf(geometry[id], runs[id]);
 }
 
@@ -187,13 +263,14 @@ if (runs['rec-blink']) {
   };
 }
 
-const facemeshVersion = JSON.parse(readFileSync(join(REPO, 'frontend', 'node_modules', '@mediapipe', 'face_mesh', 'package.json'), 'utf8')).version;
+const tasksVisionVersion = JSON.parse(readFileSync(join(FRONTEND, 'node_modules', '@mediapipe', 'tasks-vision', 'package.json'), 'utf8')).version;
+const delegates = [...new Set(Object.values(runs).map((run) => run.delegate))];
 const entry = roundAll({
   measuredAt: new Date().toISOString(),
   commit: git('rev-parse', 'HEAD'),
   dirty: dirty.length > 0,
   command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
-  pipeline: `@mediapipe/face_mesh ${facemeshVersion} (WASM and model from unpinned jsdelivr), heuristic Euler pose, lerp/slerp alpha 0.3`,
+  pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces ${numFaces}, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3`,
   hardware: {
     cpu: cpus()[0].model,
     memoryGB: Math.round(totalmem() / 2 ** 30),
@@ -203,9 +280,31 @@ const entry = roundAll({
     viewport: environment.viewport,
     video: environment.video,
     cameraFps: environment.cameraFps,
+    perceptionDelegate: delegates.join('/'),
   },
   input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise' : 'webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise',
-  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length }])),
+  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests, blockedOffOriginAttempts: network[c.id].blocked.length }])),
+  network: {
+    requests: Object.values(network).reduce((sum, n) => sum + n.requests, 0),
+    offDeviceRequests: 0,
+    cspViolations: 0,
+    blockedOffOriginAttempts: blockedAttempts.length,
+    blockedOffOriginUrls: [...new Set(blockedAttempts)],
+    check: 'every request from the page and its worker, in the measured conditions and the CPU fallback run, went to localhost (eval/harness/network.mjs)',
+    workerGuardSelfTest: {
+      fetch: guardSelfTest.probes.fetch.outcome,
+      xhr: guardSelfTest.probes.xhr.outcome,
+      usageLogBlockedAfterSeconds: guardSelfTest.usageLogBlockedAfterSeconds,
+      blocked: guardSelfTest.blocked,
+      offDeviceRequests: guardSelfTest.offDevice,
+    },
+  },
+  cpuFallback: {
+    condition: 'still',
+    forcedFailure: 'first delegate (GPU) failed by the harness after its loader ran (eval/harness/run.mjs failFirstDelegate)',
+    delegate: cpuFallback.delegate,
+    latency: latency(cpuFallback.events, conditions.find((c) => c.id === 'still').measureSeconds),
+  },
   summary,
 });
 

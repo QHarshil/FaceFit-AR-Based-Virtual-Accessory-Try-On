@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ARTryOn from '../components/ARTryOn';
+import { PerceptionError } from '../perception/errors';
+import { hasFace } from '../perception/types';
 import { getProductById } from '../services/apiClient';
+import {
+  RENDER_ERROR_MESSAGE,
+  trackingErrorEvent,
+  trackingErrorMessage,
+} from '../tracking/errorMessages';
 import { startFaceTracking } from '../tracking/faceTracking';
 import type { ARTryOnHandle, Product } from '../types';
 import { probe } from '../utils/probe';
@@ -59,38 +66,46 @@ function TryOn() {
     };
   }, [id]);
 
+  // Depends on `error` so the camera and worker stop once the error screen,
+  // which has no video element, replaces the try-on.
   useEffect(() => {
     const video = videoRef.current;
-    if (!product || !video) {
+    if (!product || !video || error) {
       return;
     }
 
     let isActive = true;
     const productId = product.id;
 
-    const reportCameraError = (err: unknown) => {
+    const reportTrackingError = (err: unknown) => {
       if (!isActive) return;
-      console.error('Camera error:', err);
-      setError('Unable to start the camera. Please allow access and refresh the page.');
-      void sendTelemetry('camera_error', { productId, message: errorMessage(err) });
+      console.error('Tracking error:', err);
+      setError(trackingErrorMessage(err));
+      void sendTelemetry(trackingErrorEvent(err), {
+        productId,
+        ...(err instanceof PerceptionError ? { code: err.code } : { message: errorMessage(err) }),
+      });
     };
 
     let tracking: ReturnType<typeof startFaceTracking>;
     try {
-      tracking = startFaceTracking(video, (landmarks) => {
-        if (!landmarks) {
-          setFaceDetected(false);
-          return;
-        }
-        setFaceDetected(true);
-        if (arRef.current) {
-          const poseStart = performance.now();
-          arRef.current.updateModel(landmarks);
-          probe({ stage: 'pose', start: poseStart, end: performance.now() });
-        }
+      tracking = startFaceTracking(video, {
+        onLandmarks: (frame) => {
+          if (!hasFace(frame)) {
+            setFaceDetected(false);
+            return;
+          }
+          setFaceDetected(true);
+          if (arRef.current) {
+            const poseStart = performance.now();
+            arRef.current.updateModel(frame);
+            probe({ stage: 'pose', start: poseStart, end: performance.now() });
+          }
+        },
+        onError: reportTrackingError,
       });
     } catch (err) {
-      reportCameraError(err);
+      reportTrackingError(err);
       return;
     }
 
@@ -98,14 +113,23 @@ function TryOn() {
       if (!isActive) return;
       setCameraReady(true);
       void sendTelemetry('camera_started', { productId });
-    }, reportCameraError);
+    }, reportTrackingError);
 
     return () => {
       isActive = false;
       tracking.stop();
       setCameraReady(false);
     };
-  }, [product]);
+  }, [product, error]);
+
+  const reportRenderError = useCallback(
+    (err: unknown) => {
+      console.error('Render error:', err);
+      setError(RENDER_ERROR_MESSAGE);
+      void sendTelemetry('render_error', { productId: product?.id ?? null });
+    },
+    [product],
+  );
 
   useEffect(() => {
     if (!cameraReady) return;
@@ -157,7 +181,14 @@ function TryOn() {
     <div className="try-on-container">
       <video ref={videoRef} className="video-feed" autoPlay playsInline muted />
 
-      {product && <ARTryOn ref={arRef} modelPath={product.modelPath} type={product.type} />}
+      {product && (
+        <ARTryOn
+          ref={arRef}
+          modelPath={product.modelPath}
+          type={product.type}
+          onError={reportRenderError}
+        />
+      )}
 
       <div className="ui-overlay">
         <div className="top-bar">

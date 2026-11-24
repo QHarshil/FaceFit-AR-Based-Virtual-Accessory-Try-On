@@ -1190,6 +1190,1416 @@
           }
         }
       }
+    },
+    "perception-worker": {
+      "measuredAt": "2026-11-24T03:46:36.768Z",
+      "commit": "743fae318106ef5b589a4fd3342eaadcec008d9c",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source recordings --clips <dir> --label perception-worker",
+      "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 1, GPU delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "26.6.2",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.339,
+        "perceptionDelegate": "GPU"
+      },
+      "input": "webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 89,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy-120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom0.75": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom1.33": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "product2": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 19,
+          "blockedOffOriginAttempts": 0
+        },
+        "product3": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 14,
+          "blockedOffOriginAttempts": 0
+        },
+        "product4": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 89,
+          "pageErrors": 10,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "rec-static": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "rec-blink": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 299,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        }
+      },
+      "network": {
+        "requests": 286,
+        "offDeviceRequests": 0,
+        "cspViolations": 0,
+        "blockedOffOriginAttempts": 0,
+        "blockedOffOriginUrls": [],
+        "check": "every request from the page and its worker, in the measured conditions and the CPU fallback run, went to localhost (eval/harness/network.mjs)",
+        "workerGuardSelfTest": {
+          "fetch": "blocked",
+          "xhr": "blocked",
+          "usageLogBlockedAfterSeconds": 60.25,
+          "blocked": [
+            "fetch https://guard-selftest.invalid/fetch",
+            "xhr https://guard-selftest.invalid/xhr",
+            "fetch https://odml.pa.googleapis.com/v1/log"
+          ],
+          "offDeviceRequests": []
+        }
+      },
+      "cpuFallback": {
+        "condition": "still",
+        "forcedFailure": "first delegate (GPU) failed by the harness after its loader ran (eval/harness/run.mjs failFirstDelegate)",
+        "delegate": "CPU",
+        "latency": {
+          "captureMs": {
+            "n": 300,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "resultMs": {
+            "n": 300,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "mainThreadPerFrameMs": {
+            "n": 300,
+            "p50": 0.1,
+            "p95": 0.2
+          },
+          "inferenceMs": {
+            "n": 300,
+            "p50": 12.4,
+            "p95": 12.9
+          },
+          "frameToLandmarksMs": {
+            "n": 300,
+            "p50": 12.5,
+            "p95": 13
+          },
+          "poseMs": {
+            "n": 300,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "renderCpuMs": {
+            "n": 600,
+            "p50": 0.2,
+            "p95": 0.3
+          },
+          "captureIntervalMs": {
+            "n": 299,
+            "p50": 33.3,
+            "p95": 49.01
+          },
+          "inferenceIntervalMs": {
+            "n": 299,
+            "p50": 33.3,
+            "p95": 49.63
+          },
+          "renderIntervalMs": {
+            "n": 599,
+            "p50": 16.7,
+            "p95": 18
+          },
+          "pipelineMs": {
+            "n": 300,
+            "p50": 17.1,
+            "p95": 18.3
+          },
+          "pipelineStepsMs": {
+            "frameToPost": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.023
+            },
+            "queue": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.021
+            },
+            "inference": {
+              "n": 300,
+              "p50": 12.4,
+              "p95": 12.9,
+              "mean": 12.35
+            },
+            "delivery": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.039
+            },
+            "resultToRender": {
+              "n": 300,
+              "p50": 4.5,
+              "p95": 6.1,
+              "mean": 4.54
+            }
+          },
+          "ratesHz": {
+            "capture": 30,
+            "inference": 30,
+            "render": 60
+          },
+          "framesDropped": 0
+        }
+      },
+      "summary": {
+        "latency": {
+          "still": {
+            "captureMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "mainThreadPerFrameMs": {
+              "n": 299,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 12.5,
+              "p95": 14.205
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 12.6,
+              "p95": 14.5
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "captureIntervalMs": {
+              "n": 299,
+              "p50": 33.4,
+              "p95": 34.6
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.5,
+              "p95": 35.6
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.6,
+              "p95": 17.9
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 16.9,
+              "p95": 18.105
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 299,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.046
+              },
+              "queue": {
+                "n": 299,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.043
+              },
+              "inference": {
+                "n": 299,
+                "p50": 12.5,
+                "p95": 14.21,
+                "mean": 12.195
+              },
+              "delivery": {
+                "n": 299,
+                "p50": 0.1,
+                "p95": 0.1,
+                "mean": 0.06
+              },
+              "resultToRender": {
+                "n": 299,
+                "p50": 4.4,
+                "p95": 8.3,
+                "mean": 4.738
+              }
+            },
+            "ratesHz": {
+              "capture": 30,
+              "inference": 30,
+              "render": 60
+            },
+            "framesDropped": 0
+          },
+          "rec-static": {
+            "captureMs": {
+              "n": 301,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "mainThreadPerFrameMs": {
+              "n": 300,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 10.35,
+              "p95": 13.2
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 10.5,
+              "p95": 13.5
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 601,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "captureIntervalMs": {
+              "n": 300,
+              "p50": 33.3,
+              "p95": 34.705
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.7,
+              "p95": 35.81
+            },
+            "renderIntervalMs": {
+              "n": 600,
+              "p50": 16.7,
+              "p95": 17.8
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 17,
+              "p95": 18.4
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 300,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.045
+              },
+              "queue": {
+                "n": 300,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.04
+              },
+              "inference": {
+                "n": 300,
+                "p50": 10.35,
+                "p95": 13.2,
+                "mean": 10.401
+              },
+              "delivery": {
+                "n": 300,
+                "p50": 0.1,
+                "p95": 0.2,
+                "mean": 0.067
+              },
+              "resultToRender": {
+                "n": 300,
+                "p50": 6.5,
+                "p95": 9.105,
+                "mean": 6.483
+              }
+            },
+            "ratesHz": {
+              "capture": 30.1,
+              "inference": 30,
+              "render": 60.1
+            },
+            "framesDropped": 0
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 300,
+            "blinksMasked": 0,
+            "windowSamples": 5,
+            "interocularPx": 179.443,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.035,
+              "rmsHighPass": 0.009,
+              "rmsStep": 0.014
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 0.013,
+              "rmsHighPass": 0.004,
+              "rmsStep": 0.007
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.012,
+              "rmsHighPass": 0.001,
+              "rmsStep": 0.002
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.031,
+              "rmsHighPass": 0.008,
+              "rmsStep": 0.013
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.028,
+              "rmsHighPass": 0.003,
+              "rmsStep": 0.005
+            }
+          },
+          "rec-static": {
+            "samples": 275,
+            "blinksMasked": 1,
+            "windowSamples": 5,
+            "interocularPx": 196.422,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 10.925,
+              "rmsHighPass": 1.463,
+              "rmsStep": 2.312
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 4.566,
+              "rmsHighPass": 0.428,
+              "rmsStep": 0.699
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 4.303,
+              "rmsHighPass": 0.178,
+              "rmsStep": 0.375
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.423,
+              "rmsHighPass": 0.076,
+              "rmsStep": 0.125
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.372,
+              "rmsHighPass": 0.058,
+              "rmsStep": 0.098
+            }
+          }
+        },
+        "roll": {
+          "conditions": [
+            "still",
+            "roll-15",
+            "roll-10",
+            "roll-5",
+            "roll5",
+            "roll10",
+            "roll15"
+          ],
+          "faceAngleDeg": [
+            0.272,
+            -14.768,
+            -9.681,
+            -4.621,
+            5.184,
+            10.197,
+            15.109
+          ],
+          "renderedAngleDeg": [
+            1.702,
+            13.082,
+            9.861,
+            5.995,
+            -2.749,
+            -7.136,
+            -11.052
+          ],
+          "renderedPerFaceDeg": -0.827,
+          "heuristicPitchPerFaceRollDeg": -1.286,
+          "heuristicYawPerFaceRollDeg": -0.013,
+          "heuristicRollPerFaceRollDeg": 0.946
+        },
+        "registration": {
+          "gainX": 0.279,
+          "gainY": 0.496,
+          "offsetPxByCondition": {
+            "still": [
+              -8.941,
+              1.978
+            ],
+            "dx-320": [
+              221.693,
+              1.96
+            ],
+            "dx-160": [
+              106.364,
+              2.054
+            ],
+            "dx160": [
+              -124.231,
+              1.981
+            ],
+            "dx320": [
+              -239.554,
+              2.013
+            ],
+            "dy-120": [
+              -8.927,
+              62.347
+            ],
+            "dy120": [
+              -9.252,
+              -59.139
+            ]
+          },
+          "interocularPx": 179.443
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 274.969,
+            "renderedWidthPx": 1104.297,
+            "renderedOverFace": 4.016
+          },
+          "zoom0.75": {
+            "faceWidthPx": 206.207,
+            "renderedWidthPx": 1101.986,
+            "renderedOverFace": 5.344
+          },
+          "zoom1.33": {
+            "faceWidthPx": 364.93,
+            "renderedWidthPx": 1107.707,
+            "renderedOverFace": 3.035
+          }
+        },
+        "products": {
+          "product1": {
+            "renderedOverFace": 4.016,
+            "centerMinusNoseBridgePx": [
+              -8.941,
+              1.978
+            ]
+          },
+          "product2": {
+            "renderedOverFace": 0.897,
+            "centerMinusNoseBridgePx": [
+              -8.929,
+              4.374
+            ]
+          },
+          "product3": {
+            "renderedOverFace": 0.86,
+            "centerMinusNoseBridgePx": [
+              -9.066,
+              9.257
+            ]
+          },
+          "product4": {
+            "renderedOverFace": 1.623,
+            "centerMinusNoseBridgePx": [
+              -8.935,
+              1.982
+            ]
+          }
+        },
+        "blink": {
+          "samples": 299,
+          "blinks": 3,
+          "interocularPx": 199.991,
+          "rawCenterShiftPx": {
+            "median": 3.63,
+            "max": 3.74
+          },
+          "smoothedCenterShiftPx": {
+            "median": 3.614,
+            "max": 4.033
+          },
+          "noseBridgeLandmarkShiftPx": {
+            "median": 4.613,
+            "max": 4.723
+          },
+          "currentAnchorShiftPx": {
+            "median": 7.328,
+            "max": 7.559
+          },
+          "eyeCornerAnchorShiftPx": {
+            "median": 7.403,
+            "max": 7.522
+          },
+          "smoothedShiftPercentOfInterocular": 1.807
+        }
+      }
+    },
+    "perception-worker-2faces": {
+      "measuredAt": "2026-11-24T03:50:54.179Z",
+      "commit": "743fae318106ef5b589a4fd3342eaadcec008d9c",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source recordings --clips <dir> --num-faces 2 --label perception-worker-2faces",
+      "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, GPU delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "26.6.2",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.071,
+        "perceptionDelegate": "GPU"
+      },
+      "input": "webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy-120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom0.75": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 91,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom1.33": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "product2": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 89,
+          "pageErrors": 10,
+          "requests": 19,
+          "blockedOffOriginAttempts": 0
+        },
+        "product3": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 14,
+          "blockedOffOriginAttempts": 0
+        },
+        "product4": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "pageErrors": 10,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "rec-static": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "rec-blink": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "pageErrors": 10,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        }
+      },
+      "network": {
+        "requests": 286,
+        "offDeviceRequests": 0,
+        "cspViolations": 0,
+        "blockedOffOriginAttempts": 0,
+        "blockedOffOriginUrls": [],
+        "check": "every request from the page and its worker, in the measured conditions and the CPU fallback run, went to localhost (eval/harness/network.mjs)",
+        "workerGuardSelfTest": {
+          "fetch": "blocked",
+          "xhr": "blocked",
+          "usageLogBlockedAfterSeconds": 60.234,
+          "blocked": [
+            "fetch https://guard-selftest.invalid/fetch",
+            "xhr https://guard-selftest.invalid/xhr",
+            "fetch https://odml.pa.googleapis.com/v1/log"
+          ],
+          "offDeviceRequests": []
+        }
+      },
+      "cpuFallback": {
+        "condition": "still",
+        "forcedFailure": "first delegate (GPU) failed by the harness after its loader ran (eval/harness/run.mjs failFirstDelegate)",
+        "delegate": "CPU",
+        "latency": {
+          "captureMs": {
+            "n": 299,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "resultMs": {
+            "n": 300,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "mainThreadPerFrameMs": {
+            "n": 299,
+            "p50": 0.1,
+            "p95": 0.2
+          },
+          "inferenceMs": {
+            "n": 300,
+            "p50": 13.7,
+            "p95": 14.3
+          },
+          "frameToLandmarksMs": {
+            "n": 300,
+            "p50": 13.7,
+            "p95": 14.4
+          },
+          "poseMs": {
+            "n": 300,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "renderCpuMs": {
+            "n": 600,
+            "p50": 0.2,
+            "p95": 0.3
+          },
+          "captureIntervalMs": {
+            "n": 298,
+            "p50": 33.4,
+            "p95": 50.1
+          },
+          "inferenceIntervalMs": {
+            "n": 299,
+            "p50": 33.3,
+            "p95": 51.2
+          },
+          "renderIntervalMs": {
+            "n": 599,
+            "p50": 16.7,
+            "p95": 18.01
+          },
+          "pipelineMs": {
+            "n": 300,
+            "p50": 17,
+            "p95": 18.4
+          },
+          "pipelineStepsMs": {
+            "frameToPost": {
+              "n": 299,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.027
+            },
+            "queue": {
+              "n": 299,
+              "p50": -0.2,
+              "p95": -0.1,
+              "mean": -0.175
+            },
+            "inference": {
+              "n": 299,
+              "p50": 13.7,
+              "p95": 14.3,
+              "mean": 13.486
+            },
+            "delivery": {
+              "n": 299,
+              "p50": 0.2,
+              "p95": 0.3,
+              "mean": 0.25
+            },
+            "resultToRender": {
+              "n": 299,
+              "p50": 3.3,
+              "p95": 5.3,
+              "mean": 3.422
+            }
+          },
+          "ratesHz": {
+            "capture": 29.9,
+            "inference": 30,
+            "render": 60
+          },
+          "framesDropped": 0
+        }
+      },
+      "summary": {
+        "latency": {
+          "still": {
+            "captureMs": {
+              "n": 299,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "mainThreadPerFrameMs": {
+              "n": 299,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 15.1,
+              "p95": 16.7
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 15.2,
+              "p95": 16.9
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "captureIntervalMs": {
+              "n": 298,
+              "p50": 33.3,
+              "p95": 49.615
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.4,
+              "p95": 51
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 17.91
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 17.3,
+              "p95": 19.745
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 299,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.043
+              },
+              "queue": {
+                "n": 299,
+                "p50": -0.1,
+                "p95": 0,
+                "mean": -0.067
+              },
+              "inference": {
+                "n": 299,
+                "p50": 15.1,
+                "p95": 16.7,
+                "mean": 14.64
+              },
+              "delivery": {
+                "n": 299,
+                "p50": 0.2,
+                "p95": 0.3,
+                "mean": 0.169
+              },
+              "resultToRender": {
+                "n": 299,
+                "p50": 2.1,
+                "p95": 9.78,
+                "mean": 3.225
+              }
+            },
+            "ratesHz": {
+              "capture": 29.9,
+              "inference": 30,
+              "render": 60
+            },
+            "framesDropped": 0
+          },
+          "rec-static": {
+            "captureMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "mainThreadPerFrameMs": {
+              "n": 299,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 16.6,
+              "p95": 17.7
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 16.8,
+              "p95": 17.8
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "captureIntervalMs": {
+              "n": 299,
+              "p50": 33.4,
+              "p95": 34.7
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.4,
+              "p95": 35.5
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.7,
+              "p95": 18.11
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 32.3,
+              "p95": 34.605
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 299,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.043
+              },
+              "queue": {
+                "n": 299,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.037
+              },
+              "inference": {
+                "n": 299,
+                "p50": 16.6,
+                "p95": 17.7,
+                "mean": 15.732
+              },
+              "delivery": {
+                "n": 299,
+                "p50": 0.1,
+                "p95": 0.3,
+                "mean": 0.088
+              },
+              "resultToRender": {
+                "n": 299,
+                "p50": 14.8,
+                "p95": 17.41,
+                "mean": 10.019
+              }
+            },
+            "ratesHz": {
+              "capture": 30,
+              "inference": 30,
+              "render": 60
+            },
+            "framesDropped": 0
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 300,
+            "blinksMasked": 0,
+            "windowSamples": 5,
+            "interocularPx": 179.622,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.311,
+              "rmsHighPass": 0.287,
+              "rmsStep": 0.454
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 0.089,
+              "rmsHighPass": 0.08,
+              "rmsStep": 0.129
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.036,
+              "rmsHighPass": 0.019,
+              "rmsStep": 0.029
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.203,
+              "rmsHighPass": 0.175,
+              "rmsStep": 0.279
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.096,
+              "rmsHighPass": 0.042,
+              "rmsStep": 0.064
+            }
+          },
+          "rec-static": {
+            "samples": 276,
+            "blinksMasked": 1,
+            "windowSamples": 5,
+            "interocularPx": 197.113,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 11.322,
+              "rmsHighPass": 1.588,
+              "rmsStep": 2.535
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 4.643,
+              "rmsHighPass": 0.471,
+              "rmsStep": 0.773
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 4.365,
+              "rmsHighPass": 0.187,
+              "rmsStep": 0.396
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.468,
+              "rmsHighPass": 0.185,
+              "rmsStep": 0.29
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.373,
+              "rmsHighPass": 0.067,
+              "rmsStep": 0.115
+            }
+          }
+        },
+        "roll": {
+          "conditions": [
+            "still",
+            "roll-15",
+            "roll-10",
+            "roll-5",
+            "roll5",
+            "roll10",
+            "roll15"
+          ],
+          "faceAngleDeg": [
+            0.704,
+            -14.77,
+            -9.571,
+            -4.447,
+            5.482,
+            10.633,
+            15.494
+          ],
+          "renderedAngleDeg": [
+            1.237,
+            13.008,
+            9.755,
+            5.721,
+            -3.087,
+            -7.57,
+            -11.425
+          ],
+          "renderedPerFaceDeg": -0.827,
+          "heuristicPitchPerFaceRollDeg": -1.289,
+          "heuristicYawPerFaceRollDeg": -0.003,
+          "heuristicRollPerFaceRollDeg": 0.948
+        },
+        "registration": {
+          "gainX": 0.28,
+          "gainY": 0.496,
+          "offsetPxByCondition": {
+            "still": [
+              -9.787,
+              1.494
+            ],
+            "dx-320": [
+              220.774,
+              1.472
+            ],
+            "dx-160": [
+              105.484,
+              1.505
+            ],
+            "dx160": [
+              -124.985,
+              1.542
+            ],
+            "dx320": [
+              -240.293,
+              1.497
+            ],
+            "dy-120": [
+              -9.716,
+              61.495
+            ],
+            "dy120": [
+              -9.873,
+              -59.714
+            ]
+          },
+          "interocularPx": 179.622
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 274.876,
+            "renderedWidthPx": 1105.084,
+            "renderedOverFace": 4.02
+          },
+          "zoom0.75": {
+            "faceWidthPx": 206.493,
+            "renderedWidthPx": 1102.89,
+            "renderedOverFace": 5.341
+          },
+          "zoom1.33": {
+            "faceWidthPx": 363.997,
+            "renderedWidthPx": 1108.05,
+            "renderedOverFace": 3.044
+          }
+        },
+        "products": {
+          "product1": {
+            "renderedOverFace": 4.02,
+            "centerMinusNoseBridgePx": [
+              -9.787,
+              1.494
+            ]
+          },
+          "product2": {
+            "renderedOverFace": 0.897,
+            "centerMinusNoseBridgePx": [
+              -9.83,
+              3.878
+            ]
+          },
+          "product3": {
+            "renderedOverFace": 0.861,
+            "centerMinusNoseBridgePx": [
+              -9.95,
+              8.746
+            ]
+          },
+          "product4": {
+            "renderedOverFace": 1.624,
+            "centerMinusNoseBridgePx": [
+              -9.825,
+              1.477
+            ]
+          }
+        },
+        "blink": {
+          "samples": 300,
+          "blinks": 3,
+          "interocularPx": 201.283,
+          "rawCenterShiftPx": {
+            "median": 3.85,
+            "max": 3.952
+          },
+          "smoothedCenterShiftPx": {
+            "median": 3.831,
+            "max": 3.996
+          },
+          "noseBridgeLandmarkShiftPx": {
+            "median": 4.998,
+            "max": 5.034
+          },
+          "currentAnchorShiftPx": {
+            "median": 7.756,
+            "max": 7.974
+          },
+          "eyeCornerAnchorShiftPx": {
+            "median": 7.41,
+            "max": 7.886
+          },
+          "smoothedShiftPercentOfInterocular": 1.903
+        }
+      }
     }
   }
 }

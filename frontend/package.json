@@ -7,8 +7,12 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
+    "vendor:mediapipe": "node scripts/vendor-mediapipe.mjs",
+    "predev": "npm run vendor:mediapipe",
     "dev": "vite",
+    "prestart": "npm run vendor:mediapipe",
     "start": "vite",
+    "prebuild": "npm run vendor:mediapipe",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -18,8 +22,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@mediapipe/camera_utils": "^0.3.1675466862",
-    "@mediapipe/face_mesh": "^0.4.1633559619",
+    "@mediapipe/tasks-vision": "1.2.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.6",
