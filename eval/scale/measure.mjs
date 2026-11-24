@@ -11,10 +11,11 @@
 // --keep-landmarks is passed.
 //
 // <dir> holds rec-static.y4m and rec-blink.y4m (eval/fixtures/build.mjs
-// --source recordings). PD and face width are biometric: for recorded clips
-// the entry holds frame counts, relative spreads and relative interval
-// widths, never a value in millimetres. Synthetic faces report absolute
-// error against their known truth.
+// --source recordings). PD, face width and face scale are biometric: for
+// recorded clips the entry holds only the fields in RECORDED_CLIP_FIELDS
+// (summary.mjs), which together cannot rebuild any of them, and the script
+// refuses to write anything else. Synthetic faces report absolute error
+// against their known truth.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { cpus, platform, release, totalmem } from 'node:os';
@@ -41,7 +42,7 @@ import { conversionCoverage, measureSyntheticFrames, noiseOnlyCoverage, populati
 import { AVERAGE_SUBJECT } from '../../packages/cv/test/syntheticFace.ts';
 import { projectWithNoise } from '../../packages/cv/test/syntheticPose.ts';
 import { CLIP_LANDMARKER_OPTIONS, clipLandmarks, discardClipLandmarks } from './clipLandmarks.mjs';
-import { clipRecord, landmarkDiagnostics, measureClip, medianChangePercent } from './summary.mjs';
+import { assertRecordingsFields, medianChangePercent, recordClip } from './summary.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const RESULTS = join(EVAL, 'results.json');
@@ -50,6 +51,8 @@ const CLIPS = ['rec-static', 'rec-blink'];
 /** The app's assumed horizontal field of view (frontend/src/geometry/headPose.ts). */
 const APP_FOV_DEG = 60;
 const DEG = Math.PI / 180;
+const RECORDINGS_PRIVACY =
+  'counts, frame-to-frame SDs in percent, 95% half-widths rounded to whole percent, clip-to-clip median agreement and dimensionless landmark diagnostics; nothing that depends on depth or focal length, so no PD, face width or face scale can be rebuilt';
 
 export function parseMeasureArgs(argv) {
   const i = argv.indexOf('--clips');
@@ -178,7 +181,7 @@ async function recordings(clipsDir) {
     if (!existsSync(path)) throw new Error(`${path} not found; build the recording clips with eval/fixtures/build.mjs --source recordings`);
     extraction = await clipLandmarks(path, (line) => process.stdout.write(`\r${line}   `));
     const { frames, width, height } = extraction;
-    const summary = measureClip(frames, width, height, APP_FOV_DEG);
+    const { summary, record } = recordClip(frames, width, height, APP_FOV_DEG);
     summaries[name] = summary;
     clips[name] = {
       clipSha256: extraction.clipSha256,
@@ -186,12 +189,7 @@ async function recordings(clipsDir) {
       fps: extraction.fps,
       landmarksExtractedAtCommit: extraction.commit,
       landmarksExtractedFromDirtyTree: extraction.dirty,
-      ...clipRecord(summary, frames.length),
-      landmarkDiagnostics: landmarkDiagnostics(frames, width, height),
-      focalSensitivity: Object.fromEntries([50, 70].map((fov) => [
-        `assumed${fov}Deg`,
-        medianChangePercent(summary, measureClip(frames, width, height, fov)),
-      ])),
+      ...record,
     };
   }
   process.stdout.write('\n');
@@ -242,7 +240,7 @@ async function main() {
       limits: DEFAULT_FACE_MEASUREMENT_LIMITS,
     },
     recordings: {
-      privacy: 'counts, relative spreads and relative interval half-widths only; no PD, face width or face scale is recorded',
+      privacy: RECORDINGS_PRIVACY,
       ...recorded,
     },
     synthetic: {
@@ -262,6 +260,7 @@ async function main() {
     },
   };
 
+  assertRecordingsFields(entry.recordings);
   for (const [name, clip] of Object.entries(entry.recordings.clips)) {
     const line = clip.ok
       ? `accepted ${clip.acceptedFrames}/${clip.frames}; near PD frame SD ${clip.nearPupillaryDistance.frameSdPercent}%, 95% half-width ${clip.nearPupillaryDistance.halfWidthPercent}%; face width frame SD ${clip.faceWidth.frameSdPercent}%, half-width ${clip.faceWidth.halfWidthPercent}%`
