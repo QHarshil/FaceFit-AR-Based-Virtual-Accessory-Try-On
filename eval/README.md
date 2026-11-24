@@ -2,6 +2,8 @@
 
 Replays clips through the try-on page in Chrome as a fake camera and writes metrics to `results.json`. The app reports timings and poses through `probe()` (`frontend/src/utils/probe.js`), which is a no-op unless the harness installs a sink.
 
+The head-pose accuracy benchmark on AFLW2000-3D lives in `benchmark/` and `datasets/`; see [docs/pose-benchmark.md](../docs/pose-benchmark.md).
+
 ## Run
 
 Requires ffmpeg and Google Chrome.
