@@ -30,6 +30,7 @@ import {
   PUPIL_TO_ROTATION_CENTRE_MM,
   PUPIL_TO_ROTATION_CENTRE_SD_MM,
   RIGID_FACE_LANDMARKS,
+  aggregateFaceMeasurements,
   estimateIntrinsics,
   mat3Multiply,
   mat3Transpose,
@@ -38,7 +39,14 @@ import {
   solveHeadPose,
 } from '../../packages/cv/src/index.ts';
 import { seededRandom } from '../../packages/cv/test/random.ts';
-import { conversionCoverage, measureSyntheticFrames, noiseOnlyCoverage, populationCoverage } from '../../packages/cv/test/scaleExperiments.ts';
+import {
+  ASSUMED_INTRINSICS,
+  conversionCoverage,
+  fixedFocalCoverage,
+  measureSyntheticFrames,
+  noiseOnlyCoverage,
+  populationCoverage,
+} from '../../packages/cv/test/scaleExperiments.ts';
 import { AVERAGE_SUBJECT } from '../../packages/cv/test/syntheticFace.ts';
 import { projectWithNoise } from '../../packages/cv/test/syntheticPose.ts';
 import { CLIP_LANDMARKER_OPTIONS, clipLandmarks, discardClipLandmarks } from './clipLandmarks.mjs';
@@ -138,6 +146,49 @@ function syntheticFocalSensitivity() {
       irisDepthChangePercent: round(100 * (off.irisDepthMm / right.irisDepthMm - 1)),
     }];
   }));
+}
+
+/**
+ * PD and face width on a wearer who squints throughout: the lids at 0.2 and
+ * 0.17 of the eye width, with the iris contour 4% and 6% narrow, as
+ * MediaPipe's reads between half and 0.9 of the open-eye openness
+ * (irisWidthByRelativeOpenness). The openness gate is relative to the clip
+ * median, so it keeps these frames.
+ */
+function syntheticSquint() {
+  const pose = poseAt(2, 3, 0, [0, 0, 550]);
+  return [[0.2, 0.04], [0.17, 0.06]].map(([eyeOpenness, irisShrink], k) => {
+    const run = measureSyntheticFrames(AVERAGE_SUBJECT, pose, 0.5, 60, seededRandom(8100 + k), ASSUMED_INTRINSICS, ASSUMED_INTRINSICS, { eyeOpenness, irisShrink });
+    const summary = aggregateFaceMeasurements(run.results);
+    if (!summary.ok) throw new Error(`squint run failed: ${summary.reason}`);
+    const covers = (interval, truth) => interval.lowerMm <= truth && truth <= interval.upperMm;
+    return {
+      eyeOpenness,
+      irisShrink,
+      acceptedFrames: summary.acceptedFrames,
+      nearPdErrorPercent: round(100 * (summary.nearPupillaryDistance.medianMm / run.truth.nearPdMm - 1), 2),
+      faceWidthErrorPercent: round(100 * (summary.faceWidth.medianMm / run.truth.faceWidthMm - 1), 2),
+      intervalsCoverTruth: covers(summary.nearPupillaryDistance, run.truth.nearPdMm) && covers(summary.faceWidth, run.truth.faceWidthMm),
+    };
+  });
+}
+
+/**
+ * Face-width coverage for cameras outside the assumed focal spread: an
+ * 85 degree webcam (focal length 0.63 times the 60 degree one) and a
+ * portrait 720x1280 frame whose 60 degrees span the long side, while the app
+ * assumes them across the width (1.78 times).
+ */
+function syntheticFocalOutsideAssumption() {
+  const wide = estimateIntrinsics({ width: 1280, height: 720, horizontalFovDeg: 85 });
+  const portraitAssumed = estimateIntrinsics({ width: 720, height: 1280, horizontalFovDeg: 60 });
+  const portraitTrueFx = 640 / Math.tan(30 * DEG);
+  return Object.fromEntries(
+    [['webcam85Deg', wide.fx / ASSUMED_INTRINSICS.fx], ['portrait720x1280', portraitTrueFx / portraitAssumed.fx]].map(([name, focalRatio], k) => [
+      name,
+      { focalRatio: round(focalRatio), ...fixedFocalCoverage(400, 7020 + k, focalRatio) },
+    ]),
+  );
 }
 
 /** Reported pose SD over the Monte Carlo SD, per axis, over 1,000 noisy solves of three fixed poses. */
@@ -247,6 +298,7 @@ async function main() {
       truth: 'rendered canonical face with known iris diameter, PD and face width; seeded noise',
       accuracy: syntheticAccuracy(),
       focalSensitivity: syntheticFocalSensitivity(),
+      squint: syntheticSquint(),
       coverage: {
         nominal: 0.95,
         population: populationCoverage(1000, 7001),
@@ -255,6 +307,7 @@ async function main() {
           withConversionSd: conversionCoverage(600, 7010).distance,
           withoutConversionSd: conversionCoverage(600, 7010, (frame) => ({ ...frame, distancePdCorrectionSdMm: 0 })).distance,
         },
+        focalOutsideAssumption: syntheticFocalOutsideAssumption(),
       },
       poseCovarianceOverMonteCarloSd: poseCovarianceCheck(),
     },

@@ -179,6 +179,33 @@ export function conversionCoverage(subjects: number, seed: number, alterFrame?: 
   );
 }
 
+/**
+ * The population draw with every camera's focal length a fixed ratio to the
+ * assumed one, for cameras outside the assumed 15% spread. Wearers sit at
+ * 500 to 750 mm so a ratio up to 1.8 keeps the line of sight inside the
+ * gates.
+ */
+export function fixedFocalCoverage(subjects: number, seed: number, focalRatio: number): Coverage {
+  return coverage(
+    subjects,
+    20,
+    (random) => ({
+      subject: {
+        ...AVERAGE_SUBJECT,
+        irisDiameterMm: 11.7 + random.gaussian(0.5),
+        distancePdMm: 63 + random.gaussian(3.5),
+        faceScale: random.uniform(0.9, 1.1),
+        irisPlaneShiftMm: random.gaussian(3),
+        pupilToRotationCentreMm: PUPIL_TO_ROTATION_CENTRE_MM + random.gaussian(PUPIL_TO_ROTATION_CENTRE_SD_MM),
+      },
+      pose: poseFrom(random, 500, 750),
+      focalRatio,
+      sigmaPx: random.uniform(0.3, 1),
+    }),
+    seed,
+  );
+}
+
 /** Every iris 11.7 mm and the population term off, so only the noise term is left: 30 frames at 1 px, 700 to 850 mm. */
 export function noiseOnlyCoverage(subjects: number, seed: number): Coverage {
   return coverage(
