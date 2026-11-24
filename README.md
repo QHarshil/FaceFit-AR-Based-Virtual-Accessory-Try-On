@@ -38,15 +38,7 @@ This project investigates lightweight facial landmark detection for consumer AR 
 
 ## Performance
 
-Measured on 2023 MacBook (Chrome):
-
-| Stage | Latency |
-|-------|---------|
-| MediaPipe inference | ~20-25 ms |
-| Render loop | 60 FPS |
-| End-to-end pose update | <40 ms |
-
-Jitter mitigation: spatial averaging across landmark subsets (eyes, temples, nose bridge) and frame rejection when confidence drops below threshold.
+Measured numbers live in [`eval/results.json`](eval/results.json), produced by the scripts in [`eval/`](eval/README.md). Each run records the commit, hardware and sample size. Pose accuracy on AFLW2000-3D is in [`docs/pose-benchmark.md`](docs/pose-benchmark.md).
 
 ## Repository Structure
 
