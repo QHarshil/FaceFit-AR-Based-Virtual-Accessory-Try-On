@@ -2600,6 +2600,1500 @@
           "smoothedShiftPercentOfInterocular": 1.903
         }
       }
+    },
+    "pose-integration": {
+      "measuredAt": "2026-11-24T04:30:52.622Z",
+      "commit": "1134ae506c1c447b9e791f0d5ed45a078ef56b1e",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source recordings --clips <dir> --label pose-integration",
+      "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 1, GPU delegate, module worker at camera rate, self-hosted; solveHeadPose on the 33 rigid landmarks, 60.0 deg horizontal FOV assumed, overlay hidden above 6 mm reprojection RMS, no temporal filter",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "26.6.2",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.476,
+        "perceptionDelegate": "GPU"
+      },
+      "input": "webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 300,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy-120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy120": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom0.75": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom1.33": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "product2": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 19,
+          "blockedOffOriginAttempts": 0
+        },
+        "product3": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 14,
+          "blockedOffOriginAttempts": 0
+        },
+        "product4": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 89,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "product2-zoom0.75": {
+          "group": "productZoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 19,
+          "blockedOffOriginAttempts": 0
+        },
+        "product2-zoom1.33": {
+          "group": "productZoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 19,
+          "blockedOffOriginAttempts": 0
+        },
+        "product3-zoom0.75": {
+          "group": "productZoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 14,
+          "blockedOffOriginAttempts": 0
+        },
+        "product3-zoom1.33": {
+          "group": "productZoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 14,
+          "blockedOffOriginAttempts": 0
+        },
+        "product4-zoom0.75": {
+          "group": "productZoom",
+          "measureSeconds": 3,
+          "samples": 90,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "product4-zoom1.33": {
+          "group": "productZoom",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "rec-static": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "rec-blink": {
+          "group": "recorded",
+          "measureSeconds": 10,
+          "samples": 300,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        }
+      },
+      "network": {
+        "requests": 384,
+        "offDeviceRequests": 0,
+        "cspViolations": 0,
+        "blockedOffOriginAttempts": 0,
+        "blockedOffOriginUrls": [],
+        "check": "every request from the page and its worker, in the measured conditions and the CPU fallback run, went to localhost (eval/harness/network.mjs)",
+        "workerGuardSelfTest": {
+          "fetch": "blocked",
+          "xhr": "blocked",
+          "usageLogBlockedAfterSeconds": 60.249,
+          "blocked": [
+            "fetch https://guard-selftest.invalid/fetch",
+            "xhr https://guard-selftest.invalid/xhr",
+            "fetch https://odml.pa.googleapis.com/v1/log"
+          ],
+          "offDeviceRequests": []
+        }
+      },
+      "cpuFallback": {
+        "condition": "still",
+        "forcedFailure": "first delegate (GPU) failed by the harness after its loader ran (eval/harness/run.mjs failFirstDelegate)",
+        "delegate": "CPU",
+        "latency": {
+          "captureMs": {
+            "n": 300,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "resultMs": {
+            "n": 300,
+            "p50": 0.3,
+            "p95": 0.4
+          },
+          "mainThreadPerFrameMs": {
+            "n": 300,
+            "p50": 0.3,
+            "p95": 0.4
+          },
+          "inferenceMs": {
+            "n": 300,
+            "p50": 12.4,
+            "p95": 12.8
+          },
+          "frameToLandmarksMs": {
+            "n": 300,
+            "p50": 12.5,
+            "p95": 12.805
+          },
+          "poseMs": {
+            "n": 300,
+            "p50": 0.3,
+            "p95": 0.3
+          },
+          "renderCpuMs": {
+            "n": 600,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "captureIntervalMs": {
+            "n": 299,
+            "p50": 33.4,
+            "p95": 34.1
+          },
+          "inferenceIntervalMs": {
+            "n": 299,
+            "p50": 33.4,
+            "p95": 34.5
+          },
+          "renderIntervalMs": {
+            "n": 599,
+            "p50": 16.7,
+            "p95": 17.5
+          },
+          "pipelineMs": {
+            "n": 300,
+            "p50": 16.9,
+            "p95": 17.7
+          },
+          "pipelineStepsMs": {
+            "frameToPost": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.021
+            },
+            "queue": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.02
+            },
+            "inference": {
+              "n": 300,
+              "p50": 12.4,
+              "p95": 12.8,
+              "mean": 12.401
+            },
+            "delivery": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.033
+            },
+            "resultToRender": {
+              "n": 300,
+              "p50": 4.5,
+              "p95": 5.4,
+              "mean": 4.425
+            }
+          },
+          "ratesHz": {
+            "capture": 30,
+            "inference": 30,
+            "render": 60
+          },
+          "framesDropped": 0
+        }
+      },
+      "summary": {
+        "latency": {
+          "still": {
+            "captureMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.45,
+              "p95": 0.6
+            },
+            "mainThreadPerFrameMs": {
+              "n": 300,
+              "p50": 0.5,
+              "p95": 0.7
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 10.3,
+              "p95": 13.2
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 10.4,
+              "p95": 13.3
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0.4,
+              "p95": 0.5
+            },
+            "renderCpuMs": {
+              "n": 601,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "captureIntervalMs": {
+              "n": 299,
+              "p50": 33.3,
+              "p95": 34.1
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.9,
+              "p95": 36.41
+            },
+            "renderIntervalMs": {
+              "n": 600,
+              "p50": 16.7,
+              "p95": 17.5
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 16.9,
+              "p95": 17.8
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 300,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.037
+              },
+              "queue": {
+                "n": 300,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.031
+              },
+              "inference": {
+                "n": 300,
+                "p50": 10.3,
+                "p95": 13.2,
+                "mean": 10.46
+              },
+              "delivery": {
+                "n": 300,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.048
+              },
+              "resultToRender": {
+                "n": 300,
+                "p50": 6.45,
+                "p95": 9.405,
+                "mean": 6.342
+              }
+            },
+            "ratesHz": {
+              "capture": 30,
+              "inference": 30,
+              "render": 60.1
+            },
+            "framesDropped": 0
+          },
+          "rec-static": {
+            "captureMs": {
+              "n": 300,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 300,
+              "p50": 0.5,
+              "p95": 0.6
+            },
+            "mainThreadPerFrameMs": {
+              "n": 299,
+              "p50": 0.5,
+              "p95": 0.7
+            },
+            "inferenceMs": {
+              "n": 300,
+              "p50": 12.3,
+              "p95": 13.705
+            },
+            "frameToLandmarksMs": {
+              "n": 300,
+              "p50": 12.4,
+              "p95": 13.91
+            },
+            "poseMs": {
+              "n": 300,
+              "p50": 0.4,
+              "p95": 0.5
+            },
+            "renderCpuMs": {
+              "n": 600,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "captureIntervalMs": {
+              "n": 299,
+              "p50": 33.3,
+              "p95": 34.1
+            },
+            "inferenceIntervalMs": {
+              "n": 299,
+              "p50": 33.6,
+              "p95": 36.41
+            },
+            "renderIntervalMs": {
+              "n": 599,
+              "p50": 16.6,
+              "p95": 17.4
+            },
+            "pipelineMs": {
+              "n": 300,
+              "p50": 16.7,
+              "p95": 17.5
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 299,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.038
+              },
+              "queue": {
+                "n": 299,
+                "p50": -0.2,
+                "p95": -0.1,
+                "mean": -0.156
+              },
+              "inference": {
+                "n": 299,
+                "p50": 12.3,
+                "p95": 13.71,
+                "mean": 11.333
+              },
+              "delivery": {
+                "n": 299,
+                "p50": 0.3,
+                "p95": 0.4,
+                "mean": 0.26
+              },
+              "resultToRender": {
+                "n": 299,
+                "p50": 4.5,
+                "p95": 8.71,
+                "mean": 5.296
+              }
+            },
+            "ratesHz": {
+              "capture": 30,
+              "inference": 30,
+              "render": 60
+            },
+            "framesDropped": 0
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 300,
+            "blinksMasked": 0,
+            "windowSamples": 5,
+            "interocularPx": 179.441,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.036,
+              "rmsHighPass": 0.009,
+              "rmsStep": 0.014
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 0.037,
+              "rmsHighPass": 0.013,
+              "rmsStep": 0.019
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.037,
+              "rmsHighPass": 0.013,
+              "rmsStep": 0.019
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.05,
+              "rmsHighPass": 0.015,
+              "rmsStep": 0.023
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.05,
+              "rmsHighPass": 0.015,
+              "rmsStep": 0.023
+            }
+          },
+          "rec-static": {
+            "samples": 275,
+            "blinksMasked": 1,
+            "windowSamples": 5,
+            "interocularPx": 196.435,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 10.923,
+              "rmsHighPass": 1.453,
+              "rmsStep": 2.296
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 11.084,
+              "rmsHighPass": 1.474,
+              "rmsStep": 2.343
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 11.084,
+              "rmsHighPass": 1.474,
+              "rmsStep": 2.343
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 1.093,
+              "rmsHighPass": 0.22,
+              "rmsStep": 0.371
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 1.093,
+              "rmsHighPass": 0.22,
+              "rmsStep": 0.371
+            }
+          }
+        },
+        "solver": {
+          "gatedShare": 0,
+          "byCondition": {
+            "still": {
+              "samples": 300,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 300,
+                "p50": 5.242,
+                "p95": 5.309,
+                "p99": 5.32,
+                "max": 5.329
+              },
+              "rmsReprojectionMm": {
+                "n": 300,
+                "p50": 2.786,
+                "p95": 2.822,
+                "p99": 2.828,
+                "max": 2.833
+              },
+              "inliers": {
+                "n": 300,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "roll-15": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.35,
+                "p95": 5.405,
+                "p99": 5.416,
+                "max": 5.418
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.832,
+                "p95": 2.861,
+                "p99": 2.867,
+                "max": 2.868
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "roll-10": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.275,
+                "p95": 5.324,
+                "p99": 5.344,
+                "max": 5.351
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.795,
+                "p95": 2.82,
+                "p99": 2.831,
+                "max": 2.835
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "roll-5": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.031,
+                "p95": 5.397,
+                "p99": 5.439,
+                "max": 5.442
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.668,
+                "p95": 2.892,
+                "p99": 2.914,
+                "max": 2.916
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 32,
+                "min": 31
+              }
+            },
+            "roll5": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.073,
+                "p95": 5.126,
+                "p99": 5.132,
+                "max": 5.142
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.692,
+                "p95": 2.718,
+                "p99": 2.722,
+                "max": 2.727
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "roll10": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.131,
+                "p95": 5.211,
+                "p99": 5.226,
+                "max": 5.226
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.714,
+                "p95": 2.756,
+                "p99": 2.763,
+                "max": 2.764
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "roll15": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.382,
+                "p95": 5.414,
+                "p99": 5.419,
+                "max": 5.423
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.842,
+                "p95": 2.859,
+                "p99": 2.861,
+                "max": 2.863
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "dx-320": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 3.885,
+                "p95": 3.925,
+                "p99": 3.927,
+                "max": 3.928
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.143,
+                "p95": 2.164,
+                "p99": 2.165,
+                "max": 2.166
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "dx-160": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 4.848,
+                "p95": 4.915,
+                "p99": 4.932,
+                "max": 4.947
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.62,
+                "p95": 2.656,
+                "p99": 2.665,
+                "max": 2.673
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "dx160": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.06,
+                "p95": 5.11,
+                "p99": 5.123,
+                "max": 5.132
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.734,
+                "p95": 2.76,
+                "p99": 2.768,
+                "max": 2.772
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "dx320": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 4.008,
+                "p95": 4.079,
+                "p99": 4.084,
+                "max": 4.091
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.206,
+                "p95": 2.247,
+                "p99": 2.25,
+                "max": 2.255
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "dy-120": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 6.802,
+                "p95": 6.876,
+                "p99": 6.889,
+                "max": 6.894
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 3.646,
+                "p95": 3.685,
+                "p99": 3.691,
+                "max": 3.694
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 33,
+                "p95": 33,
+                "min": 33
+              }
+            },
+            "dy120": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 6.136,
+                "p95": 6.162,
+                "p99": 6.165,
+                "max": 6.167
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 3.27,
+                "p95": 3.284,
+                "p99": 3.285,
+                "max": 3.286
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "zoom0.75": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 4.465,
+                "p95": 4.504,
+                "p99": 4.514,
+                "max": 4.522
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 3.166,
+                "p95": 3.193,
+                "p99": 3.2,
+                "max": 3.205
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "zoom1.33": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 7.175,
+                "p95": 7.204,
+                "p99": 7.21,
+                "max": 7.217
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.909,
+                "p95": 2.92,
+                "p99": 2.922,
+                "max": 2.925
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "product2": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.233,
+                "p95": 5.295,
+                "p99": 5.309,
+                "max": 5.317
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.781,
+                "p95": 2.814,
+                "p99": 2.821,
+                "max": 2.825
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "product3": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 5.233,
+                "p95": 5.295,
+                "p99": 5.315,
+                "max": 5.327
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.781,
+                "p95": 2.813,
+                "p99": 2.824,
+                "max": 2.83
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "product4": {
+              "samples": 89,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 89,
+                "p50": 5.242,
+                "p95": 5.32,
+                "p99": 5.345,
+                "max": 5.348
+              },
+              "rmsReprojectionMm": {
+                "n": 89,
+                "p50": 2.786,
+                "p95": 2.827,
+                "p99": 2.84,
+                "max": 2.841
+              },
+              "inliers": {
+                "n": 89,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "product2-zoom0.75": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 4.467,
+                "p95": 4.499,
+                "p99": 4.52,
+                "max": 4.524
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 3.166,
+                "p95": 3.189,
+                "p99": 3.204,
+                "max": 3.206
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "product2-zoom1.33": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 7.158,
+                "p95": 7.207,
+                "p99": 7.216,
+                "max": 7.216
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.902,
+                "p95": 2.921,
+                "p99": 2.924,
+                "max": 2.925
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "product3-zoom0.75": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 4.463,
+                "p95": 4.508,
+                "p99": 4.516,
+                "max": 4.518
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 3.164,
+                "p95": 3.196,
+                "p99": 3.201,
+                "max": 3.202
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "product3-zoom1.33": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 7.144,
+                "p95": 7.185,
+                "p99": 7.198,
+                "max": 7.198
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 2.896,
+                "p95": 2.913,
+                "p99": 2.917,
+                "max": 2.918
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "product4-zoom0.75": {
+              "samples": 90,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 90,
+                "p50": 4.472,
+                "p95": 4.521,
+                "p99": 5.016,
+                "max": 5.075
+              },
+              "rmsReprojectionMm": {
+                "n": 90,
+                "p50": 3.17,
+                "p95": 3.205,
+                "p99": 3.567,
+                "max": 3.609
+              },
+              "inliers": {
+                "n": 90,
+                "p50": 32,
+                "p95": 32,
+                "min": 32
+              }
+            },
+            "product4-zoom1.33": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 7.177,
+                "p95": 7.209,
+                "p99": 7.215,
+                "max": 7.217
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 2.909,
+                "p95": 2.922,
+                "p99": 2.925,
+                "max": 2.925
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "rec-static": {
+              "samples": 300,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 300,
+                "p50": 5.158,
+                "p95": 5.523,
+                "p99": 6.796,
+                "max": 7.242
+              },
+              "rmsReprojectionMm": {
+                "n": 300,
+                "p50": 2.543,
+                "p95": 2.739,
+                "p99": 3.368,
+                "max": 3.583
+              },
+              "inliers": {
+                "n": 300,
+                "p50": 31,
+                "p95": 31,
+                "min": 31
+              }
+            },
+            "rec-blink": {
+              "samples": 300,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "rmsReprojectionPx": {
+                "n": 300,
+                "p50": 5.566,
+                "p95": 7.565,
+                "p99": 8.571,
+                "max": 9.216
+              },
+              "rmsReprojectionMm": {
+                "n": 300,
+                "p50": 2.694,
+                "p95": 3.719,
+                "p99": 4.226,
+                "max": 4.526
+              },
+              "inliers": {
+                "n": 300,
+                "p50": 31,
+                "p95": 32,
+                "min": 31
+              }
+            }
+          }
+        },
+        "roll": {
+          "conditions": [
+            "still",
+            "roll-15",
+            "roll-10",
+            "roll-5",
+            "roll5",
+            "roll10",
+            "roll15"
+          ],
+          "faceAngleDeg": [
+            0.272,
+            -14.767,
+            -9.674,
+            -4.625,
+            5.188,
+            10.196,
+            15.111
+          ],
+          "renderedAngleDeg": [
+            0.554,
+            -14.383,
+            -9.381,
+            -4.322,
+            5.512,
+            10.548,
+            15.402
+          ],
+          "renderedPerFaceDeg": 0.999,
+          "eulerPitchPerFaceRollDeg": 0.05,
+          "eulerYawPerFaceRollDeg": 0.142,
+          "eulerRollPerFaceRollDeg": -0.99
+        },
+        "registration": {
+          "gainX": 0.996,
+          "gainY": 0.994,
+          "offsetPxByCondition": {
+            "still": [
+              -0.546,
+              -7.305
+            ],
+            "dx-320": [
+              0.854,
+              -4.047
+            ],
+            "dx-160": [
+              0.005,
+              -5.776
+            ],
+            "dx160": [
+              -0.824,
+              -6.013
+            ],
+            "dx320": [
+              -1.763,
+              -4.291
+            ],
+            "dy-120": [
+              -0.265,
+              -7.014
+            ],
+            "dy120": [
+              -0.881,
+              -8.52
+            ]
+          },
+          "interocularPx": 179.441
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 274.981,
+            "renderedWidthPx": 279.78,
+            "renderedOverFace": 1.017
+          },
+          "zoom0.75": {
+            "faceWidthPx": 206.16,
+            "renderedWidthPx": 206.272,
+            "renderedOverFace": 1.001
+          },
+          "zoom1.33": {
+            "faceWidthPx": 364.887,
+            "renderedWidthPx": 374.857,
+            "renderedOverFace": 1.027
+          }
+        },
+        "scaleByProduct": {
+          "product1": {
+            "renderedOverFace": {
+              "zoom0.75": 1.001,
+              "still": 1.017,
+              "zoom1.33": 1.027
+            },
+            "maxChangeFromStillPercent": 1.662
+          },
+          "product2": {
+            "renderedOverFace": {
+              "zoom0.75": 0.951,
+              "still": 0.968,
+              "zoom1.33": 0.979
+            },
+            "maxChangeFromStillPercent": 1.807
+          },
+          "product3": {
+            "renderedOverFace": {
+              "zoom0.75": 1.004,
+              "still": 1.026,
+              "zoom1.33": 1.04
+            },
+            "maxChangeFromStillPercent": 2.087
+          },
+          "product4": {
+            "renderedOverFace": {
+              "zoom0.75": 0.915,
+              "still": 0.93,
+              "zoom1.33": 0.937
+            },
+            "maxChangeFromStillPercent": 1.595
+          }
+        },
+        "products": {
+          "product1": {
+            "renderedOverFace": 1.017,
+            "centerMinusNoseBridgePx": [
+              -0.546,
+              -7.305
+            ]
+          },
+          "product2": {
+            "renderedOverFace": 0.968,
+            "centerMinusNoseBridgePx": [
+              -0.56,
+              -7.297
+            ]
+          },
+          "product3": {
+            "renderedOverFace": 1.026,
+            "centerMinusNoseBridgePx": [
+              -0.559,
+              -7.281
+            ]
+          },
+          "product4": {
+            "renderedOverFace": 0.93,
+            "centerMinusNoseBridgePx": [
+              -0.534,
+              -7.312
+            ]
+          }
+        },
+        "blink": {
+          "samples": 300,
+          "blinks": 3,
+          "interocularPx": 199.952,
+          "rawCenterShiftPx": {
+            "median": 4.159,
+            "max": 4.96
+          },
+          "smoothedCenterShiftPx": {
+            "median": 4.159,
+            "max": 4.96
+          },
+          "noseBridgeLandmarkShiftPx": {
+            "median": 4.62,
+            "max": 4.722
+          },
+          "heuristicAnchorShiftPx": {
+            "median": 7.326,
+            "max": 7.503
+          },
+          "eyeCornerAnchorShiftPx": {
+            "median": 7.436,
+            "max": 7.466
+          },
+          "smoothedShiftPercentOfInterocular": 2.08
+        }
+      }
     }
   }
 }
