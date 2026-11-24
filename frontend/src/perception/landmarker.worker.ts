@@ -1,11 +1,16 @@
 // Module worker entry: runs FaceLandmarker off the main thread.
 import { FaceLandmarker } from '@mediapipe/tasks-vision';
 import { createLandmarkerService } from './landmarkerService';
-import { transferablesOf } from './protocol';
-import { sameOriginFetch } from './sameOriginFetch';
+import { transferablesOf, type WorkerResponse } from './protocol';
+import { installSameOriginGuard } from './sameOriginGuard';
 
-const nativeFetch = self.fetch.bind(self);
-self.fetch = sameOriginFetch(nativeFetch, self.location.origin);
+const post = (message: WorkerResponse) => {
+  self.postMessage(message, { transfer: transferablesOf(message) });
+};
+
+installSameOriginGuard(self, (api, url) => {
+  post({ type: 'blocked', api, url });
+});
 
 // MediaPipe's GPU delegate needs WebGL2 on an OffscreenCanvas inside a worker.
 const gpuAvailable = (): boolean => {
@@ -21,9 +26,7 @@ const service = createLandmarkerService({
   fetch: (input, init) => self.fetch(input, init),
   gpuAvailable,
   now: () => performance.timeOrigin + performance.now(),
-  post: (message) => {
-    self.postMessage(message, { transfer: transferablesOf(message) });
-  },
+  post,
 });
 
 self.addEventListener('message', (event: MessageEvent<unknown>) => {

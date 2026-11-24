@@ -1,5 +1,6 @@
 // Messages between the main thread and the landmark worker. Frames go in as
 // transferred VideoFrames; landmarks come back in a transferred Float32Array.
+import { GUARDED_APIS, type GuardedApi } from './sameOriginGuard';
 import {
   LANDMARK_COUNT,
   LANDMARK_STRIDE,
@@ -56,7 +57,15 @@ export interface ErrorResponse {
   frameId?: number;
 }
 
-export type WorkerResponse = ReadyResponse | ResultResponse | ErrorResponse;
+/** An off-origin request the worker's guard refused. Reported, never fatal. */
+export interface BlockedResponse {
+  type: 'blocked';
+  api: GuardedApi;
+  /** Origin and path only. */
+  url: string;
+}
+
+export type WorkerResponse = ReadyResponse | ResultResponse | ErrorResponse | BlockedResponse;
 
 const ERROR_CODES: readonly PerceptionErrorCode[] = [
   'model-fetch',
@@ -127,6 +136,8 @@ export const isWorkerResponse = (value: unknown): value is WorkerResponse => {
         typeof value.detail === 'string' &&
         (value.frameId === undefined || isFrameId(value.frameId))
       );
+    case 'blocked':
+      return GUARDED_APIS.includes(value.api as GuardedApi) && typeof value.url === 'string';
     default:
       return false;
   }

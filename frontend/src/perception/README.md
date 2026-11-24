@@ -9,6 +9,7 @@ Camera frames go to a module worker running MediaPipe Tasks Vision `FaceLandmark
 | `landmarkerClient.ts`  | Starts the worker, sends frames, maps replies to results or `PerceptionError`                  |
 | `protocol.ts`          | Typed `init`, `frame`, `ready`, `result` and `error` messages                                  |
 | `landmarkerService.ts` | `FaceLandmarker` in VIDEO mode, GPU delegate with CPU fallback, strictly increasing timestamps |
+| `sameOriginGuard.ts`   | Keeps the worker's network APIs on the app origin and reports blocked attempts                 |
 
 Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronously in the frame callback, wraps the decoded camera frame without a copy, and is closed explicitly; `createImageBitmap` is asynchronous and makes a copy. Closing matters: an open frame holds a camera buffer, so at most two exist at once.
 
@@ -42,4 +43,4 @@ Without WebGL2 in workers the CPU delegate runs and `ready` reports it. Without 
 
 ## Privacy
 
-Frames and landmarks stay in the browser. The package also posts usage logs to `odml.pa.googleapis.com` from the worker. The CSP (`csp.ts`) blocks that through `connect-src`, and `sameOriginFetch.ts` rejects any off-origin fetch inside the worker for hosts that serve the files without the header. The eval harness fails a run that requests anything outside localhost.
+Frames and landmarks stay in the browser. The package also posts usage logs to `odml.pa.googleapis.com` from the worker. The CSP (`csp.ts`) blocks that through `connect-src`. `sameOriginGuard.ts` blocks off-origin `fetch`, `XMLHttpRequest`, `importScripts` and `sendBeacon` inside the worker, so hosts that serve the files without the header are covered too, and reports each attempt to the main thread as a `blocked` message. The eval harness counts those attempts and fails a run that requests anything outside localhost.

@@ -118,6 +118,9 @@ export const startLandmarker = ({
       case 'error':
         fail(new PerceptionError(message.code, message.detail));
         return;
+      case 'blocked':
+        probe({ stage: 'blockedRequest', api: message.api, url: message.url });
+        return;
       case 'result': {
         const start = capturedAt.get(message.frameId);
         capturedAt.delete(message.frameId);

@@ -195,6 +195,18 @@ describe('landmarker client', () => {
     expect(onResult).not.toHaveBeenCalled();
   });
 
+  it('probes a request the worker guard blocked and keeps running', async () => {
+    const client = startLandmarker(options);
+    worker.reply({ type: 'blocked', api: 'fetch', url: 'https://odml.pa.googleapis.com/v1/log' });
+    worker.reply({ type: 'ready', delegate: 'GPU' });
+
+    await expect(client.ready).resolves.toBe('GPU');
+    expect(probes).toEqual([
+      { stage: 'blockedRequest', api: 'fetch', url: 'https://odml.pa.googleapis.com/v1/log' },
+    ]);
+    expect(worker.terminated).toBe(false);
+  });
+
   it('maps a worker script error to the worker code', async () => {
     const client = startLandmarker(options);
     worker.dispatchEvent(new ErrorEvent('error', { message: 'SyntaxError in worker' }));

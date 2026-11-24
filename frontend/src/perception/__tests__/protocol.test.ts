@@ -90,6 +90,18 @@ describe('worker responses', () => {
     );
   });
 
+  it('accepts a blocked-request report and rejects one with an unknown API', () => {
+    expect(
+      isWorkerResponse({
+        type: 'blocked',
+        api: 'xhr',
+        url: 'https://odml.pa.googleapis.com/v1/log',
+      }),
+    ).toBe(true);
+    expect(isWorkerResponse({ type: 'blocked', api: 'websocket', url: 'wss://x' })).toBe(false);
+    expect(isWorkerResponse({ type: 'blocked', api: 'fetch' })).toBe(false);
+  });
+
   it('rejects unknown delegates, codes and malformed results', () => {
     expect(isWorkerResponse({ type: 'ready', delegate: 'WEBGPU' })).toBe(false);
     expect(isWorkerResponse({ type: 'error', code: 'oops', detail: '' })).toBe(false);
