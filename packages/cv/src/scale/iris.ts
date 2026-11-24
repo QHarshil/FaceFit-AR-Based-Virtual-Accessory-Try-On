@@ -46,7 +46,6 @@ export type IrisFitResult = IrisFit | { readonly ok: false; readonly reason: Iri
  * A fifth of the radius, about 2.6 px at 50 cm on a 720p webcam: 2.7 times
  * the SD of the midpoint test at 1 px of landmark noise. The 2 px floor keeps
  * a distant iris, 7 px in radius at 90 cm, from tripping at that noise.
- * MediaPipe's iris landmarks jitter far less than 1 px on a still face.
  */
 const DEFAULT_TOLERANCE_FRACTION = 0.2;
 const DEFAULT_MIN_TOLERANCE_PX = 2;

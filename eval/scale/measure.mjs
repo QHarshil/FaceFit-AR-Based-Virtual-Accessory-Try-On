@@ -36,7 +36,7 @@ import { measureSyntheticFrames, noiseOnlyCoverage, populationCoverage } from '.
 import { AVERAGE_SUBJECT } from '../../packages/cv/test/syntheticFace.ts';
 import { projectWithNoise } from '../../packages/cv/test/syntheticPose.ts';
 import { CLIP_LANDMARKER_OPTIONS, clipLandmarks } from './clipLandmarks.mjs';
-import { clipRecord, measureClip, medianChangePercent } from './summary.mjs';
+import { clipRecord, landmarkDiagnostics, measureClip, medianChangePercent } from './summary.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const RESULTS = join(EVAL, 'results.json');
@@ -178,6 +178,7 @@ async function recordings(clipsDir) {
       landmarksExtractedAtCommit: extraction.commit,
       landmarksExtractedFromDirtyTree: extraction.dirty,
       ...clipRecord(summary, frames.length),
+      landmarkDiagnostics: landmarkDiagnostics(frames, width, height),
       focalSensitivity: Object.fromEntries([50, 70].map((fov) => [
         `assumed${fov}Deg`,
         medianChangePercent(summary, measureClip(frames, width, height, fov)),

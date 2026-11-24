@@ -36,8 +36,9 @@ interface Rendered {
 
 /**
  * 0.3 px of landmark noise puts eye openness at about 2.6% SD per frame, so
- * the 0.9 relative floor sits near 4 SD below the open-eye median. On the
- * owner's still recording the SD is about 1.3%.
+ * the 0.9 relative floor sits near 4 SD below the open-eye median.
+ * eval/results.json records the spread on the recordings as
+ * openFrameOpennessSdPercent.
  */
 const SIGMA_PX = 0.3;
 

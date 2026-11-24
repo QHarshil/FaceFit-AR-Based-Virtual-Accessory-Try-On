@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { estimateIntrinsics } from '../../packages/cv/src/index.ts';
 import { seededRandom } from '../../packages/cv/test/random.ts';
 import { AVERAGE_SUBJECT, renderSyntheticFace } from '../../packages/cv/test/syntheticFace.ts';
-import { clipRecord, measureClip, medianChangePercent, relativeInterval } from './summary.mjs';
+import { clipRecord, landmarkDiagnostics, measureClip, medianChangePercent, relativeInterval } from './summary.mjs';
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -99,5 +99,23 @@ describe('relativeInterval and medianChangePercent', () => {
     });
     assert.deepEqual(medianChangePercent(summary(1), summary(1.01)), { nearPupillaryDistance: 1, distancePupillaryDistance: 1, faceWidth: 1 });
     assert.equal(medianChangePercent({ ok: false }, summary(1)), null);
+  });
+});
+
+describe('landmarkDiagnostics', () => {
+  it('reads the rendered iris aspect and the narrowing of a shrunken iris', () => {
+    const random = seededRandom(43);
+    const faces = Array.from({ length: 40 }, (_, k) => {
+      const closing = k % 10 === 0;
+      const rendered = renderSyntheticFace(subject, pose, camera, 0, random, closing ? { eyeOpenness: 0.1, irisShrink: 0.15 } : {});
+      return rendered.landmarksPx.map(([x, y]) => [x / WIDTH, y / HEIGHT]);
+    });
+    const diagnostics = landmarkDiagnostics(faces, WIDTH, HEIGHT);
+    assert.ok(Math.abs(diagnostics.irisVerticalOverHorizontal - subject.irisAspect) < 0.01);
+    assert.equal(diagnostics.openFrameOpennessSdPercent, 0);
+    const closed = diagnostics.irisWidthByRelativeOpenness[0];
+    assert.equal(closed.frames, 4);
+    assert.ok(Math.abs(closed.irisWidthChangePercent + 15) < 0.5);
+    assert.equal(diagnostics.irisWidthByRelativeOpenness[3].irisWidthChangePercent, 0);
   });
 });

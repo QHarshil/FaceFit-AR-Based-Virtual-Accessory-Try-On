@@ -15,13 +15,13 @@ export interface FaceMeasurementLimits {
   readonly maxRmsReprojectionMm: number;
   /** Rotation noise above this makes the yaw and pitch gates themselves unreliable. */
   readonly maxRotationStdDeg: number;
-  /** Absolute floor on eye openness; open eyes read about 0.3 on MediaPipe landmarks. */
+  /** Absolute floor on eye openness, for clips where most frames are blinks. */
   readonly minEyeOpenness: number;
   /**
    * Openness relative to the median over the frames that pass the pose
-   * gates. MediaPipe's iris contour shrinks as the lids close and lags
-   * reopening: on the owner's blink recording, frames between 0.9 and 0.95
-   * of the median openness read the iris 1 to 2% narrow.
+   * gates. MediaPipe's iris contour narrows as the lids close and lags
+   * reopening; irisWidthByRelativeOpenness in eval/results.json shows how
+   * narrow it reads on the recordings below and above this floor.
    */
   readonly minRelativeEyeOpenness: number;
   readonly minAcceptedFrames: number;

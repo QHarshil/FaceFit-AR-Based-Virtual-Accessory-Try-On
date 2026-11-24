@@ -11,7 +11,7 @@ export interface SyntheticSubject {
   /** Rigid landmarks are the canonical model scaled by this. */
   readonly faceScale: number;
   readonly irisDiameterMm: number;
-  /** Vertical over horizontal iris contour, 0.87 on MediaPipe output. */
+  /** Vertical over horizontal iris contour; below 1 on MediaPipe output (irisVerticalOverHorizontal in eval/results.json). */
   readonly irisAspect: number;
   /** Separation of the eyes' centres of rotation. */
   readonly distancePdMm: number;
@@ -32,7 +32,7 @@ export const AVERAGE_SUBJECT: SyntheticSubject = {
 export interface SyntheticFrameOptions {
   /** 'camera': each eye turns to the camera. 'head': both look along the head's forward axis. */
   readonly gaze?: 'camera' | 'head';
-  /** Lid gap over eye width; open eyes on MediaPipe output read about 0.32. */
+  /** Lid gap over eye width, 0.32 by default. */
   readonly eyeOpenness?: number;
   /** Fraction the iris contour shrinks by, as MediaPipe's does while the lids close. */
   readonly irisShrink?: number;

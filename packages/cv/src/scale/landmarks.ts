@@ -21,8 +21,8 @@ export interface EyeLandmarkIndices {
 /**
  * Iris indices exist only in the 478-landmark output (FaceLandmarker, or Face
  * Mesh with refined landmarks). On MediaPipe's output the horizontal contour
- * pair is 469 and 471 (474 and 476); the vertical pair spans about 0.87 of
- * the horizontal one.
+ * pair is 469 and 471 (474 and 476), and the vertical pair is shorter;
+ * eval/scale/measure.mjs records the ratio as irisVerticalOverHorizontal.
  */
 export const EYE_LANDMARKS: Readonly<Record<Eye, EyeLandmarkIndices>> = {
   right: { irisCentre: 468, irisHorizontal: [469, 471], irisVertical: [470, 472], corners: [33, 133], upperLid: 159, lowerLid: 145 },
