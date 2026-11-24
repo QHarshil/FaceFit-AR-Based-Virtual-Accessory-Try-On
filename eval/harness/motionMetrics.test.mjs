@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MOTION, motionExpression, motionPeriodFrames, motionTruth } from './conditions.mjs';
+import { MOTION, motionExpression, motionPeriodFrames, motionSpeed, motionTruth } from './conditions.mjs';
 import {
   frameAt, frameSamples, fundamentalFit, mediaTimeMismatchShare, motionMetrics, offsetError, presentationRate,
   presentedFrames, renderedSamples, stepResponses, triangleLagMs,
@@ -23,9 +23,21 @@ test('each motion clip draws exactly its truth function and loops without a jump
     assert.equal(frames % motionPeriodFrames(motion), 0, id);
     for (let n = 0; n < frames; n += 1) close(evaluateFfmpeg(motionExpression(motion), n), motionTruth(motion, n), 1e-9);
     if (motion.axis === 'dx') {
-      // The crop moves by whole source pixels, and yuv420p rounds odd ones down.
-      for (let n = 0; n < frames; n += 1) assert.equal(Math.abs(motionTruth(motion, n) % 2), 0, `${id} frame ${n}`);
+      // The crop runs on RGB and moves by whole source pixels.
+      for (let n = 0; n < frames; n += 1) assert.ok(Number.isInteger(motionTruth(motion, n)), `${id} frame ${n}`);
     }
+  }
+});
+
+test('the motion clips cover slow and fast ramps and rolls', () => {
+  const speeds = (axis) => MOTION.filter((c) => c.motion.axis === axis && c.motion.kind !== 'step').map((c) => motionSpeed(c.motion));
+  assert.deepEqual(speeds('dx'), [240, 60, 30]);
+  const rolls = speeds('roll');
+  close(rolls[0], 10 * Math.PI, 1e-9);
+  close(rolls[1], 1.5 * Math.PI, 1e-9);
+  // Each ramp's speed is the slope of its truth.
+  for (const { motion } of MOTION.filter((c) => c.motion.kind === 'triangle')) {
+    close((motionTruth(motion, 10) - motionTruth(motion, 9)) * 30, motionSpeed(motion));
   }
 });
 

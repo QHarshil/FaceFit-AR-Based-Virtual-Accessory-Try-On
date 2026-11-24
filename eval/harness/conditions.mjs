@@ -33,11 +33,24 @@ export const FRAME_CODE = { bits: 8, blockPx: 16 };
 
 const motionBase = { ...base, group: 'motion', clipSeconds: 4, warmupSeconds: 2, measureSeconds: 8 };
 
+// Ramps at 240, 60 and 30 px/s and rolls peaking at 31 and 4.7 deg/s: a
+// filter whose cutoff rises with speed trails slow motion most, so lag is
+// measured at each speed.
 export const MOTION = [
   { ...motionBase, id: 'step-x', motion: { kind: 'step', axis: 'dx', amplitude: 80, halfPeriodFrames: 30 } },
   { ...motionBase, id: 'ramp-x', motion: { kind: 'triangle', axis: 'dx', amplitude: 120, halfPeriodFrames: 30 } },
+  { ...motionBase, id: 'ramp-x-60', motion: { kind: 'triangle', axis: 'dx', amplitude: 60, halfPeriodFrames: 60 } },
+  { ...motionBase, id: 'ramp-x-30', motion: { kind: 'triangle', axis: 'dx', amplitude: 30, halfPeriodFrames: 60 } },
   { ...motionBase, id: 'sine-roll', motion: { kind: 'sine', axis: 'roll', amplitude: 10, periodFrames: 60 } },
+  { ...motionBase, id: 'sine-roll-slow', motion: { kind: 'sine', axis: 'roll', amplitude: 3, periodFrames: 120 } },
 ];
+
+// Face speed of a ramp in px/s, or the peak angular speed of a roll in deg/s.
+export const motionSpeed = (motion, fps = FRAME.fps) => {
+  if (motion.kind === 'triangle') return ((2 * motion.amplitude) / motion.halfPeriodFrames) * fps;
+  if (motion.kind === 'sine') return ((2 * Math.PI * motion.amplitude) / motion.periodFrames) * fps;
+  return null;
+};
 
 export const motionPeriodFrames = (motion) => motion.periodFrames ?? 2 * motion.halfPeriodFrames;
 

@@ -97,11 +97,13 @@ const frameCodeFilter = () => {
 };
 
 // Moves the face by motionTruth in each frame. One source pixel is one output
-// pixel here, so an even whole shift survives the crop exactly.
+// pixel here. The crop runs on RGB, so an odd shift moves the face by exactly
+// that many pixels; on yuv420p it would round to an even one.
 const motionFilter = ({ motion }) => {
   const shift = motion.axis === 'dx' ? motionExpression(motion) : '0';
   const roll = motion.axis === 'roll' ? motionExpression(motion) : '0';
   return [
+    'format=rgb24',
     `pad=iw+${2 * PAD}:ih+${2 * PAD}:${PAD}:${PAD}:color=0x808080`,
     `crop=${FRAME.width}:${FRAME.height}:'${PAD}-(${shift})':${PAD}`,
     `rotate='(${roll})*PI/180':c=0x808080`,

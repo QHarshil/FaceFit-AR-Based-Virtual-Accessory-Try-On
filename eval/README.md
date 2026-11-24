@@ -41,7 +41,9 @@ Raw runs, warmup events included, go to `.cache/runs/<label>/`. The pose filter 
 | `rec-static`, `rec-blink` | recordings as captured | 10 s each |
 | `step-x` | still frame stepping 80 px right and back every second | 8 s |
 | `ramp-x` | still frame moving at 240 px/s between -120 and +120 px | 8 s |
+| `ramp-x-60`, `ramp-x-30` | still frame moving at 60 and 30 px/s, 4 s period | 8 s each |
 | `sine-roll` | still frame rolling 10 deg sin(2 pi t / 2 s) | 8 s |
+| `sine-roll-slow` | still frame rolling 3 deg sin(2 pi t / 4 s), peak 4.7 deg/s | 8 s |
 
 The motion clips (`MOTION` in `harness/conditions.mjs`) draw the clip frame index as eight black or white squares along the top-left edge. The harness reads them in its own frame callback and joins them to the app's capture events by `mediaTime`; `mediaTime` alone picks the wrong clip frame for part of the frames (`mediaTimeMismatchShare`).
 
