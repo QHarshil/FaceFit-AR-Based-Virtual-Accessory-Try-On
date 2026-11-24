@@ -61,6 +61,7 @@ function okFrame(overrides: Partial<FaceFrame> = {}): FaceFrame {
     rmsReprojectionMm: 1.5,
     maxRotationStdDeg: 0.6,
     faceScale: 1,
+    irisDiameterRatio: 1,
     irisDepthMm: 520,
     nearPdMm: 62,
     distancePdMm: 63.3,
@@ -126,6 +127,7 @@ describe('aggregateFaceMeasurements', () => {
       'off-axis': 10,
       'implausible-scale': 0,
       'eyes-closed': 12,
+      'asymmetric-iris': 0,
     });
     // 40 frames at 1.3% per-frame SD: 4 standard errors of the median is 1%.
     expect(Math.abs(result.nearPupillaryDistance.medianMm / truth - 1)).toBeLessThan(0.01);
@@ -137,6 +139,9 @@ describe('aggregateFaceMeasurements', () => {
       maxRotationStdDeg: 90,
       minEyeOpenness: 0,
       minRelativeEyeOpenness: 0,
+      minFaceScale: 0.01,
+      maxFaceScale: 100,
+      maxIrisAsymmetry: 100,
     });
     // With 25 of 65 frames biased upward, the ungated median moves up by about one frame SD (1.3%).
     expect(ungated.ok && ungated.acceptedFrames).toBe(65);

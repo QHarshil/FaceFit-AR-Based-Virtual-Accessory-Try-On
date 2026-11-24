@@ -54,7 +54,9 @@ function sd(values: readonly number[]): number {
  * coordinate, and the horizontal midpoint), variance 3.5 sigma^2 / 16, so
  * the gap between the two centres has SD 0.66 sigma. PD = 11.7 x (PD px over
  * iris px), so its relative SD is sigma sqrt(1 / D^2 + 0.44 / P^2) with D and
- * P the iris diameter and PD in pixels at the eye depth. Face width adds two
+ * P the iris diameter and PD in pixels at the eye depth. A frame whose scale
+ * comes from one eye has twice the iris variance, so a share f of such
+ * frames makes the iris term (1 + f) / D^2. Face width adds two
  * silhouette landmarks: sigma sqrt(1 / D^2 + 2 / W^2). Pose noise moves both
  * eyes' planes together and cancels from the ratio to first order.
  *
@@ -67,10 +69,17 @@ function sd(values: readonly number[]): number {
  */
 const SECOND_ORDER = 0.003;
 
-function predictedRelativeSd(sigmaPx: number, lengthMm: number, extraPoints: number, eyeDepthMm: number, irisMm = 11.7): number {
+function predictedRelativeSd(
+  sigmaPx: number,
+  lengthMm: number,
+  extraPoints: number,
+  eyeDepthMm: number,
+  irisMm = 11.7,
+  singleEyeShare = 0,
+): number {
   const irisPx = (intrinsics.fx * irisMm) / eyeDepthMm;
   const lengthPx = (intrinsics.fx * lengthMm) / eyeDepthMm;
-  return sigmaPx * Math.sqrt(1 / irisPx ** 2 + extraPoints / lengthPx ** 2);
+  return sigmaPx * Math.sqrt((1 + singleEyeShare) / irisPx ** 2 + extraPoints / lengthPx ** 2);
 }
 
 function expectRecovered(values: readonly number[], truth: number, predictedSd: number, label: string): void {
@@ -106,9 +115,10 @@ describe('metric scale against synthetic ground truth', () => {
           const { frames, failures, truth } = run(SUBJECT, pose, sigmaPx, depthMm + yawDeg * 7 + sigmaPx * 1000);
           // Both irises fail the 2 px consistency floor together in under 1% of frames at 1 px of noise.
           expect(failures / FRAMES).toBeLessThan(0.01);
-          const pdSd = predictedRelativeSd(sigmaPx, truth.nearPdMm, 0.4375, truth.eyeDepthMm) * truth.nearPdMm;
-          const widthSd = predictedRelativeSd(sigmaPx, truth.faceWidthMm, 2, truth.eyeDepthMm) * truth.faceWidthMm;
-          const depthSd = predictedRelativeSd(sigmaPx, 1, 0, truth.eyeDepthMm) * truth.eyeDepthMm;
+          const singleEye = frames.filter((f) => f.irisDiameterRatio === null).length / frames.length;
+          const pdSd = predictedRelativeSd(sigmaPx, truth.nearPdMm, 0.4375, truth.eyeDepthMm, 11.7, singleEye) * truth.nearPdMm;
+          const widthSd = predictedRelativeSd(sigmaPx, truth.faceWidthMm, 2, truth.eyeDepthMm, 11.7, singleEye) * truth.faceWidthMm;
+          const depthSd = predictedRelativeSd(sigmaPx, 1, 0, truth.eyeDepthMm, 11.7, singleEye) * truth.eyeDepthMm;
           expectRecovered(frames.map((f) => f.nearPdMm), truth.nearPdMm, pdSd, 'near PD');
           expectRecovered(frames.map((f) => f.faceWidthMm), truth.faceWidthMm, widthSd, 'face width');
           expectRecovered(frames.map((f) => f.irisDepthMm), truth.eyeDepthMm, depthSd, 'iris depth');

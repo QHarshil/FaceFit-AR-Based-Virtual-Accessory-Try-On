@@ -33,6 +33,8 @@ export interface FaceFrame {
   /** Largest rotation SD over the three axes; null when the solve reported none. */
   readonly maxRotationStdDeg: number | null;
   readonly faceScale: number;
+  /** Right over left horizontal iris diameter, null when only one eye set the scale. */
+  readonly irisDiameterRatio: number | null;
   readonly irisDepthMm: number;
   readonly nearPdMm: number;
   readonly distancePdMm: number;
@@ -101,6 +103,7 @@ export function measureFaceFrame(
     rmsReprojectionMm: (pose.rmsReprojectionPx * pose.translationMm[2]) / intrinsics.fx,
     maxRotationStdDeg: rotationStd ? Math.max(...rotationStd) : null,
     faceScale: scale.faceScale,
+    irisDiameterRatio: scale.irisDiameterRatio,
     irisDepthMm: scale.irisDepthMm,
     nearPdMm: pd.nearPdMm,
     distancePdMm: distance.distancePdMm,

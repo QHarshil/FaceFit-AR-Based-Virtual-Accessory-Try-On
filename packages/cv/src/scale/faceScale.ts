@@ -23,6 +23,16 @@ export const IRIS_PLANE_OFFSET_MM = 6;
 /** Spread of that offset across faces, read as one SD. */
 export const IRIS_PLANE_OFFSET_SD_MM = 3;
 
+/**
+ * Largest relative difference between the two irises' horizontal diameters
+ * that counts as the same iris. Real left and right irises differ little,
+ * and on the recordings the frame ratio's 1st to 99th percentiles stay
+ * within this (irisDiameterRatio in eval/results.json). A single eye off by
+ * more is a landmark fault; below it, a faulty eye moves the mean diameter,
+ * and PD, by at most half of it.
+ */
+export const IRIS_ASYMMETRY_TOLERANCE = 0.06;
+
 export interface FaceScaleOptions extends IrisFitOptions {
   /** Assumed horizontal iris diameter; defaults to the population mean. */
   readonly irisDiameterMm?: number;
@@ -46,6 +56,8 @@ export interface FaceScaleEstimate {
   readonly mmPerPixel: number;
   /** Eyes whose horizontal diameter entered faceScale. */
   readonly eyesUsed: readonly Eye[];
+  /** Right over left horizontal diameter at canonical scale; null unless both eyes entered faceScale. */
+  readonly irisDiameterRatio: number | null;
   /** Fitted iris centres in camera coordinates at canonical scale; multiply by faceScale for millimetres. */
   readonly irisCentresCanonical: Readonly<Record<Eye, Vec3>>;
   /** Where each iris plane is assumed to cross the eye, camera coordinates at canonical scale. */
@@ -98,8 +110,7 @@ export function estimateFaceScale(
   if (!hasFiniteLandmarks(landmarksPx, IRIS_LANDMARK_INDICES)) return { ok: false, reason: 'missing-landmarks' };
 
   const headX: Vec3 = [pose.rotation[0], pose.rotation[3], pose.rotation[6]];
-  const diameters: number[] = [];
-  const eyesUsed: Eye[] = [];
+  const horizontal = {} as Record<Eye, { readonly diameter: number; readonly offset: number; readonly tolerance: number } | null>;
   const irisCentres = {} as Record<Eye, Vec3>;
   const eyePoints = {} as Record<Eye, Vec3>;
   for (const eye of EYES) {
@@ -116,11 +127,11 @@ export function estimateFaceScale(
       return [dot(offset, axisU), dot(offset, axisV)];
     };
     const centre = onPlane(indices.irisCentre);
-    const horizontal = indices.irisHorizontal.map(onPlane);
+    const pair = indices.irisHorizontal.map(onPlane);
     const vertical = indices.irisVertical.map(onPlane);
-    if (!centre || horizontal.includes(null) || vertical.includes(null)) return { ok: false, reason: 'ray-misses-plane' };
+    if (!centre || pair.includes(null) || vertical.includes(null)) return { ok: false, reason: 'ray-misses-plane' };
     const fit = fitIris(
-      { centre, horizontal: [horizontal[0]!, horizontal[1]!], vertical: [vertical[0]!, vertical[1]!] },
+      { centre, horizontal: [pair[0]!, pair[1]!], vertical: [vertical[0]!, vertical[1]!] },
       { unitsPerPixel: vec3Norm(eyePoint) / intrinsics.fx },
       options,
     );
@@ -129,13 +140,17 @@ export function estimateFaceScale(
     const centrePx = projectPoint(intrinsics, irisCentres[eye]);
     if (!centrePx || !irisInsideEye(landmarksPx, eye, centrePx)) return { ok: false, reason: 'iris-outside-eye' };
     eyePoints[eye] = eyePoint;
-    if (fit.horizontalDiameter !== null) {
-      diameters.push(fit.horizontalDiameter);
-      eyesUsed.push(eye);
-    }
+    horizontal[eye] =
+      fit.horizontalDiameter === null ? null : { diameter: fit.horizontalDiameter, offset: fit.horizontalOffset, tolerance: fit.tolerance };
   }
-  if (!diameters.length) return { ok: false, reason: 'inconsistent-iris' };
+  const eyesUsed = EYES.filter((eye) => horizontal[eye] !== null);
+  if (eyesUsed.length === 2) {
+    const dropped = displacedHorizontalPoint(horizontal.right!, horizontal.left!);
+    if (dropped) eyesUsed.splice(eyesUsed.indexOf(dropped), 1);
+  }
+  if (!eyesUsed.length) return { ok: false, reason: 'inconsistent-iris' };
 
+  const diameters = eyesUsed.map((eye) => horizontal[eye]!.diameter);
   const canonicalIrisDiameterMm = diameters.reduce((sum, value) => sum + value, 0) / diameters.length;
   const faceScale = irisDiameterMm / canonicalIrisDiameterMm;
   const pnpDepthMm = 0.5 * (eyePoints.right[2] + eyePoints.left[2]);
@@ -147,11 +162,34 @@ export function estimateFaceScale(
     pnpDepthMm,
     mmPerPixel: (faceScale * pnpDepthMm) / intrinsics.fx,
     eyesUsed,
+    irisDiameterRatio: eyesUsed.length === 2 ? horizontal.right!.diameter / horizontal.left!.diameter : null,
     irisCentresCanonical: irisCentres,
     eyePointsCanonical: eyePoints,
   };
   const finite = [faceScale, estimate.irisDepthMm, estimate.mmPerPixel, ...irisCentres.right, ...irisCentres.left].every(Number.isFinite);
   return finite && faceScale > 0 ? estimate : { ok: false, reason: 'ray-misses-plane' };
+}
+
+/**
+ * The eye to leave out when the two diameters disagree by more than
+ * IRIS_ASYMMETRY_TOLERANCE because of one displaced horizontal point. Such a
+ * point moves its pair's midpoint off the median centre by half the error
+ * it adds to the diameter, so the suspect is the eye whose midpoint is
+ * further off. It is left out only when the disagreement exceeds its fit
+ * tolerance and the offset half of it, so landmark noise up to the
+ * tolerance's floor rarely triggers it, and when the offset accounts for at
+ * least half the disagreement. A contour shrunk or grown about its centre keeps
+ * its midpoint and stays in, for the aggregator's asymmetry gate.
+ */
+function displacedHorizontalPoint(
+  right: { readonly diameter: number; readonly offset: number; readonly tolerance: number },
+  left: { readonly diameter: number; readonly offset: number; readonly tolerance: number },
+): Eye | null {
+  if (Math.abs(Math.log(right.diameter / left.diameter)) <= Math.log(1 + IRIS_ASYMMETRY_TOLERANCE)) return null;
+  const [eye, suspect] = Math.abs(right.offset) >= Math.abs(left.offset) ? (['right', right] as const) : (['left', left] as const);
+  const offset = Math.abs(suspect.offset);
+  const disagreement = Math.abs(right.diameter - left.diameter);
+  return disagreement > suspect.tolerance && offset > suspect.tolerance / 2 && offset >= disagreement / 4 ? eye : null;
 }
 
 const IRIS_LANDMARK_INDICES: readonly number[] = EYES.flatMap((eye) => {

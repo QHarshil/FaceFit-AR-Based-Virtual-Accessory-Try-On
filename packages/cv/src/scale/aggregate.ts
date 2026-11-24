@@ -1,4 +1,4 @@
-import { POPULATION_IRIS_DIAMETER_MM } from './faceScale.ts';
+import { IRIS_ASYMMETRY_TOLERANCE, POPULATION_IRIS_DIAMETER_MM } from './faceScale.ts';
 import type { FaceFrame, FaceFrameFailureReason, FaceFrameResult } from './frame.ts';
 import { median } from './iris.ts';
 
@@ -33,6 +33,14 @@ export interface FaceMeasurementLimits {
    * reads on the recordings below and above this floor.
    */
   readonly minRelativeEyeOpenness: number;
+  /**
+   * Largest relative difference between the eyes' iris diameters in a frame.
+   * When the clip's own ratios scatter more, the gate widens to three of
+   * their robust SDs, so noise alone does not reject frames; the clip then
+   * fails if its median ratio is further from 1 than this plus three
+   * standard errors, or if most frames are gated.
+   */
+  readonly maxIrisAsymmetry: number;
   readonly minAcceptedFrames: number;
   /** Assumed population of horizontal iris diameters, mean and SD in mm. */
   readonly irisDiameterMm: number;
@@ -48,6 +56,7 @@ export const DEFAULT_FACE_MEASUREMENT_LIMITS: FaceMeasurementLimits = {
   maxFaceScale: 1.45,
   minEyeOpenness: 0.15,
   minRelativeEyeOpenness: 0.9,
+  maxIrisAsymmetry: IRIS_ASYMMETRY_TOLERANCE,
   minAcceptedFrames: 10,
   irisDiameterMm: POPULATION_IRIS_DIAMETER_MM.mean,
   irisDiameterSdMm: POPULATION_IRIS_DIAMETER_MM.sd,
@@ -61,7 +70,8 @@ export type FrameRejection =
   | 'untrusted-pose'
   | 'off-axis'
   | 'implausible-scale'
-  | 'eyes-closed';
+  | 'eyes-closed'
+  | 'asymmetric-iris';
 
 /** Median over accepted frames with a 95% interval. */
 export interface MeasurementInterval {
@@ -93,7 +103,7 @@ export interface FaceMeasurementSummary {
 
 export interface FaceMeasurementFailure {
   readonly ok: false;
-  readonly reason: 'too-few-frames' | 'invalid-limits';
+  readonly reason: 'too-few-frames' | 'asymmetric-iris' | 'invalid-limits';
   readonly acceptedFrames: number;
   readonly rejectedFrames: Readonly<Record<FrameRejection, number>>;
 }
@@ -119,8 +129,8 @@ const FAILURE_REJECTION: Record<FaceFrameFailureReason, FrameRejection> = {
  * Combines frames, in capture order, into medians with 95% intervals.
  * Frames are accepted when measured, when the pose is trusted (reprojection
  * RMS and rotation SD), when the face is near frontal, when the face scale
- * is plausible, and when the eyes are open; each rejection counts under the
- * first check it fails.
+ * is plausible, when the eyes are open, and when the two irises agree in
+ * size; each rejection counts under the first check it fails.
  *
  * The interval's half-width is 1.96 sqrt(population^2 + noise^2 + model^2).
  * The population term is the iris-size spread: every frame shares the
@@ -143,6 +153,7 @@ export function aggregateFaceMeasurements(
     'off-axis': 0,
     'implausible-scale': 0,
     'eyes-closed': 0,
+    'asymmetric-iris': 0,
   };
   if (!validLimits(settings)) return { ok: false, reason: 'invalid-limits', acceptedFrames: 0, rejectedFrames };
 
@@ -169,9 +180,15 @@ export function aggregateFaceMeasurements(
   const opennessFloor = posed.length
     ? Math.max(settings.minEyeOpenness, settings.minRelativeEyeOpenness * median(posed.map((frame) => frame.eyeOpenness)))
     : settings.minEyeOpenness;
-  const accepted = posed.filter((frame) => frame.eyeOpenness >= opennessFloor);
-  rejectedFrames['eyes-closed'] += posed.length - accepted.length;
+  const open = posed.filter((frame) => frame.eyeOpenness >= opennessFloor);
+  rejectedFrames['eyes-closed'] += posed.length - open.length;
 
+  const asymmetry = irisAsymmetryGate(open, settings.maxIrisAsymmetry);
+  const accepted = open.filter((frame) => asymmetry.accepts(frame));
+  rejectedFrames['asymmetric-iris'] += open.length - accepted.length;
+  if (open.length && (asymmetry.clipAsymmetric || 2 * accepted.length < open.length)) {
+    return { ok: false, reason: 'asymmetric-iris', acceptedFrames: accepted.length, rejectedFrames };
+  }
   if (accepted.length < settings.minAcceptedFrames) {
     return { ok: false, reason: 'too-few-frames', acceptedFrames: accepted.length, rejectedFrames };
   }
@@ -193,11 +210,35 @@ export function aggregateFaceMeasurements(
   };
 }
 
+/**
+ * Gate on the log ratio of the eyes' iris diameters. Frames measured from
+ * one eye have no ratio and pass. The frame tolerance is the larger of the
+ * stated one and three robust SDs (1.4826 MAD) of the clip's log ratios; the
+ * clip is asymmetric when the median log ratio is beyond the stated
+ * tolerance plus three standard errors of the median and most frames carry
+ * a ratio, which catches a constant fault that per-frame noise would hide.
+ */
+function irisAsymmetryGate(frames: readonly FaceFrame[], maxIrisAsymmetry: number) {
+  const logRatios = frames.flatMap((frame) => (frame.irisDiameterRatio === null ? [] : [Math.log(frame.irisDiameterRatio)]));
+  const stated = Math.log(1 + maxIrisAsymmetry);
+  if (!logRatios.length) return { accepts: () => true, clipAsymmetric: false };
+  const centre = median(logRatios);
+  const robustSd = 1.4826 * median(logRatios.map((value) => Math.abs(value - centre)));
+  const frameTolerance = Math.max(stated, 3 * robustSd);
+  const medianSe = (MEDIAN_SE_FACTOR * robustSd) / Math.sqrt(logRatios.length);
+  return {
+    accepts: (frame: FaceFrame) => frame.irisDiameterRatio === null || Math.abs(Math.log(frame.irisDiameterRatio)) <= frameTolerance,
+    clipAsymmetric: 2 * logRatios.length > frames.length && Math.abs(centre) > stated + 3 * medianSe,
+  };
+}
+
 /** measureFaceFrame never returns these, but frames can come from anywhere, and one NaN would poison every median and interval. */
 function hasUsableMeasurements(frame: FaceFrame): boolean {
   const positive = [frame.faceScale, frame.irisDepthMm, frame.nearPdMm, frame.distancePdMm, frame.faceWidthMm];
   const nonNegative = [frame.distancePdCorrectionSdMm, frame.faceWidthModelSdMm, frame.eyeOpenness];
+  const ratio = frame.irisDiameterRatio;
   return (
+    (ratio === null || (Number.isFinite(ratio) && ratio > 0)) &&
     positive.every((value) => Number.isFinite(value) && value > 0) &&
     nonNegative.every((value) => Number.isFinite(value) && value >= 0) &&
     Number.isFinite(frame.lineOfSightYawDeg) &&
@@ -247,7 +288,7 @@ function lagOneAutocorrelation(values: readonly number[]): number {
 
 function validLimits(limits: FaceMeasurementLimits): boolean {
   const positive = [limits.maxYawDeg, limits.maxPitchDeg, limits.maxRmsReprojectionMm, limits.maxRotationStdDeg, limits.irisDiameterMm, limits.minFaceScale];
-  const nonNegative = [limits.minEyeOpenness, limits.minRelativeEyeOpenness, limits.irisDiameterSdMm];
+  const nonNegative = [limits.minEyeOpenness, limits.minRelativeEyeOpenness, limits.irisDiameterSdMm, limits.maxIrisAsymmetry];
   return (
     positive.every((value) => Number.isFinite(value) && value > 0) &&
     nonNegative.every((value) => Number.isFinite(value) && value >= 0) &&

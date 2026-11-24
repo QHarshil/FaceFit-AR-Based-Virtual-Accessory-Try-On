@@ -34,6 +34,13 @@ export interface IrisFit {
    * tells which.
    */
   readonly horizontalDiameter: number | null;
+  /**
+   * Horizontal pair's midpoint minus the median centre along the axis. One
+   * displaced horizontal point moves it by half as much as the diameter.
+   */
+  readonly horizontalOffset: number;
+  /** The consistency tolerance applied, in the points' units. */
+  readonly tolerance: number;
   /** Mean of the centre estimates that agree with the median centre. */
   readonly centre: Vec2;
 }
@@ -95,12 +102,15 @@ export function fitIris(points: IrisPoints, frame: IrisFitFrame = {}, options: I
   const medianU = median([centre[0], upper[0], lower[0]]);
   const medianV = median([centre[1], left[1], right[1]]);
   const horizontalMidpoint = 0.5 * (left[0] + right[0]);
-  const horizontalConsistent = Math.abs(horizontalMidpoint - medianU) <= tolerance;
+  const horizontalOffset = horizontalMidpoint - medianU;
+  const horizontalConsistent = Math.abs(horizontalOffset) <= tolerance;
   const u0 = meanWithin([centre[0], upper[0], lower[0], horizontalMidpoint], medianU, tolerance);
   const v0 = meanWithin([centre[1], left[1], right[1], 0.5 * (upper[1] + lower[1])], medianV, tolerance);
   return {
     ok: true,
     horizontalDiameter: horizontalConsistent ? right[0] - left[0] : null,
+    horizontalOffset,
+    tolerance,
     centre: [u0 * ax - v0 * ay, u0 * ay + v0 * ax],
   };
 }
