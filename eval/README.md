@@ -22,6 +22,7 @@ node harness/baseline.mjs --source recordings --pose-filter off --label <name>  
 node fixtures/build.mjs --source recordings --only motion --recordings <dir>  # motion clips only
 node harness/poseFilterSweep.mjs --runs <label>[,<label>]   # replay filter-off runs through both filters
 node harness/plotPoseFilter.mjs                             # docs/pose-filter.svg from the sweep
+node benchmark/gate-report.mjs                              # gate's hidden share by yaw (AFLW2000) and distance
 npm test
 ```
 
