@@ -2,7 +2,9 @@
 
 Replays clips through the try-on page in Chrome as a fake camera and writes metrics to `results.json`. The app reports timings and poses through `probe()` (`frontend/src/utils/probe.ts`), which is a no-op unless the harness installs a sink.
 
-The production build is served by `vite preview`, which sends the production CSP. The harness records every request from the page and its worker; a run that requests anything outside localhost or trips the CSP fails and writes no results (`harness/network.mjs`).
+The production build is served by `vite preview`, which sends the production CSP. The harness records every request from the page and its worker; a run that requests anything outside localhost or trips the CSP on the page fails and writes no results (`harness/network.mjs`). A `fetch` the CSP blocks inside the worker leaves no trace the harness can see (no request event, page violation or page console error), so the worker's guard (`frontend/src/perception/sameOriginGuard.ts`) refuses off-origin `fetch`, XHR, `importScripts` and `sendBeacon` first and reports each attempt as `blockedOffOriginAttempts`. Blocked attempts do not fail a run.
+
+Two checks follow the conditions, and either failing also blocks results. The guard self-test issues an off-origin `fetch` and XHR inside the worker, requires each to be blocked or recorded, then waits up to 90 s for the MediaPipe usage log (`network.workerGuardSelfTest`). The CPU fallback run makes the first delegate fail after its loader ran and requires the CPU delegate to start (`cpuFallback`).
 
 ## Run
 

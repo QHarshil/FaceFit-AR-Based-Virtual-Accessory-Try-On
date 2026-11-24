@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { leavesDevice, offDeviceRequests, sawWorkerFetch } from './network.mjs';
+import { guardOutcome, leavesDevice, offDeviceRequests, sawWorkerFetch } from './network.mjs';
 
 test('localhost requests on any port stay on the device', () => {
   for (const url of [
@@ -40,6 +40,14 @@ test('offDeviceRequests lists each leaking URL once', () => {
   ];
   assert.deepEqual(offDeviceRequests(urls), ['https://odml.pa.googleapis.com/v1/log']);
   assert.deepEqual(offDeviceRequests(['http://localhost:4177/']), []);
+});
+
+test('guardOutcome tells a blocked attempt from a recorded request and a miss', () => {
+  const url = 'https://guard-selftest.invalid/xhr';
+  const local = ['http://localhost:4177/assets/index.js'];
+  assert.equal(guardOutcome(url, { blocked: [url], requests: local }), 'blocked');
+  assert.equal(guardOutcome(url, { blocked: [], requests: [...local, url] }), 'detected');
+  assert.equal(guardOutcome(url, { blocked: ['https://guard-selftest.invalid/fetch'], requests: local }), 'missed');
 });
 
 test('sawWorkerFetch finds the model request the worker makes', () => {

@@ -19,6 +19,16 @@ export const leavesDevice = (url) => {
 
 export const offDeviceRequests = (urls) => [...new Set(urls.filter(leavesDevice))];
 
+// Where an off-origin request issued inside the worker ended up: refused by
+// the worker's same-origin guard and reported, recorded as a request (which
+// fails a measured run), or neither. `blocked` holds the URLs the guard
+// reported, origin and path only.
+export const guardOutcome = (url, { blocked, requests }) => {
+  if (blocked.includes(url)) return 'blocked';
+  if (requests.includes(url)) return 'detected';
+  return 'missed';
+};
+
 // The model is fetched inside the worker. Seeing it proves the capture covers
 // worker traffic, so an empty off-device list is not a blind spot.
 export const sawWorkerFetch = (urls) => urls.some((url) => url.endsWith('/face_landmarker.task'));

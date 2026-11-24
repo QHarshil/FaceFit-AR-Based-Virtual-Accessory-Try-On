@@ -12,8 +12,11 @@
 //
 // Builds the production bundle, serves it with `vite preview` (which sends the
 // production CSP) and the catalog API, replays each clip in Chrome as the fake
-// camera, and summarizes the probe events. Fails without writing results if
-// any request left localhost or the CSP blocked anything.
+// camera, and summarizes the probe events. Then checks the worker's guard with
+// off-origin requests issued inside the worker (selfTestWorkerGuard) and the
+// CPU fallback with the first delegate forced to fail. Fails without writing
+// results if any request left localhost, the CSP blocked anything on the page,
+// the guard missed a self-test request, or the fallback did not reach the CPU.
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { cpus, totalmem } from 'node:os';
@@ -22,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { CONDITIONS, PRODUCTS, RECORDED } from './conditions.mjs';
 import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
-import { runCondition } from './run.mjs';
+import { runCondition, selfTestWorkerGuard } from './run.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EVAL, '..');
@@ -93,6 +96,8 @@ const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
 const conditions = [...CONDITIONS, ...PRODUCTS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
 const runs = {};
 let environment;
+let guardSelfTest;
+let cpuFallback;
 try {
   for (const condition of conditions) {
     process.stdout.write(`${condition.id} `);
@@ -107,27 +112,47 @@ try {
     environment = run.environment;
     runs[condition.id] = run;
   }
+  const still = conditions.find((c) => c.id === 'still');
+  if (still) {
+    const url = `http://localhost:${WEB_PORT}/try-on/${still.productId}`;
+    process.stdout.write('guard-self-test ');
+    guardSelfTest = await selfTestWorkerGuard({ clip: clipOf(still), url });
+    process.stdout.write('cpu-fallback ');
+    cpuFallback = await runCondition({ clip: clipOf(still), url, warmupSeconds: still.warmupSeconds, measureSeconds: still.measureSeconds, failFirstAttempt: true });
+    writeFileSync(join(runDir, 'cpu-fallback.json'), JSON.stringify(cpuFallback));
+  }
 } finally {
   api.kill();
   web.kill();
 }
 console.log();
 
-const network = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, {
+const checkedRuns = cpuFallback ? { ...runs, 'cpu-fallback': cpuFallback } : runs;
+const network = Object.fromEntries(Object.entries(checkedRuns).map(([id, run]) => [id, {
   requests: run.requests.length,
   offDevice: offDeviceRequests(run.requests),
   workerFetchSeen: sawWorkerFetch(run.requests),
   cspViolations: run.cspViolations,
+  blocked: run.blocked,
 }]));
 const networkProblems = Object.entries(network).flatMap(([id, n]) => [
   ...n.offDevice.map((url) => `${id}: request left localhost: ${url}`),
   ...n.cspViolations.map((violation) => `${id}: CSP violation: ${violation}`),
   ...(n.workerFetchSeen ? [] : [`${id}: the worker's model request was not captured`]),
 ]);
+if (guardSelfTest) {
+  for (const [api, probe] of Object.entries(guardSelfTest.probes)) {
+    if (probe.outcome === 'missed') networkProblems.push(`guard self-test: ${api} to ${probe.url} was neither blocked nor recorded`);
+  }
+} else {
+  networkProblems.push('guard self-test did not run: the still clip is missing');
+}
+if (cpuFallback?.delegate !== 'CPU') networkProblems.push(`cpu fallback: expected the CPU delegate, got ${cpuFallback?.delegate ?? 'no run'}`);
 if (networkProblems.length) {
-  console.error(`network check failed; results not written\n${networkProblems.join('\n')}`);
+  console.error(`checks failed; results not written\n${networkProblems.join('\n')}`);
   process.exit(1);
 }
+const blockedAttempts = Object.values(network).flatMap((n) => n.blocked);
 
 const geometryOf = (run) => run.events
   .filter((e) => e.stage === 'glassesPose')
@@ -258,12 +283,27 @@ const entry = roundAll({
     perceptionDelegate: delegates.join('/'),
   },
   input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise' : 'webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise',
-  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests }])),
+  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests, blockedOffOriginAttempts: network[c.id].blocked.length }])),
   network: {
     requests: Object.values(network).reduce((sum, n) => sum + n.requests, 0),
     offDeviceRequests: 0,
     cspViolations: 0,
-    check: 'every request from the page and its worker went to localhost (eval/harness/network.mjs)',
+    blockedOffOriginAttempts: blockedAttempts.length,
+    blockedOffOriginUrls: [...new Set(blockedAttempts)],
+    check: 'every request from the page and its worker, in the measured conditions and the CPU fallback run, went to localhost (eval/harness/network.mjs)',
+    workerGuardSelfTest: {
+      fetch: guardSelfTest.probes.fetch.outcome,
+      xhr: guardSelfTest.probes.xhr.outcome,
+      usageLogBlockedAfterSeconds: guardSelfTest.usageLogBlockedAfterSeconds,
+      blocked: guardSelfTest.blocked,
+      offDeviceRequests: guardSelfTest.offDevice,
+    },
+  },
+  cpuFallback: {
+    condition: 'still',
+    forcedFailure: 'first delegate (GPU) failed by the harness after its loader ran (eval/harness/run.mjs failFirstDelegate)',
+    delegate: cpuFallback.delegate,
+    latency: latency(cpuFallback.events, conditions.find((c) => c.id === 'still').measureSeconds),
   },
   summary,
 });
