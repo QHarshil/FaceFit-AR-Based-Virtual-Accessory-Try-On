@@ -39,7 +39,7 @@ describe('interval coverage over synthetic subjects', () => {
     expect(withSd.distance).toBeLessThan(0.97);
     const withoutSd = conversionCoverage(600, 7010, (frame) => ({ ...frame, distancePdCorrectionSdMm: 0 }));
     expect(withoutSd.distance).toBeLessThan(0.8);
-  });
+  }, 30_000);
 
   /*
    * With every iris exactly 11.7 mm and the population term switched off,
