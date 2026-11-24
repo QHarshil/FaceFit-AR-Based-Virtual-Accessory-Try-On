@@ -19,9 +19,9 @@ export interface FaceMeasurementLimits {
   readonly minEyeOpenness: number;
   /**
    * Openness relative to the median over the frames that pass the pose
-   * gates. MediaPipe's iris contour narrows as the lids close and lags
-   * reopening; irisWidthByRelativeOpenness in eval/results.json shows how
-   * narrow it reads on the recordings below and above this floor.
+   * gates. MediaPipe's iris contour narrows as the lids close;
+   * irisWidthByRelativeOpenness in eval/results.json shows how narrow it
+   * reads on the recordings below and above this floor.
    */
   readonly minRelativeEyeOpenness: number;
   readonly minAcceptedFrames: number;
