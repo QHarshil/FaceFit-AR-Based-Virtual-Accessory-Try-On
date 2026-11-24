@@ -5,7 +5,7 @@
   "scripts": {
     "fixtures": "node fixtures/build.mjs",
     "baseline": "node harness/baseline.mjs",
-    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs"
+    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.65.1"
