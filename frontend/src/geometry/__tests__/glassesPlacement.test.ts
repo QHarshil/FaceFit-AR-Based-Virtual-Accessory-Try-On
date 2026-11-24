@@ -119,3 +119,41 @@ describe('glassesTransform', () => {
     }
   });
 });
+
+describe('bridge offset from landmark 168', () => {
+  // A frontal face has R = I, so landmark 168 sits at camera depth z = tz + zModel
+  // and height Y = yModel + ty, and the seat 3 mm nearer at z - 3 with the same
+  // X and Y. Pinhole rows are cy + fy Y / z, so the seat moves by
+  // fy Y (1 / (z - 3) - 1 / z), up the image for a landmark above the axis.
+  it.each([
+    { tz: 400, ty: 0 },
+    { tz: 600, ty: 0 },
+    { tz: 600, ty: 50 },
+  ])('is the pinhole shift of a 3 mm move toward the camera at $tz mm', ({ tz, ty }) => {
+    const pose: HeadPose = { rotation: IDENTITY3, translationMm: [0, ty, tz] };
+    const bridge = eyePixel(
+      transformPoint(glassesTransform(pose, ANCHORS.bridgeCenter), ANCHORS.bridgeCenter),
+    );
+    const landmark = facePixel(pose, CANONICAL_NOSE_BRIDGE_MM);
+
+    const depth = tz + CANONICAL_NOSE_BRIDGE_MM[2];
+    const height = CANONICAL_NOSE_BRIDGE_MM[1] + ty;
+    const expectedDy =
+      intrinsics.fy * height * (1 / (depth - BRIDGE_FORWARD_OFFSET_MM) - 1 / depth);
+
+    expect(bridge[0] - landmark[0]).toBeCloseTo(0, 9);
+    expect(bridge[1] - landmark[1]).toBeCloseTo(expectedDy, 9);
+  });
+
+  it('is about -0.91 px at 400 mm and -0.36 px at 600 mm for a centred face', () => {
+    const offsetPx = (tz: number) => {
+      const pose: HeadPose = { rotation: IDENTITY3, translationMm: [0, 0, tz] };
+      const bridge = eyePixel(
+        transformPoint(glassesTransform(pose, ANCHORS.bridgeCenter), ANCHORS.bridgeCenter),
+      );
+      return bridge[1] - facePixel(pose, CANONICAL_NOSE_BRIDGE_MM)[1];
+    };
+    expect(offsetPx(400)).toBeCloseTo(-0.908, 2);
+    expect(offsetPx(600)).toBeCloseTo(-0.365, 2);
+  });
+});
