@@ -146,9 +146,13 @@ export async function clipLandmarks(clipPath, log = () => {}) {
   }
   if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join('; ')}`);
 
+  const dirty = execFileSync('git', ['-C', EVAL, 'status', '--porcelain'], { encoding: 'utf8' })
+    .split('\n')
+    .some((line) => line && !line.endsWith('eval/results.json'));
   const extraction = {
     extractedAt: new Date().toISOString(),
     commit: execFileSync('git', ['-C', EVAL, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+    dirty,
     clipSha256,
     width: clip.header.width,
     height: clip.header.height,

@@ -176,6 +176,7 @@ async function recordings(clipsDir) {
       size: [width, height],
       fps: extraction.fps,
       landmarksExtractedAtCommit: extraction.commit,
+      landmarksExtractedFromDirtyTree: extraction.dirty,
       ...clipRecord(summary, frames.length),
       focalSensitivity: Object.fromEntries([50, 70].map((fov) => [
         `assumed${fov}Deg`,
