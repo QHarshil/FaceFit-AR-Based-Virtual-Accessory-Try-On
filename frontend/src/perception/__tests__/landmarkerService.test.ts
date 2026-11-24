@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MAX_FACES,
   createLandmarkerService,
+  isZipArchive,
   toLandmarkFrame,
   wasmFilesetAt,
   type LandmarkerServiceDeps,
@@ -12,7 +13,11 @@ import {
 import type { WorkerResponse } from '../protocol';
 import { LANDMARK_COUNT } from '../types';
 
-const MODEL_BYTES = new Uint8Array([1, 2, 3, 4]);
+// The pinned model's layout: two zero bytes, then the zip, which ends with the
+// 22-byte end-of-central-directory record.
+const ZIP_END = [0x50, 0x4b, 0x05, 0x06, ...Array<number>(18).fill(0)];
+const MODEL_BYTES = new Uint8Array([0, 0, 0x50, 0x4b, 0x03, 0x04, 7, 7, ...ZIP_END]);
+const WASM_BYTES = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 1, 0, 0, 0]);
 const INIT = { type: 'init', wasmBaseUrl: '/mediapipe/tasks-vision/1.2.3/', modelUrl: '/m.task' };
 
 const face = (offset: number) =>
@@ -31,7 +36,25 @@ const resultWith = (faces: number): FaceLandmarkerResult => ({
 
 const videoFrame = () => ({ displayWidth: 640, displayHeight: 480, close: vi.fn() });
 
-const okResponse = (body = MODEL_BYTES) => new Response(body.slice(), { status: 200 });
+// What a static server returns for each self-hosted file.
+const served = (url: string): Response => {
+  if (/\.js($|\?)/.test(url)) {
+    return new Response('', { headers: { 'content-type': 'text/javascript' } });
+  }
+  if (url.endsWith('.wasm')) {
+    return new Response(WASM_BYTES.slice(), { headers: { 'content-type': 'application/wasm' } });
+  }
+  return new Response(MODEL_BYTES.slice(), {
+    headers: { 'content-type': 'application/octet-stream' },
+  });
+};
+
+// Vite dev and preview answer a missing file with the app shell.
+const htmlFallback = () =>
+  new Response('<!doctype html><div id="root"></div>', {
+    status: 200,
+    headers: { 'content-type': 'text/html' },
+  });
 
 interface Harness {
   deps: LandmarkerServiceDeps;
@@ -53,7 +76,7 @@ const harness = (overrides: Partial<LandmarkerServiceDeps> = {}): Harness => {
       options.push(opts);
       return Promise.resolve(landmarker);
     }),
-    fetch: vi.fn(() => Promise.resolve(okResponse())),
+    fetch: vi.fn((url: string) => Promise.resolve(served(url))),
     gpuAvailable: () => true,
     now: () => {
       clock += 2.5;
@@ -156,9 +179,62 @@ describe('landmarker service init', () => {
     expect(h.posted).toEqual([{ type: 'error', code: 'model-fetch', detail: 'Failed to fetch' }]);
   });
 
+  it('reports the app shell served for a missing model as a model fetch failure', async () => {
+    h = harness({
+      fetch: vi.fn((url: string) =>
+        Promise.resolve(url.endsWith('.task') ? htmlFallback() : served(url)),
+      ),
+    });
+    await createLandmarkerService(h.deps).handle(INIT);
+
+    expect(h.deps.createLandmarker).not.toHaveBeenCalled();
+    expect(h.posted).toEqual([
+      { type: 'error', code: 'model-fetch', detail: '/m.task is not a model bundle (text/html)' },
+    ]);
+  });
+
+  it('reports the app shell served for missing WASM files as a WASM fetch failure', async () => {
+    const fetch = vi.fn((url: string) =>
+      Promise.resolve(url.endsWith('.task') ? served(url) : htmlFallback()),
+    );
+    const create = vi
+      .fn()
+      .mockRejectedValue(new TypeError('Failed to fetch dynamically imported module'));
+    h = harness({ fetch, createLandmarker: create });
+
+    await createLandmarkerService(h.deps).handle(INIT);
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(h.posted).toEqual([expect.objectContaining({ type: 'error', code: 'wasm-fetch' })]);
+  });
+
+  it('reports a WASM binary replaced by the app shell even when the loader is served', async () => {
+    const fetch = vi.fn((url: string) =>
+      Promise.resolve(url.endsWith('.wasm') ? htmlFallback() : served(url)),
+    );
+    const create = vi.fn().mockRejectedValue(new Error('CompileError: expected magic word'));
+    h = harness({ fetch, createLandmarker: create });
+
+    await createLandmarkerService(h.deps).handle(INIT);
+
+    expect(h.posted).toEqual([expect.objectContaining({ type: 'error', code: 'wasm-fetch' })]);
+  });
+
+  it('reads only the first bytes of the WASM binary when checking it', async () => {
+    const create = vi.fn().mockRejectedValue(new Error('gpu init'));
+    h = harness({ createLandmarker: create });
+
+    await createLandmarkerService(h.deps).handle(INIT);
+
+    expect(h.deps.fetch).toHaveBeenCalledWith(
+      '/mediapipe/tasks-vision/1.2.3/vision_wasm_module_internal.wasm',
+      { headers: { Range: 'bytes=0-3' } },
+    );
+  });
+
   it('reports a missing WASM file instead of retrying on the CPU', async () => {
-    const fetch = vi.fn((_url: string, init?: RequestInit) =>
-      Promise.resolve(init?.method === 'HEAD' ? new Response(null, { status: 404 }) : okResponse()),
+    const fetch = vi.fn((url: string, init?: RequestInit) =>
+      Promise.resolve(init?.method === 'HEAD' ? new Response(null, { status: 404 }) : served(url)),
     );
     const create = vi
       .fn()
@@ -300,6 +376,16 @@ describe('landmarker service frames', () => {
 describe('helpers', () => {
   it('builds the module WASM paths without doubling slashes', () => {
     expect(wasmFilesetAt('/w/')).toEqual(wasmFilesetAt('/w'));
+  });
+
+  it('recognizes a zip by its end record, with leading bytes or a trailing comment', () => {
+    expect(isZipArchive(MODEL_BYTES)).toBe(true);
+    const comment = new Uint8Array(1000).fill(0x20);
+    expect(isZipArchive(new Uint8Array([...ZIP_END.slice(0, 20), 0xe8, 0x03, ...comment]))).toBe(
+      true,
+    );
+    expect(isZipArchive(new TextEncoder().encode('<!doctype html><html></html>'))).toBe(false);
+    expect(isZipArchive(new Uint8Array(0))).toBe(false);
   });
 
   it('rejects a face with fewer landmarks than the refined mesh', () => {

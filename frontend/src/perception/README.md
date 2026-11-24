@@ -30,13 +30,13 @@ Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronous
 
 Failures surface as `PerceptionError` codes; `tracking/errorMessages.ts` maps them to the try-on error screen.
 
-| Code          | Cause                                                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------------------- |
-| `model-fetch` | The model request failed                                                                                 |
-| `wasm-fetch`  | A delegate failed to start and the WASM files are unreachable                                            |
-| `unsupported` | Both delegates failed with the WASM reachable, or `requestVideoFrameCallback` or `VideoFrame` is missing |
-| `worker`      | The worker script failed to load or start, crashed, or sent a malformed message                          |
-| `inference`   | `detectForVideo` threw; tracking stops                                                                   |
+| Code          | Cause                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------- |
+| `model-fetch` | The model request failed, or the response is not a zip bundle (a missing file served as `index.html`)      |
+| `wasm-fetch`  | A delegate failed to start, and the loader is not served as JavaScript or the binary lacks the WASM header |
+| `unsupported` | Both delegates failed with the WASM reachable, or `requestVideoFrameCallback` or `VideoFrame` is missing   |
+| `worker`      | The worker script failed to load or start, crashed, or sent a malformed message                            |
+| `inference`   | `detectForVideo` threw; tracking stops                                                                     |
 
 Without WebGL2 in workers the CPU delegate runs and `ready` reports it. Without WebGL at all the overlay cannot render, and `ARTryOn` reports that through `onError`.
 

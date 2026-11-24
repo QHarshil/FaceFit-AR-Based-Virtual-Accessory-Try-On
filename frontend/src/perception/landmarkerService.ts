@@ -76,6 +76,34 @@ const filesetForAttempt = (
 const describeError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+// Vite's dev and preview servers answer a missing file with index.html and
+// status 200, so a successful response is checked for the expected format.
+
+// A .task bundle is a zip archive. Zip readers find the end-of-central-directory
+// record in the last 22 bytes plus a comment of up to 64 KiB. The pinned model
+// starts with two zero bytes, so the leading signature proves nothing.
+const ZIP_END_SIGNATURE = [0x50, 0x4b, 0x05, 0x06];
+const ZIP_END_RECORD_BYTES = 22;
+const ZIP_MAX_COMMENT_BYTES = 0xffff;
+const WASM_MAGIC = [0x00, 0x61, 0x73, 0x6d];
+// A module script loads only when served with a JavaScript MIME type.
+const JAVASCRIPT_TYPE = /^(text|application)\/(x-)?(java|ecma)script\s*(;|$)/i;
+
+const hasBytesAt = (bytes: Uint8Array, offset: number, expected: readonly number[]): boolean =>
+  expected.every((byte, i) => bytes[offset + i] === byte);
+
+export const isZipArchive = (bytes: Uint8Array): boolean => {
+  const last = bytes.length - ZIP_END_RECORD_BYTES;
+  const first = Math.max(0, last - ZIP_MAX_COMMENT_BYTES);
+  for (let offset = last; offset >= first; offset -= 1) {
+    if (hasBytesAt(bytes, offset, ZIP_END_SIGNATURE)) return true;
+  }
+  return false;
+};
+
+const contentTypeOf = (response: Response): string =>
+  response.headers.get('content-type') ?? 'no content type';
+
 export const toLandmarkFrame = (
   result: FaceLandmarkerResult,
   timestampMs: number,
@@ -117,18 +145,26 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
   const fetchModel = async (url: string): Promise<Uint8Array> => {
     const response = await deps.fetch(url);
     if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
-    return new Uint8Array(await response.arrayBuffer());
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!isZipArchive(bytes)) {
+      throw new Error(`${url} is not a model bundle (${contentTypeOf(response)})`);
+    }
+    return bytes;
   };
 
   // Run only after a delegate failed, to tell a missing WASM file apart from a
-  // runtime that loaded but could not start.
-  const wasmReachable = async (fileset: WasmFileset): Promise<boolean> => {
-    const paths = [fileset.wasmLoaderPath, fileset.wasmBinaryPath];
+  // runtime that loaded but could not start. Requests only the binary's header.
+  const wasmServed = async (fileset: WasmFileset): Promise<boolean> => {
     try {
-      const responses = await Promise.all(
-        paths.map((path) => deps.fetch(path, { method: 'HEAD' })),
-      );
-      return responses.every((response) => response.ok);
+      const [loader, binary] = await Promise.all([
+        deps.fetch(fileset.wasmLoaderPath, { method: 'HEAD' }),
+        deps.fetch(fileset.wasmBinaryPath, {
+          headers: { Range: `bytes=0-${WASM_MAGIC.length - 1}` },
+        }),
+      ]);
+      if (!loader.ok || !binary.ok) return false;
+      if (!JAVASCRIPT_TYPE.test(loader.headers.get('content-type') ?? '')) return false;
+      return hasBytesAt(new Uint8Array(await binary.arrayBuffer()), 0, WASM_MAGIC);
     } catch {
       return false;
     }
@@ -162,9 +198,12 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
         return;
       } catch (error) {
         failures.push(`${delegate}: ${describeError(error)}`);
-        if (failures.length === 1 && !(await wasmReachable(fileset))) {
+        if (failures.length === 1 && !(await wasmServed(fileset))) {
           state = 'failed';
-          fail('wasm-fetch', `${fileset.wasmBinaryPath} is not reachable; ${failures[0]}`);
+          fail(
+            'wasm-fetch',
+            `${fileset.wasmLoaderPath} or ${fileset.wasmBinaryPath} is missing; ${failures[0]}`,
+          );
           return;
         }
       }
