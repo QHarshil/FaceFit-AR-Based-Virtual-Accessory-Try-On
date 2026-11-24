@@ -36,7 +36,7 @@ describe('measureClip', () => {
     const summary = measureClip(faces, WIDTH, HEIGHT, 60);
     assert.ok(summary.ok);
     assert.equal(summary.rejectedFrames['no-face'], 1);
-    // The asymmetry gate sits at 3 robust SDs of the ratio here; this seed has one clean frame just past it.
+    // The asymmetry gate sits at 3 MAD-based SDs of the ratio here; this seed has one clean frame just past it.
     assert.ok(summary.rejectedFrames['asymmetric-iris'] <= 1);
     assert.equal(summary.acceptedFrames + summary.rejectedFrames['asymmetric-iris'], 39);
     // 39 frames at about 1.7% per-frame SD: 4 standard errors of the median is 1.4%.

@@ -101,7 +101,7 @@ describe('asymmetric irises', () => {
   /*
    * At 1 px and 750 mm the iris is 17 px and each eye's diameter has 8% SD,
    * so the ratio of the two scatters by 12% per frame with nothing wrong.
-   * The gate widens to 3 robust SDs of the clip's own ratios, and the clip
+   * The gate widens to 3 MAD-based SDs of the clip's own ratios, and the clip
    * median of the ratio, within 0.25% of 1, passes.
    */
   it('does not fail a symmetric clip whose per-frame ratio is noisy', () => {

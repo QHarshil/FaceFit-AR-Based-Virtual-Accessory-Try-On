@@ -36,7 +36,7 @@ export interface FaceMeasurementLimits {
   /**
    * Largest relative difference between the eyes' iris diameters in a frame.
    * When the clip's own ratios scatter more, the gate widens to three of
-   * their robust SDs, so noise alone does not reject frames; the clip then
+   * their SDs (1.4826 MAD), so noise alone does not reject frames; the clip then
    * fails if its median ratio is further from 1 than this plus three
    * standard errors, or if most frames are gated.
    */
@@ -213,7 +213,7 @@ export function aggregateFaceMeasurements(
 /**
  * Gate on the log ratio of the eyes' iris diameters. Frames measured from
  * one eye have no ratio and pass. The frame tolerance is the larger of the
- * stated one and three robust SDs (1.4826 MAD) of the clip's log ratios; the
+ * stated one and three SDs (1.4826 MAD) of the clip's log ratios; the
  * clip is asymmetric when the median log ratio is beyond the stated
  * tolerance plus three standard errors of the median and most frames carry
  * a ratio, which catches a constant fault that per-frame noise would hide.
