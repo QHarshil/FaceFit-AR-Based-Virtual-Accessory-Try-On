@@ -5,8 +5,8 @@ Evaluation data is downloaded on demand into `eval/.cache/datasets/`, which git 
 ## AFLW2000-3D
 
 ```sh
-node eval/datasets/download-aflw2000.mjs              # fetch, hash-check, unpack
-node eval/datasets/download-aflw2000.mjs --zip <path> # unpack a local copy, still hash-checked
+cd eval && node datasets/download-aflw2000.mjs              # fetch, hash-check, unpack
+cd eval && node datasets/download-aflw2000.mjs --zip <path> # unpack a local copy, still hash-checked
 ```
 
 - **What.** The first 2000 images of AFLW, cropped to 450x450, with a 3D morphable model fitted to each (Zhu et al., "Face Alignment Across Large Poses: A 3D Solution", CVPR 2016). Each `imageNNNNN.mat` holds `Pose_Para` (pitch, yaw and roll in radians, translation, scale) and `pt3d_68`, 68 landmarks of the fitted face in image pixels. The archive also ships the authors' MATLAB code, including the `RotationMatrix.m` that defines the angles.

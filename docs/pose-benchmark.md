@@ -44,7 +44,7 @@ Applied to the nose direction $(0, 0, 1)$ and the crown direction $(0, 1, 0)$: p
 
 Tests in [`conventions.test.mjs`](../eval/benchmark/conventions.test.mjs) check `RotationMatrix.m` entry by entry, the three.js Euler formula, the round trip through the decomposition, and the solver mapping on synthetic faces: a label pose is projected through 450x450 intrinsics, solved, mapped back and decomposed. Without noise the angles come back within $10^{-6}$ degrees. With 0.5 px of noise the per-axis MAE must stay under twice the linearized error from [geometry.md](geometry.md).
 
-**Check on near-frontal images.** On images labelled within 30 degrees on every axis, two checks are recorded under `conventionCheck`. First, the labels against the dataset's own fitted landmarks (`pt3d_68`): the eye-line angle should rise with roll, the nose tip should move left of the eyes with yaw, and toward them with pitch. This confirms the reading of `Pose_Para` independently of any method. Second, each method's angles against the labels; a wrong sign shows as a negative correlation. The recorded values are under Results.
+**Check on near-frontal images.** On images labelled within 30 degrees on every axis, two checks are recorded under `conventionCheck`. First, the labels against the dataset's own fitted landmarks (`pt3d_68`): the eye-line angle should rise with roll, the nose tip should move left of the eyes with yaw, and closer to the eye line as pitch increases. This confirms the reading of `Pose_Para` independently of any method. Second, each method's angles against the labels; a wrong sign shows as a negative correlation. The recorded values are under Results.
 
 ## Intrinsics assumption
 
@@ -97,7 +97,7 @@ cd eval && npm ci
 node datasets/download-aflw2000.mjs        # fetch, check SHA-256, unpack into .cache/datasets
 node benchmark/extract-landmarks.mjs       # FaceLandmarker on every image, cached in .cache/landmarks
 node benchmark/pose-benchmark.mjs          # refuses a dirty tree; merges into results.json
-node benchmark/pose-benchmark.mjs --table  # the tables below, from results.json
+node benchmark/pose-benchmark.mjs --table  # print the tables from results.json
 npm test
 ```
 
