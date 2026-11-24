@@ -6,14 +6,12 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if docker compose version &> /dev/null; then
-    compose=(docker compose)
-elif command -v docker-compose &> /dev/null; then
-    compose=(docker-compose)
-else
-    echo "Docker Compose is not installed. Install Docker Compose first."
+# Compose v2 only: v1 ignores Dockerfile.dockerignore files.
+if ! docker compose version &> /dev/null; then
+    echo "Docker Compose v2 is required. Install the docker compose plugin."
     exit 1
 fi
+compose=(docker compose)
 
 "${compose[@]}" down 2>/dev/null || true
 

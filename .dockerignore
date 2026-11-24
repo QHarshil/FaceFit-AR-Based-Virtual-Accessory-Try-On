@@ -1,0 +1,11 @@
+# Read by every build with the repository root as context. docker-compose v1
+# ignores Dockerfile.dockerignore files, and without this file it would send
+# the recordings, the eval cache and host node_modules to the daemon.
+.git
+eval/fixtures/recordings
+eval/.cache
+**/node_modules
+**/.env*
+**/dist
+**/.data
+**/npm-debug.log*
