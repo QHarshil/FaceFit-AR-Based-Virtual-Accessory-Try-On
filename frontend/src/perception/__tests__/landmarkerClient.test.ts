@@ -155,6 +155,24 @@ describe('landmarker client', () => {
     expect(waiting.close).toHaveBeenCalledTimes(1);
   });
 
+  it('stops tracking on an error for a single frame instead of skipping that frame', async () => {
+    const client = startLandmarker(options);
+    worker.reply({ type: 'ready', delegate: 'GPU' });
+    await client.ready;
+    client.submit(captured(0));
+    client.submit(captured(1));
+
+    worker.reply({ type: 'error', code: 'inference', detail: 'graph failed', frameId: 0 });
+    const later = captured(2);
+    client.submit(later);
+    worker.reply(result(1));
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(frameIdsPosted(worker)).toEqual([0]);
+    expect(later.close).toHaveBeenCalledTimes(1);
+    expect(onResult).not.toHaveBeenCalled();
+  });
+
   it('maps a worker script error to the worker code', async () => {
     const client = startLandmarker(options);
     worker.dispatchEvent(new ErrorEvent('error', { message: 'SyntaxError in worker' }));

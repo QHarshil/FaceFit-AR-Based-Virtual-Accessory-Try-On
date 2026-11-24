@@ -43,7 +43,10 @@ export interface ErrorResponse {
   type: 'error';
   code: PerceptionErrorCode;
   detail: string;
-  /** Set when the error belongs to one frame; that frame produces no result. */
+  /**
+   * The frame that failed, when the error came from one. Every error is fatal,
+   * per-frame ones included: the client stops the worker and reports it.
+   */
   frameId?: number;
 }
 
