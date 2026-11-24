@@ -15,7 +15,7 @@ export function renderPoseTable(entry) {
   const lines = [
     `AFLW2000-3D, ${counts.evaluated} of ${counts.images} images evaluated: ${counts.beyondProtocolLimit} excluded for a label beyond 99 deg, ${counts.noFaceInProtocol} for no detected face, ${counts.inProtocol - counts.noFaceInProtocol - counts.evaluated} for a failed pose. solveHeadPose assumes a ${fovAssumption.degrees} deg FOV. Commit \`${entry.commit.slice(0, 9)}\`, ${hardware.cpu}.`,
     '',
-    '| Method | Yaw MAE | Pitch MAE | Roll MAE | Mean MAE | Geodesic median | Within 5 / 10 / 15 deg |',
+    '| Method | Yaw MAE (deg) | Pitch MAE (deg) | Roll MAE (deg) | Mean MAE (deg) | Geodesic median (deg) | Within 5 / 10 / 15 deg |',
     '|---|---|---|---|---|---|---|',
   ];
   for (const [key, label] of Object.entries(METHOD_LABELS)) {
@@ -29,8 +29,8 @@ export function renderPoseTable(entry) {
     '',
     `| solveHeadPose FOV (deg) | ${fovs.join(' | ')} |`,
     `|---|${fovs.map(() => '---').join('|')}|`,
-    row('Mean MAE', (s) => deg(s.maeDeg.mean)),
-    row('Geodesic median', (s) => deg(s.geodesicMedianDeg)),
+    row('Mean MAE (deg)', (s) => deg(s.maeDeg.mean)),
+    row('Geodesic median (deg)', (s) => deg(s.geodesicMedianDeg)),
     row('Failed solves', (s) => String(s.failures)),
   );
   return lines.join('\n');

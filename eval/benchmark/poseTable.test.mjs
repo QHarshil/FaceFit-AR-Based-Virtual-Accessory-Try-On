@@ -48,7 +48,7 @@ describe('renderPoseTable', () => {
     assert.ok(lines.includes('| Eye-line heuristic (app today) | 20.00 | 10.00 | 6.00 | 12.00 | 22.50 | 1.0% / 10.0% / 30.0% |'));
     assert.ok(lines.includes('| solveHeadPose | 5.00 | 7.00 | 4.00 | 5.33 | 7.50 | 25.0% / 65.0% / 87.5% |'));
     assert.ok(lines.includes('| solveHeadPose FOV (deg) | 30 | 63 |'));
-    assert.ok(lines.includes('| Mean MAE | 6.50 | 5.33 |'));
+    assert.ok(lines.includes('| Mean MAE (deg) | 6.50 | 5.33 |'));
     assert.ok(lines.includes('| Failed solves | 0 | 1 |'));
   });
 
