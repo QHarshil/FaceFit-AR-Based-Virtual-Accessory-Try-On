@@ -66,7 +66,7 @@ The motion clips (`MOTION` in `harness/conditions.mjs`) draw the clip frame inde
 | motion `error` | RMS and p95 of the value minus truth, after removing their median offset | lower |
 | motion `stepLagMs` | per step, the presentation of the first frame showing it to the first sample at 90% of the step | lower |
 | motion `overshootPercent` | per step, the peak past the new level in percent of the step | 0 |
-| motion `delayMs` | phase lag of the clip's fundamental between value and truth sampled at the same times, where their cross-correlation peaks for a pure delay | 0 |
+| motion `delayMs` | phase lag of the clip's fundamental between value and truth sampled at the same times, where their cross-correlation peaks for a pure delay; null when `gain`, the ratio of their fitted amplitudes, is below 0.5 | 0 |
 | motion `constantVelocityLagMs` | half the difference of truth minus value between falling and rising ramp segments, over the speed | 0 |
 
 Motion metrics come in three series: `rendered`, what each render drew against the frame on screen at that render; `smoothed`, the filtered pose of each processed frame against that frame's truth; and `face`, the landmarks themselves (landmark 168 for `dx`, the eye line for roll). `rendered` includes the pipeline; `smoothed` and `face` include only filtering, MediaPipe's or ours. `summary.solver.gatedShare` leaves the motion clips out so it stays comparable with older runs.

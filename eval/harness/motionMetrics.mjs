@@ -105,8 +105,9 @@ export const stepResponses = (samples, frames, truthOfIndex, { fraction = 0.9, b
 };
 
 // Least-squares fit of c + a sin(wt) + b cos(wt) by Gauss-Jordan elimination
-// on the 3 x 3 normal equations; returns the phase atan2(b, a).
-const fundamentalPhase = (ts, ys, omega) => {
+// on the 3 x 3 normal equations; returns the phase atan2(b, a) and the
+// amplitude hypot(a, b).
+const fundamental = (ts, ys, omega) => {
   const rows = ts.map((t) => [1, Math.sin(omega * t), Math.cos(omega * t)]);
   const m = [0, 1, 2].map((i) => [
     ...[0, 1, 2].map((j) => rows.reduce((s, r) => s + r[i] * r[j], 0)),
@@ -122,23 +123,31 @@ const fundamentalPhase = (ts, ys, omega) => {
       for (let c = col; c < 4; c += 1) m[r][c] -= f * m[col][c];
     }
   }
-  return Math.atan2(m[2][3] / m[2][2], m[1][3] / m[1][1]);
+  const a = m[1][3] / m[1][1];
+  const b = m[2][3] / m[2][2];
+  return { phase: Math.atan2(b, a), amplitude: Math.hypot(a, b) };
 };
+
+// Below this ratio of fitted amplitudes the value has smoothed the motion
+// away, and its phase no longer measures a lag.
+export const MIN_FUNDAMENTAL_GAIN = 0.5;
 
 // Delay of the samples behind their truth at the clip's fundamental
 // frequency: the phase difference of the fitted fundamentals over the
-// angular frequency. Both are sampled at the same times, so the truth's own
-// staircase cancels. For a pure delay this is where the cross-correlation
-// peaks.
-export const fundamentalDelayMs = (samples, frequencyHz) => {
-  if (samples.length < 4 || !(frequencyHz > 0)) return null;
+// angular frequency, and the ratio of their amplitudes. Both are sampled at
+// the same times, so the truth's own staircase cancels. For a pure delay the
+// delay is where the cross-correlation peaks. The delay is null when the gain
+// is below MIN_FUNDAMENTAL_GAIN.
+export const fundamentalFit = (samples, frequencyHz) => {
+  if (samples.length < 4 || !(frequencyHz > 0)) return { delayMs: null, gain: null };
   const omega = 2 * Math.PI * frequencyHz;
   const ts = samples.map((s) => s.t / 1000);
-  const truthPhase = fundamentalPhase(ts, samples.map((s) => s.truth), omega);
-  const valuePhase = fundamentalPhase(ts, samples.map((s) => s.value), omega);
-  let difference = truthPhase - valuePhase;
+  const truth = fundamental(ts, samples.map((s) => s.truth), omega);
+  const value = fundamental(ts, samples.map((s) => s.value), omega);
+  let difference = truth.phase - value.phase;
   difference -= 2 * Math.PI * Math.round(difference / (2 * Math.PI));
-  return (difference / omega) * 1000;
+  const gain = value.amplitude / truth.amplitude;
+  return { delayMs: gain >= MIN_FUNDAMENTAL_GAIN ? (difference / omega) * 1000 : null, gain };
 };
 
 // Lag at constant velocity on a triangle wave, in ms. On a rising segment a
@@ -200,7 +209,9 @@ export const motionMetrics = (samples, frames, condition, framesPerSecond, truth
     metrics.stepLagMs = { median: lags.length ? median(lags) : null, max: lags.length ? Math.max(...lags) : null, missed: steps.length - lags.length };
     metrics.overshootPercent = { median: steps.length ? median(steps.map((s) => s.overshootPercent)) : null, max: steps.length ? Math.max(...steps.map((s) => s.overshootPercent)) : null };
   } else {
-    metrics.delayMs = fundamentalDelayMs(samples, framesPerSecond / periodFrames);
+    const { delayMs, gain } = fundamentalFit(samples, framesPerSecond / periodFrames);
+    metrics.delayMs = delayMs;
+    metrics.gain = gain;
     if (motion.kind === 'triangle') metrics.constantVelocityLagMs = triangleLagMs(samples, frames, motion, framesPerSecond);
   }
   return metrics;

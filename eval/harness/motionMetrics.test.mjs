@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { MOTION, motionExpression, motionPeriodFrames, motionTruth } from './conditions.mjs';
 import {
-  frameAt, frameSamples, fundamentalDelayMs, mediaTimeMismatchShare, motionMetrics, offsetError, presentationRate,
+  frameAt, frameSamples, fundamentalFit, mediaTimeMismatchShare, motionMetrics, offsetError, presentationRate,
   presentedFrames, renderedSamples, stepResponses, triangleLagMs,
 } from './motionMetrics.mjs';
 
@@ -94,7 +94,7 @@ test('stepResponses times a delayed first-order response and its overshoot', () 
   assert.ok(stepResponses(overshooting, frames, truth).some((r) => r.overshootPercent > 10));
 });
 
-test('fundamentalDelayMs recovers a known delay of a sinusoid and of a triangle wave', () => {
+test('fundamentalFit recovers a known delay of a sinusoid and of a triangle wave', () => {
   const frames = syntheticFrames(480);
   for (const id of ['sine-roll', 'ramp-x']) {
     const { motion } = MOTION.find((m) => m.id === id);
@@ -106,8 +106,13 @@ test('fundamentalDelayMs recovers a known delay of a sinusoid and of a triangle 
       const delayed = frameAt(frames, t - 40);
       samples.push({ t, index: shown.index, truth: truth(shown.index), value: 3 + truth(delayed.index) });
     }
-    const delay = fundamentalDelayMs(samples, 30 / motionPeriodFrames(motion));
-    assert.ok(Math.abs(delay - 40) < 3, `${id}: ${delay}`);
+    const { delayMs, gain } = fundamentalFit(samples, 30 / motionPeriodFrames(motion));
+    assert.ok(Math.abs(delayMs - 40) < 3, `${id}: ${delayMs}`);
+    close(gain, 1, 0.02);
+    // A value that keeps a tenth of the motion has no meaningful phase.
+    const flattened = samples.map((s) => ({ ...s, value: 3 + 0.1 * (s.value - 3) }));
+    assert.equal(fundamentalFit(flattened, 30 / motionPeriodFrames(motion)).delayMs, null);
+    close(fundamentalFit(flattened, 30 / motionPeriodFrames(motion)).gain, 0.1, 0.01);
   }
 });
 
