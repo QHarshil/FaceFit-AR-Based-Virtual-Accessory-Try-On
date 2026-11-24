@@ -5,9 +5,10 @@
   "scripts": {
     "fixtures": "node fixtures/build.mjs",
     "baseline": "node harness/baseline.mjs",
-    "test": "node --test harness/*.test.mjs"
+    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs"
   },
   "devDependencies": {
+    "@mediapipe/tasks-vision": "1.2.3",
     "playwright-core": "1.65.1"
   }
 }
