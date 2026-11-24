@@ -6,7 +6,7 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY packages/cv/src /app/packages/cv/src
-COPY packages/cv/tsconfig.json packages/cv/tsconfig.types.json /app/packages/cv/
+COPY packages/cv/package.json packages/cv/tsconfig.json packages/cv/tsconfig.types.json /app/packages/cv/
 COPY assets/out /app/assets/out
 COPY frontend/ ./
 ARG VITE_API_URL=http://localhost:5055
