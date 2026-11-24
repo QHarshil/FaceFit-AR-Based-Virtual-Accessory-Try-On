@@ -34,6 +34,7 @@ const {
   gateHeadPose,
   landmarksToPixels,
   MAX_RMS_REPROJECTION_MM,
+  SHOW_BELOW_RMS_MM,
 } = await import('../headPose');
 
 const DEG = 180 / Math.PI;
@@ -246,5 +247,117 @@ describe('gate', () => {
       intrinsics: null,
     });
     expect(solveCalls).toHaveLength(0);
+  });
+});
+
+describe('facing gate', () => {
+  const mirrored = (frame: LandmarkFrame): LandmarkFrame => {
+    const landmarks = Float32Array.from(frame.landmarks);
+    for (let i = 0; i < landmarks.length; i += 3) landmarks[i] = 1 - (landmarks[i] as number);
+    return { ...frame, landmarks };
+  };
+
+  it('hides a solve whose face points away from the camera', () => {
+    const intrinsics = intrinsicsOf(1280, 720);
+    const gaussian = seededGaussian(5);
+    let hidden = 0;
+    for (let trial = 0; trial < 20; trial += 1) {
+      const pose: HeadPose = {
+        rotation: rotationFromDegrees(gaussian(5), gaussian(10), gaussian(5)),
+        translationMm: [gaussian(40), gaussian(30), 500 + trial * 10],
+      };
+      const frame = mirrored(syntheticLandmarkFrame(pose, intrinsics));
+      const estimate = createHeadPoseTracker().update(frame);
+      if (!estimate.trusted) hidden += 1;
+    }
+    expect(hidden).toBe(20);
+  });
+
+  it('reports the facing reason for a solve that fits but looks away', () => {
+    const intrinsics = intrinsicsOf(1280, 720);
+    const away: HeadPoseResult = {
+      ok: true,
+      rotation: [-1, 0, 0, 0, 1, 0, 0, 0, -1],
+      translationMm: [0, 0, 500],
+      rmsReprojectionPx: 1,
+      inlierIndices: [0, 1, 2, 3, 4, 5],
+      iterations: 3,
+    };
+    expect(gateHeadPose(away, intrinsics)).toMatchObject({ trusted: false, reason: 'facing-away' });
+  });
+});
+
+describe('gate hysteresis', () => {
+  const intrinsics: CameraIntrinsics = {
+    fx: 1000,
+    fy: 1000,
+    cx: 640,
+    cy: 360,
+    width: 1280,
+    height: 720,
+  };
+  const at = (mm: number): HeadPoseResult => ({
+    ok: true,
+    rotation: IDENTITY3,
+    translationMm: [0, 0, 500],
+    rmsReprojectionPx: 2 * mm,
+    inlierIndices: [0, 1, 2, 3, 4, 5],
+    iterations: 3,
+  });
+
+  it('keeps the reshow value below the hide value and above the measured blink maximum', () => {
+    expect(SHOW_BELOW_RMS_MM).toBeLessThan(MAX_RMS_REPROJECTION_MM);
+    expect(SHOW_BELOW_RMS_MM).toBeGreaterThan(4.53);
+  });
+
+  it('stays hidden between the two values and shows again below the lower one', () => {
+    const between = (SHOW_BELOW_RMS_MM + MAX_RMS_REPROJECTION_MM) / 2;
+    expect(gateHeadPose(at(between), intrinsics, { wasShown: true }).trusted).toBe(true);
+    expect(gateHeadPose(at(between), intrinsics, { wasShown: false }).trusted).toBe(false);
+    expect(
+      gateHeadPose(at(SHOW_BELOW_RMS_MM - 1e-6), intrinsics, { wasShown: false }).trusted,
+    ).toBe(true);
+    expect(gateHeadPose(at(SHOW_BELOW_RMS_MM), intrinsics, { wasShown: false }).trusted).toBe(
+      false,
+    );
+  });
+
+  it('hides above the upper value when shown', () => {
+    const above = gateHeadPose(at(MAX_RMS_REPROJECTION_MM + 1e-6), intrinsics, { wasShown: true });
+    expect(above).toMatchObject({ trusted: false, reason: 'reprojection' });
+  });
+
+  it('does not flicker for a value oscillating across the upper value', () => {
+    const readings = [-0.1, 0.1, -0.1, 0.1, -0.1, 0.1].map((d) => MAX_RMS_REPROJECTION_MM + d);
+    let wasShown = true;
+    const shown = readings.map((mm) => {
+      const { trusted } = gateHeadPose(at(mm), intrinsics, { wasShown });
+      wasShown = trusted;
+      return trusted;
+    });
+    // Without hysteresis this would read true, false, true, false, true, false.
+    expect(shown).toEqual([true, false, false, false, false, false]);
+  });
+
+  it('carries the state across frames in the tracker', () => {
+    const pose: HeadPose = { rotation: rotationFromDegrees(0, 5, 0), translationMm: [0, 0, 600] };
+    const size = intrinsicsOf(1280, 720);
+    // The same noise pattern at three scales gives three increasing RMS values.
+    const withNoise = (sigmaPx: number) =>
+      syntheticLandmarkFrame(pose, size, { sigmaPx, gaussian: seededGaussian(11) });
+    const [low, mid, high] = [1, 2, 4].map(withNoise) as [
+      LandmarkFrame,
+      LandmarkFrame,
+      LandmarkFrame,
+    ];
+    const rms = (frame: LandmarkFrame) =>
+      createHeadPoseTracker({ maxRmsReprojectionMm: Infinity }).update(frame).fit
+        ?.rmsReprojectionMm ?? Number.NaN;
+    const tracker = createHeadPoseTracker({
+      maxRmsReprojectionMm: (rms(mid) + rms(high)) / 2,
+      showBelowRmsMm: (rms(low) + rms(mid)) / 2,
+    });
+    const shown = [low, high, mid, low, mid].map((frame) => tracker.update(frame).trusted);
+    expect(shown).toEqual([true, false, false, true, true]);
   });
 });

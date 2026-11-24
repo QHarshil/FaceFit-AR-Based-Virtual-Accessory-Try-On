@@ -100,11 +100,13 @@ treats points past the Huber scale $c$ or the rejection threshold $\tau$ as carr
 
 ## In the app
 
-[`frontend/src/geometry/headPose.ts`](../frontend/src/geometry/headPose.ts) runs once per landmark frame. Landmarks map to pixels of the camera frame as $(xW, yH)$, intrinsics come from an assumed 60 degree horizontal FOV, and `solveHeadPose` fits the 33 rigid landmarks, warm-started from the last trusted pose. The overlay hides when the solve fails, when no face is found, or when the reprojection RMS scaled to the face,
+[`frontend/src/geometry/headPose.ts`](../frontend/src/geometry/headPose.ts) runs once per landmark frame. Landmarks map to pixels of the camera frame as $(xW, yH)$, intrinsics come from an assumed 60 degree horizontal FOV, and `solveHeadPose` fits the 33 rigid landmarks, warm-started from the last trusted pose. The overlay hides when the solve fails, when no face is found, when the face's forward axis points away from the camera, or when the reprojection RMS scaled to the face,
 
 $$\text{rms}_\text{mm} = \text{rms} \cdot \frac{t_z}{f_x},$$
 
-exceeds 6 mm. Landmark noise and the gap between the wearer's face and the canonical one both grow with the face's size in pixels, so the RMS in pixels would gate near faces more often than far ones; the scaled value does not depend on distance, nor to first order on the assumed FOV, since $t_z$ scales with $f_x$.
+exceeds 6 mm. The facing test rejects a mirrored landmark set, which fits the model with a flipped depth and a small RMS. A hidden overlay shows again only below 5 mm. The eval harness measures at most 3.58 mm for a still face and 4.53 mm through blinks, so 5 mm shows a blinking face at once, and a reading between 5 and 6 mm does not flip the overlay every frame.
+
+The scaling removes the face's size in pixels from the gap between the wearer's face and the canonical one, and from the assumed FOV to first order, since $t_z$ scales with $f_x$. It does not remove it from landmark noise. For a fixed noise in pixels the RMS in millimetres grows in proportion to depth, so a far face reaches 6 mm sooner than a near one.
 
 ## Seating the frame
 
