@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrixFromVector } from '../../packages/cv/src/index.ts';
-import { operatingPoint, paretoFront, recommend } from './poseFilterSweep.mjs';
+import { seededRandom } from '../../packages/cv/test/random.ts';
+import { renderPlot } from './plotPoseFilter.mjs';
+import { operatingPoint, paretoFront, recommend, solvedPoseNoise } from './poseFilterSweep.mjs';
 import { pageProjection, replayRun } from './poseReplay.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -121,4 +123,37 @@ test('replayRun runs the warmup first and keeps only the measured output', () =>
   const cold = replayRun(run, () => null);
   assert.equal(warm.renders.length, cold.renders.filter((r) => r.t >= run.events[split].start).length);
   assert.deepEqual(warm.renders.at(-1), cold.renders.at(-1));
+});
+
+test('solvedPoseNoise recovers white translation and rotation noise of a known size', () => {
+  const random = seededRandom(31);
+  const sigma = [0.8, 0.3, 2];
+  const sigmaRad = 0.003;
+  const events = Array.from({ length: 3000 }, (_, k) => {
+    const rotation = rotationMatrixFromVector([random.gaussian(sigmaRad), random.gaussian(sigmaRad), random.gaussian(sigmaRad)]);
+    const q = quaternionFromMatrix(rotation);
+    const landmarks = Array.from({ length: 13 }, (_, i) => [0.4 + 0.01 * i, 0.5 + (i % 3) * 0.01, 0]);
+    return {
+      stage: 'glassesPose', t: k * 33.3, gated: false,
+      headPose: { quaternion: [q.x, q.y, q.z, q.w], translationMm: sigma.map((s, i) => [0, 0, 600][i] + random.gaussian(s)) },
+      landmarks, targetNdc: [0, 0], smoothedNdc: [0, 0], smoothedEndsNdc: [[-0.1, 0], [0.1, 0]], euler: [0, 0, 0],
+    };
+  });
+  const noise = solvedPoseNoise({ events, environment: { video: [1280, 720], viewport: [1280, 720] } });
+  noise.translationMm.forEach((estimate, i) => close(estimate / sigma[i], 1, 0.06));
+  close(noise.rotationRad / sigmaRad, 1, 0.06);
+});
+
+test('renderPlot draws one curve per filter and configuration, the unfiltered points and the targets', () => {
+  const metrics = (positionPx, rotationDeg, lagMs) => ({ metrics: { recStatic: { positionPx, rotationDeg }, stepLagMs: lagMs, rampDelayMs: lagMs - 5, sineDelayMs: lagMs } });
+  const stage = () => ({ front: [metrics(1.2, 0.2, 20), metrics(0.8, 0.15, 40), metrics(0.5, 0.1, 400)], chosen: metrics(0.8, 0.15, 40) });
+  const configuration = (numFaces) => ({ numFaces, label: `off-${numFaces}`, unfiltered: metrics(1.4, 0.24, 17).metrics, oneEuro: { rotation: stage(), translation: stage() }, kalman: { rotation: stage(), translation: stage() } });
+  const svg = renderPlot({ commit: 'abcdef1234', targets: { positionJitterPx: 0.5, rotationJitterDeg: 0.1, lagMs: 50 }, recommended: { filter: 'oneEuro', numFaces: 1 }, configurations: [configuration(1), configuration(2)] });
+  assert.ok(svg.startsWith('<svg'));
+  // Two panels with four curves each; the 400 ms point is past the axis and dropped.
+  assert.equal((svg.match(/<path /g) ?? []).length, 8);
+  assert.equal((svg.match(/stroke-dasharray="6 4"/g) ?? []).length, 2 * 2 + 2);
+  assert.equal((svg.match(/>none, [12]</g) ?? []).length, 4);
+  assert.equal((svg.match(/>chosen</g) ?? []).length, 2);
+  assert.ok(svg.includes('>target<'));
 });

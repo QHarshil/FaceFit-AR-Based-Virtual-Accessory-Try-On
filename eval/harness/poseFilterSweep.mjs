@@ -36,9 +36,9 @@ export const SWEEP_KEY = 'pose-filter-sweep';
 export const TARGETS = { rotationJitterDeg: 0.1, positionJitterPx: 0.5, lagMs: 50 };
 
 const ONE_EURO_GRID = {
-  minCutoffHz: [0.05, 0.1, 0.2, 0.4, 0.7, 1, 1.5, 2.5],
-  rotationBeta: [0, 0.3, 1, 3, 10, 30],
-  translationBeta: [0, 0.003, 0.01, 0.03, 0.1, 0.3],
+  minCutoffHz: [0.02, 0.05, 0.1, 0.2, 0.4, 0.7, 1, 1.5, 2.5],
+  rotationBeta: [0, 1, 3, 10, 30, 100],
+  translationBeta: [0, 0.003, 0.01, 0.03, 0.1, 0.3, 1],
   derivativeCutoffHz: [0.5, 1, 2, 4],
 };
 const geometric = (from, to, count) => Array.from({ length: count }, (_, i) => from * (to / from) ** (i / (count - 1)));
