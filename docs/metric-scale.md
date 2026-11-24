@@ -76,16 +76,16 @@ The denominator is $E[\sum \lVert r_i \rVert^2]/\sigma^2$ for a weighted fit and
 
 From `runs["metric-scale"]` in [eval/results.json](../eval/results.json), Apple M4 Pro, Node 25.1, landmarks from `@mediapipe/tasks-vision` 1.2.3 on the CPU delegate in headless Chrome 158, VIDEO mode, 60 degree field of view assumed.
 
-**Recordings** (two webcam clips, 360 frames each at 1280x720 and 30 fps; stability only, since no reference PD exists for them; no PD or face width is recorded):
+**Recordings** (two webcam clips, 360 frames each at 1280x720 and 30 fps; stability only, since no reference PD exists for them). Recorded clips store only counts, frame-to-frame SDs in percent, 95% half-widths rounded to whole percent, clip-to-clip agreement and dimensionless landmark diagnostics. The distance-PD conversion and face-width model SDs and the focal sensitivity depend on depth and focal length, and together they rebuild the face scale, so they are left out; `eval/scale/privacy.test.mjs` checks that no attack on the stored fields beats the 4.3% iris population spread.
 
 | Clip | Accepted | Rejected (eyes closed) | Near PD frame SD | Face width frame SD | Near PD 95% half-width | Face width 95% half-width |
 |------|----------|------------------------|------------------|---------------------|------------------------|---------------------------|
-| static | 346 | 14 | 0.656% | 0.559% | 8.386% | 9.036% |
-| blink | 295 | 65 | 0.518% | 0.532% | 8.384% | 9.058% |
+| static | 346 | 14 | 0.656% | 0.559% | 8% | 9% |
+| blink | 295 | 65 | 0.518% | 0.532% | 8% | 9% |
 
-The intervals are almost all population term. The two clips' medians differ by 0.459% for near PD and 0.745% for face width. Assuming a 50 or 70 degree field of view instead of 60 moves near PD by -0.074% and +0.102% and face width by -2.142% and +2.409% on the static clip, as the first-order argument predicts.
+No frame failed the iris-in-eye, face-scale or asymmetry checks. The right-over-left iris ratio's 1st to 99th percentiles are 0.989 to 1.010 (static) and 0.992 to 1.034 (blink). The two clips' medians differ by 0.459% for near PD and 0.745% for face width.
 
-**Synthetic faces** (`packages/cv/test/syntheticFace.ts`, seeded): over 12 configurations of 300 frames (450 to 900 mm, yaw 0 and 8 degrees, 0.5 and 1 px), the frame SD of PD is 0.94 to 1.15 times the first-principles prediction. Over 1,000 subjects drawn from the iris population, each with a focal length and iris plane drawn from the modelled spreads, 20 frames each, the nominal 95% intervals cover the truth for 94.3% (near PD), 94.7% (distance PD) and 94.0% (face width). With the population term off, the noise term alone covers near PD for 95.8% of 600 subjects.
+**Synthetic faces** (`packages/cv/test/syntheticFace.ts`, seeded): over 12 configurations of 300 frames (450 to 900 mm, yaw 0 and 8 degrees, 0.5 and 1 px), the frame SD of PD is 0.94 to 1.15 times the first-principles prediction, which counts the frames whose scale comes from one eye (0 to 65 of 300). Over 1,000 subjects drawn from the iris population, each with a focal length, iris plane and rotation-centre lever drawn from the modelled spreads, 20 frames each, the nominal 95% intervals cover the truth for 95.4% (near PD), 95.5% (distance PD) and 95.8% (face width). With the population term off, the noise term alone covers near PD for 97.2% of 600 subjects, and distance PD, whose conversion then carries weight, for 93.5% of 600 subjects, falling to 48.0% without the conversion SD. Assuming a 50 or 75 degree field of view for a 62 degree camera moves near PD by -0.05% and +0.081% and face width by -2.393% and +3.012%, as the first-order argument predicts.
 
 **Pose covariance** against the Monte Carlo spread of 1,000 solves at each of three poses: reported over observed SD is 0.955 to 1.033 (rotation) and 0.972 to 1.013 (translation) at 0.5 px, 0.947 to 0.988 and 0.935 to 1.002 at 1 px, and 0.876 to 0.932 at 2 px, where the Huber loss and rejection, which the formula leaves out, cost efficiency.
 

@@ -4096,8 +4096,8 @@
       }
     },
     "metric-scale": {
-      "measuredAt": "2026-11-24T07:33:02.782Z",
-      "commit": "69e7148f79878746dd771d1bd82204d2c02cbae8",
+      "measuredAt": "2026-11-24T23:48:56.103Z",
+      "commit": "530e1b05e1f78135d26018c1b5dfe16ef3d8b7cf",
       "dirty": false,
       "command": "node eval/scale/measure.mjs --clips <dir>",
       "hardware": {
@@ -4128,15 +4128,18 @@
           "maxPitchDeg": 20,
           "maxRmsReprojectionMm": 5,
           "maxRotationStdDeg": 2,
+          "minFaceScale": 0.55,
+          "maxFaceScale": 1.45,
           "minEyeOpenness": 0.15,
           "minRelativeEyeOpenness": 0.9,
+          "maxIrisAsymmetry": 0.06,
           "minAcceptedFrames": 10,
           "irisDiameterMm": 11.7,
           "irisDiameterSdMm": 0.5
         }
       },
       "recordings": {
-        "privacy": "counts, relative spreads and relative interval half-widths only; no PD, face width or face scale is recorded",
+        "privacy": "counts, frame-to-frame SDs in percent, 95% half-widths rounded to whole percent, clip-to-clip median agreement and dimensionless landmark diagnostics; nothing that depends on depth or focal length, so no PD, face width or face scale can be rebuilt",
         "clips": {
           "rec-static": {
             "clipSha256": "0f4a1b805ac2d960f91fa04198c1b1fd99ce8f561490b9fba9587907b6b020a4",
@@ -4145,7 +4148,7 @@
               720
             ],
             "fps": 30,
-            "landmarksExtractedAtCommit": "06a504379c594c528774b80619c0771a1ce83ba7",
+            "landmarksExtractedAtCommit": "b25d2ad76be834e9bd214c225b99f2a9ddc69838",
             "landmarksExtractedFromDirtyTree": false,
             "ok": true,
             "frames": 360,
@@ -4154,38 +4157,33 @@
               "no-face": 0,
               "pose-failed": 0,
               "measurement-failed": 0,
+              "iris-outside-eye": 0,
               "untrusted-pose": 0,
               "off-axis": 0,
-              "eyes-closed": 14
+              "implausible-scale": 0,
+              "eyes-closed": 14,
+              "asymmetric-iris": 0
             },
             "nearPupillaryDistance": {
               "frameSdPercent": 0.656,
-              "halfWidthPercent": 8.386,
-              "noiseSdPercent": 0.21,
-              "populationSdPercent": 4.274,
-              "modelSdPercent": 0,
-              "effectiveFrames": 15.3
+              "halfWidthPercent": 8
             },
             "distancePupillaryDistance": {
-              "frameSdPercent": 0.632,
-              "halfWidthPercent": 8.455,
-              "noiseSdPercent": 0.198,
-              "populationSdPercent": 4.274,
-              "modelSdPercent": 0.554,
-              "effectiveFrames": 16
+              "halfWidthPercent": 8
             },
             "faceWidth": {
               "frameSdPercent": 0.559,
-              "halfWidthPercent": 9.036,
-              "noiseSdPercent": 0.155,
-              "populationSdPercent": 4.274,
-              "modelSdPercent": 1.722,
-              "effectiveFrames": 20.5
+              "halfWidthPercent": 9
             },
-            "faceScaleFrameSdPercent": 0.567,
             "landmarkDiagnostics": {
               "irisVerticalOverHorizontal": 0.873,
               "openFrameOpennessSdPercent": 1.09,
+              "irisDiameterRatio": {
+                "frames": 346,
+                "p1": 0.989,
+                "median": 1.005,
+                "p99": 1.01
+              },
               "irisWidthByRelativeOpenness": [
                 {
                   "relativeOpenness": [
@@ -4220,18 +4218,6 @@
                   "irisWidthChangePercent": 0
                 }
               ]
-            },
-            "focalSensitivity": {
-              "assumed50Deg": {
-                "nearPupillaryDistance": -0.074,
-                "distancePupillaryDistance": -0.494,
-                "faceWidth": -2.142
-              },
-              "assumed70Deg": {
-                "nearPupillaryDistance": 0.102,
-                "distancePupillaryDistance": 0.563,
-                "faceWidth": 2.409
-              }
             }
           },
           "rec-blink": {
@@ -4241,7 +4227,7 @@
               720
             ],
             "fps": 30,
-            "landmarksExtractedAtCommit": "06a504379c594c528774b80619c0771a1ce83ba7",
+            "landmarksExtractedAtCommit": "b25d2ad76be834e9bd214c225b99f2a9ddc69838",
             "landmarksExtractedFromDirtyTree": false,
             "ok": true,
             "frames": 360,
@@ -4250,38 +4236,33 @@
               "no-face": 0,
               "pose-failed": 0,
               "measurement-failed": 0,
+              "iris-outside-eye": 0,
               "untrusted-pose": 0,
               "off-axis": 0,
-              "eyes-closed": 65
+              "implausible-scale": 0,
+              "eyes-closed": 65,
+              "asymmetric-iris": 0
             },
             "nearPupillaryDistance": {
               "frameSdPercent": 0.518,
-              "halfWidthPercent": 8.384,
-              "noiseSdPercent": 0.193,
-              "populationSdPercent": 4.274,
-              "modelSdPercent": 0,
-              "effectiveFrames": 11.3
+              "halfWidthPercent": 8
             },
             "distancePupillaryDistance": {
-              "frameSdPercent": 0.507,
-              "halfWidthPercent": 8.457,
-              "noiseSdPercent": 0.191,
-              "populationSdPercent": 4.274,
-              "modelSdPercent": 0.564,
-              "effectiveFrames": 11.1
+              "halfWidthPercent": 8
             },
             "faceWidth": {
               "frameSdPercent": 0.532,
-              "halfWidthPercent": 9.058,
-              "noiseSdPercent": 0.147,
-              "populationSdPercent": 4.274,
-              "modelSdPercent": 1.754,
-              "effectiveFrames": 20.5
+              "halfWidthPercent": 9
             },
-            "faceScaleFrameSdPercent": 0.465,
             "landmarkDiagnostics": {
               "irisVerticalOverHorizontal": 0.876,
               "openFrameOpennessSdPercent": 1.084,
+              "irisDiameterRatio": {
+                "frames": 295,
+                "p1": 0.992,
+                "median": 1.005,
+                "p99": 1.034
+              },
               "irisWidthByRelativeOpenness": [
                 {
                   "relativeOpenness": [
@@ -4316,24 +4297,11 @@
                   "irisWidthChangePercent": 0
                 }
               ]
-            },
-            "focalSensitivity": {
-              "assumed50Deg": {
-                "nearPupillaryDistance": -0.077,
-                "distancePupillaryDistance": -0.505,
-                "faceWidth": -2.177
-              },
-              "assumed70Deg": {
-                "nearPupillaryDistance": 0.106,
-                "distancePupillaryDistance": 0.578,
-                "faceWidth": 2.445
-              }
             }
           }
         },
         "blinkAgainstStaticMedianChangePercent": {
           "nearPupillaryDistance": 0.459,
-          "distancePupillaryDistance": 0.5,
           "faceWidth": 0.745
         },
         "landmarks": {
@@ -4356,6 +4324,7 @@
             "yawDeg": 0,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 0,
             "nearPupillaryDistance": {
               "truthMm": 62.89,
               "medianErrorMm": -0.059,
@@ -4384,6 +4353,7 @@
             "yawDeg": 8,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 0,
             "nearPupillaryDistance": {
               "truthMm": 62.9,
               "medianErrorMm": 0.027,
@@ -4412,26 +4382,27 @@
             "yawDeg": 0,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 2,
             "nearPupillaryDistance": {
               "truthMm": 63.41,
               "medianErrorMm": 0.222,
               "medianErrorPercent": 0.351,
-              "frameSdPercent": 2.46,
-              "predictedFrameSdPercent": 2.444
+              "frameSdPercent": 2.502,
+              "predictedFrameSdPercent": 2.452
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
               "medianErrorMm": 0.223,
               "medianErrorPercent": 0.346,
-              "frameSdPercent": 2.419,
-              "predictedFrameSdPercent": 2.443
+              "frameSdPercent": 2.46,
+              "predictedFrameSdPercent": 2.451
             },
             "faceWidth": {
               "truthMm": 164.15,
               "medianErrorMm": 0.508,
               "medianErrorPercent": 0.309,
-              "frameSdPercent": 2.446,
-              "predictedFrameSdPercent": 2.438
+              "frameSdPercent": 2.491,
+              "predictedFrameSdPercent": 2.446
             }
           },
           {
@@ -4440,26 +4411,27 @@
             "yawDeg": 8,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 1,
             "nearPupillaryDistance": {
               "truthMm": 63.42,
               "medianErrorMm": 0.213,
               "medianErrorPercent": 0.336,
-              "frameSdPercent": 2.472,
-              "predictedFrameSdPercent": 2.446
+              "frameSdPercent": 2.531,
+              "predictedFrameSdPercent": 2.45
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
               "medianErrorMm": 0.226,
               "medianErrorPercent": 0.35,
-              "frameSdPercent": 2.431,
-              "predictedFrameSdPercent": 2.445
+              "frameSdPercent": 2.489,
+              "predictedFrameSdPercent": 2.449
             },
             "faceWidth": {
               "truthMm": 164.15,
               "medianErrorMm": 0.466,
               "medianErrorPercent": 0.284,
-              "frameSdPercent": 2.433,
-              "predictedFrameSdPercent": 2.44
+              "frameSdPercent": 2.495,
+              "predictedFrameSdPercent": 2.444
             }
           },
           {
@@ -4468,26 +4440,27 @@
             "yawDeg": 0,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 1,
             "nearPupillaryDistance": {
               "truthMm": 63.72,
               "medianErrorMm": -0.098,
               "medianErrorPercent": -0.154,
-              "frameSdPercent": 3.382,
-              "predictedFrameSdPercent": 3.454
+              "frameSdPercent": 3.44,
+              "predictedFrameSdPercent": 3.46
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
               "medianErrorMm": -0.1,
               "medianErrorPercent": -0.155,
-              "frameSdPercent": 3.342,
-              "predictedFrameSdPercent": 3.454
+              "frameSdPercent": 3.399,
+              "predictedFrameSdPercent": 3.459
             },
             "faceWidth": {
               "truthMm": 164.15,
               "medianErrorMm": -0.172,
               "medianErrorPercent": -0.104,
-              "frameSdPercent": 3.37,
-              "predictedFrameSdPercent": 3.446
+              "frameSdPercent": 3.426,
+              "predictedFrameSdPercent": 3.452
             }
           },
           {
@@ -4496,26 +4469,27 @@
             "yawDeg": 8,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 1,
             "nearPupillaryDistance": {
               "truthMm": 63.73,
               "medianErrorMm": 0.229,
               "medianErrorPercent": 0.359,
-              "frameSdPercent": 3.633,
-              "predictedFrameSdPercent": 3.456
+              "frameSdPercent": 3.687,
+              "predictedFrameSdPercent": 3.462
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
               "medianErrorMm": 0.24,
               "medianErrorPercent": 0.373,
-              "frameSdPercent": 3.59,
-              "predictedFrameSdPercent": 3.455
+              "frameSdPercent": 3.643,
+              "predictedFrameSdPercent": 3.461
             },
             "faceWidth": {
               "truthMm": 164.15,
               "medianErrorMm": 0.277,
               "medianErrorPercent": 0.168,
-              "frameSdPercent": 3.612,
-              "predictedFrameSdPercent": 3.448
+              "frameSdPercent": 3.671,
+              "predictedFrameSdPercent": 3.454
             }
           },
           {
@@ -4524,26 +4498,27 @@
             "yawDeg": 0,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 14,
             "nearPupillaryDistance": {
               "truthMm": 62.89,
-              "medianErrorMm": 0.193,
-              "medianErrorPercent": 0.307,
-              "frameSdPercent": 3.442,
-              "predictedFrameSdPercent": 3.271
+              "medianErrorMm": 0.202,
+              "medianErrorPercent": 0.321,
+              "frameSdPercent": 3.779,
+              "predictedFrameSdPercent": 3.346
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
-              "medianErrorMm": 0.196,
-              "medianErrorPercent": 0.303,
-              "frameSdPercent": 3.357,
-              "predictedFrameSdPercent": 3.27
+              "medianErrorMm": 0.209,
+              "medianErrorPercent": 0.323,
+              "frameSdPercent": 3.686,
+              "predictedFrameSdPercent": 3.345
             },
             "faceWidth": {
               "truthMm": 164.15,
-              "medianErrorMm": 0.155,
-              "medianErrorPercent": 0.094,
-              "frameSdPercent": 3.45,
-              "predictedFrameSdPercent": 3.263
+              "medianErrorMm": 0.245,
+              "medianErrorPercent": 0.149,
+              "frameSdPercent": 3.793,
+              "predictedFrameSdPercent": 3.338
             }
           },
           {
@@ -4552,26 +4527,27 @@
             "yawDeg": 8,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 11,
             "nearPupillaryDistance": {
               "truthMm": 62.9,
-              "medianErrorMm": 0.046,
-              "medianErrorPercent": 0.073,
-              "frameSdPercent": 3.567,
-              "predictedFrameSdPercent": 3.275
+              "medianErrorMm": 0.018,
+              "medianErrorPercent": 0.028,
+              "frameSdPercent": 3.75,
+              "predictedFrameSdPercent": 3.334
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
-              "medianErrorMm": 0.061,
-              "medianErrorPercent": 0.094,
-              "frameSdPercent": 3.48,
-              "predictedFrameSdPercent": 3.274
+              "medianErrorMm": 0.034,
+              "medianErrorPercent": 0.053,
+              "frameSdPercent": 3.658,
+              "predictedFrameSdPercent": 3.332
             },
             "faceWidth": {
               "truthMm": 164.15,
-              "medianErrorMm": 0.075,
-              "medianErrorPercent": 0.046,
-              "frameSdPercent": 3.555,
-              "predictedFrameSdPercent": 3.267
+              "medianErrorMm": 0.037,
+              "medianErrorPercent": 0.022,
+              "frameSdPercent": 3.723,
+              "predictedFrameSdPercent": 3.326
             }
           },
           {
@@ -4580,26 +4556,27 @@
             "yawDeg": 0,
             "frames": 298,
             "bothIrisesInconsistent": 2,
+            "singleEyeFrames": 54,
             "nearPupillaryDistance": {
               "truthMm": 63.41,
-              "medianErrorMm": 0.426,
-              "medianErrorPercent": 0.673,
-              "frameSdPercent": 5.062,
-              "predictedFrameSdPercent": 4.888
+              "medianErrorMm": 0.4,
+              "medianErrorPercent": 0.63,
+              "frameSdPercent": 5.742,
+              "predictedFrameSdPercent": 5.306
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
-              "medianErrorMm": 0.42,
-              "medianErrorPercent": 0.652,
-              "frameSdPercent": 4.978,
-              "predictedFrameSdPercent": 4.887
+              "medianErrorMm": 0.4,
+              "medianErrorPercent": 0.62,
+              "frameSdPercent": 5.646,
+              "predictedFrameSdPercent": 5.305
             },
             "faceWidth": {
               "truthMm": 164.15,
-              "medianErrorMm": 0.589,
-              "medianErrorPercent": 0.359,
-              "frameSdPercent": 5.003,
-              "predictedFrameSdPercent": 4.876
+              "medianErrorMm": 0.461,
+              "medianErrorPercent": 0.281,
+              "frameSdPercent": 5.711,
+              "predictedFrameSdPercent": 5.296
             }
           },
           {
@@ -4608,26 +4585,27 @@
             "yawDeg": 8,
             "frames": 299,
             "bothIrisesInconsistent": 1,
+            "singleEyeFrames": 55,
             "nearPupillaryDistance": {
               "truthMm": 63.42,
-              "medianErrorMm": -0.013,
-              "medianErrorPercent": -0.02,
-              "frameSdPercent": 5.602,
-              "predictedFrameSdPercent": 4.891
+              "medianErrorMm": -0.08,
+              "medianErrorPercent": -0.126,
+              "frameSdPercent": 6.111,
+              "predictedFrameSdPercent": 5.316
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
-              "medianErrorMm": -0.004,
-              "medianErrorPercent": -0.005,
-              "frameSdPercent": 5.509,
-              "predictedFrameSdPercent": 4.89
+              "medianErrorMm": -0.058,
+              "medianErrorPercent": -0.089,
+              "frameSdPercent": 6.009,
+              "predictedFrameSdPercent": 5.315
             },
             "faceWidth": {
               "truthMm": 164.15,
-              "medianErrorMm": 0.241,
-              "medianErrorPercent": 0.147,
-              "frameSdPercent": 5.579,
-              "predictedFrameSdPercent": 4.88
+              "medianErrorMm": -0.321,
+              "medianErrorPercent": -0.195,
+              "frameSdPercent": 6.096,
+              "predictedFrameSdPercent": 5.306
             }
           },
           {
@@ -4636,26 +4614,27 @@
             "yawDeg": 0,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 65,
             "nearPupillaryDistance": {
               "truthMm": 63.72,
-              "medianErrorMm": 0.505,
-              "medianErrorPercent": 0.793,
-              "frameSdPercent": 7.584,
-              "predictedFrameSdPercent": 6.908
+              "medianErrorMm": 0.584,
+              "medianErrorPercent": 0.917,
+              "frameSdPercent": 8.551,
+              "predictedFrameSdPercent": 7.61
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
-              "medianErrorMm": 0.51,
-              "medianErrorPercent": 0.791,
-              "frameSdPercent": 7.494,
-              "predictedFrameSdPercent": 6.907
+              "medianErrorMm": 0.584,
+              "medianErrorPercent": 0.906,
+              "frameSdPercent": 8.449,
+              "predictedFrameSdPercent": 7.609
             },
             "faceWidth": {
               "truthMm": 164.15,
-              "medianErrorMm": 1.707,
-              "medianErrorPercent": 1.04,
-              "frameSdPercent": 7.621,
-              "predictedFrameSdPercent": 6.893
+              "medianErrorMm": 1.974,
+              "medianErrorPercent": 1.202,
+              "frameSdPercent": 8.607,
+              "predictedFrameSdPercent": 7.596
             }
           },
           {
@@ -4664,26 +4643,27 @@
             "yawDeg": 8,
             "frames": 300,
             "bothIrisesInconsistent": 0,
+            "singleEyeFrames": 58,
             "nearPupillaryDistance": {
               "truthMm": 63.73,
-              "medianErrorMm": 0.866,
-              "medianErrorPercent": 1.359,
-              "frameSdPercent": 7.287,
-              "predictedFrameSdPercent": 6.912
+              "medianErrorMm": 0.885,
+              "medianErrorPercent": 1.389,
+              "frameSdPercent": 8.365,
+              "predictedFrameSdPercent": 7.542
             },
             "distancePupillaryDistance": {
               "truthMm": 64.5,
-              "medianErrorMm": 0.869,
-              "medianErrorPercent": 1.347,
-              "frameSdPercent": 7.202,
-              "predictedFrameSdPercent": 6.911
+              "medianErrorMm": 0.902,
+              "medianErrorPercent": 1.399,
+              "frameSdPercent": 8.267,
+              "predictedFrameSdPercent": 7.541
             },
             "faceWidth": {
               "truthMm": 164.15,
-              "medianErrorMm": 1.918,
-              "medianErrorPercent": 1.168,
-              "frameSdPercent": 7.168,
-              "predictedFrameSdPercent": 6.896
+              "medianErrorMm": 2.163,
+              "medianErrorPercent": 1.318,
+              "frameSdPercent": 8.288,
+              "predictedFrameSdPercent": 7.527
             }
           }
         ],
@@ -4701,21 +4681,61 @@
             "irisDepthChangePercent": -21.606
           }
         },
+        "squint": [
+          {
+            "eyeOpenness": 0.2,
+            "irisShrink": 0.04,
+            "acceptedFrames": 55,
+            "nearPdErrorPercent": 3.84,
+            "faceWidthErrorPercent": 3.92,
+            "intervalsCoverTruth": true
+          },
+          {
+            "eyeOpenness": 0.17,
+            "irisShrink": 0.06,
+            "acceptedFrames": 56,
+            "nearPdErrorPercent": 6.4,
+            "faceWidthErrorPercent": 6.52,
+            "intervalsCoverTruth": true
+          }
+        ],
         "coverage": {
           "nominal": 0.95,
           "population": {
-            "near": 0.943,
-            "distance": 0.947,
-            "width": 0.94,
+            "near": 0.954,
+            "distance": 0.955,
+            "width": 0.958,
             "subjects": 1000,
             "framesPerSubject": 20
           },
           "noiseOnly": {
-            "near": 0.9583333333333334,
-            "distance": 0.97,
-            "width": 0.9933333333333333,
+            "near": 0.9716666666666667,
+            "distance": 0.9716666666666667,
+            "width": 0.995,
             "subjects": 600,
             "framesPerSubject": 30
+          },
+          "distancePdConversion": {
+            "withConversionSd": 0.935,
+            "withoutConversionSd": 0.48
+          },
+          "focalOutsideAssumption": {
+            "webcam85Deg": {
+              "focalRatio": 0.63,
+              "near": 0.9475,
+              "distance": 0.9425,
+              "width": 0.8775,
+              "subjects": 400,
+              "framesPerSubject": 20
+            },
+            "portrait720x1280": {
+              "focalRatio": 1.778,
+              "near": 0.945,
+              "distance": 0.9425,
+              "width": 0.7075,
+              "subjects": 400,
+              "framesPerSubject": 20
+            }
           }
         },
         "poseCovarianceOverMonteCarloSd": {

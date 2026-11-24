@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { estimateIntrinsics } from '../../packages/cv/src/index.ts';
 import { PUPIL_TO_ROTATION_CENTRE_MM, PUPIL_TO_ROTATION_CENTRE_SD_MM } from '../../packages/cv/src/scale/measurements.ts';
@@ -6,7 +7,7 @@ import { seededRandom } from '../../packages/cv/test/random.ts';
 import { poseFrom } from '../../packages/cv/test/scaleExperiments.ts';
 import { AVERAGE_SUBJECT, renderSyntheticFace } from '../../packages/cv/test/syntheticFace.ts';
 import { fitRegressionAttack, invertIntervalModel, rmsLogError } from './reconstruction.mjs';
-import { assertRecordedClipFields, fieldPaths, RECORDED_CLIP_FIELDS, recordClip } from './summary.mjs';
+import { assertRecordedClipFields, assertRecordingsFields, fieldPaths, RECORDED_CLIP_FIELDS, recordClip } from './summary.mjs';
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -78,5 +79,12 @@ describe('recorded clip fields', () => {
     const widthError = rmsLogError(test.map((w) => predictWidth(w.record)), test.map((w) => w.faceWidthMm));
     assert.ok(scaleError >= POPULATION_SPREAD, `face scale predicted within ${(100 * scaleError).toFixed(2)}%`);
     assert.ok(widthError >= POPULATION_SPREAD, `face width predicted within ${(100 * widthError).toFixed(2)}%`);
+  });
+});
+
+describe('runs["metric-scale"] in eval/results.json', () => {
+  it('stores exactly the allowed fields for the recordings', () => {
+    const results = JSON.parse(readFileSync(new URL('../results.json', import.meta.url), 'utf8'));
+    assert.doesNotThrow(() => assertRecordingsFields(results.runs['metric-scale'].recordings));
   });
 });
