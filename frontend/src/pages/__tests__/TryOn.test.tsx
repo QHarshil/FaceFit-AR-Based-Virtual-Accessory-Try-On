@@ -46,6 +46,7 @@ vi.mock('three', async (importOriginal) => {
 
 vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
   GLTFLoader: class {
+    setMeshoptDecoder() {}
     load() {}
   },
 }));

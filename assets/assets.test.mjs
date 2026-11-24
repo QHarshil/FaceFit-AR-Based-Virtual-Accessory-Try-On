@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -77,55 +77,22 @@ describe('catalog schema', () => {
       assert.ok(extras.license.startsWith(m.attribution.license));
     }
   });
-
-  test('sources are byte-identical to the models the app loads today', async () => {
-    for (const m of catalog.models) {
-      const legacy = m.source.replace('source/', '../frontend/public/models/');
-      assert.ok((await readFile(here(m.source))).equals(await readFile(here(legacy))), m.source);
-    }
-  });
-});
-
-describe('backend product list', () => {
-  // server.js listens on import, so read the array literal instead of requiring the module.
-  const source = readFileSync(here('../backend/server.js'), 'utf8');
-  const literal = source.slice(source.indexOf('const products = [') + 'const products = '.length, source.indexOf('];') + 1);
-  const products = new Function(`return ${literal}`)();
-
-  test('mirrors the catalog and keeps the legacy model paths', () => {
-    assert.equal(products.length, catalog.models.length);
-    for (const m of catalog.models) {
-      const product = products.find((p) => p.id === m.id);
-      assert.equal(product.name, m.name);
-      assert.equal(product.description, m.description);
-      assert.equal(product.modelPath, `/models/glasses${m.id}.glb`);
-      // The title stays in CREDITS.md and the GLB extras; the API omits it so no trademark leaves the server.
-      const { title, ...withoutTitle } = m.attribution;
-      assert.deepEqual(product.attribution, withoutTitle);
-      assert.deepEqual(product.dimensionsMm, {
-        total: m.totalWidthMm,
-        lensWidth: m.lensWidthMm,
-        lensHeight: m.lensHeightMm,
-        bridge: m.bridgeMm,
-        templeLength: m.templeLengthMm,
-      });
-      assert.equal(product.dimensionsSource, 'nominal');
-    }
-  });
-
-  test('no product string carries a trademark, except URLs that must stay as published', () => {
-    const strings = (value) =>
-      typeof value === 'string' ? [value] : value && typeof value === 'object' ? Object.entries(value).flatMap(([k, v]) => (/Url$/.test(k) ? [] : strings(v))) : [];
-    for (const product of products) {
-      for (const text of strings(product)) assert.doesNotMatch(text, TRADEMARKS, `product ${product.id}`);
-    }
-  });
 });
 
 describe('normalized output', () => {
   const decoded = new Map();
   before(async () => {
     for (const m of catalog.models) decoded.set(m.slug, await io.read(here(`out/${m.slug}.glb`)));
+  });
+
+  test('manifest lists every catalog model with the hash of its committed file', async () => {
+    // frontend/scripts/vendor-models.mjs serves exactly the manifest entries.
+    const manifest = JSON.parse(await readFile(here('out/manifest.json'), 'utf8'));
+    assert.deepEqual(manifest.map((entry) => entry.slug).sort(), catalog.models.map((m) => m.slug).sort());
+    for (const entry of manifest) {
+      const digest = createHash('sha256').update(await readFile(here(`out/${entry.slug}.glb`))).digest('hex');
+      assert.equal(digest, entry.sha256, entry.slug);
+    }
   });
 
   test('is deterministic and matches the committed file', async () => {

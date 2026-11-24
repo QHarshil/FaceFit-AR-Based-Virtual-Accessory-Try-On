@@ -6,7 +6,7 @@ export const PRODUCTS: Product[] = [
     name: 'Aviator Glasses',
     category: 'glasses',
     type: 'glasses',
-    modelPath: '/models/glasses1.glb',
+    modelPath: '/models/rectangular-acetate.glb',
     description: 'Classic aviator style glasses',
   },
   {
@@ -14,7 +14,7 @@ export const PRODUCTS: Product[] = [
     name: 'Round Glasses',
     category: 'glasses',
     type: 'glasses',
-    modelPath: '/models/glasses2.glb',
+    modelPath: '/models/oval-wire-sunglasses.glb',
     description: 'Vintage round frame glasses',
   },
 ];

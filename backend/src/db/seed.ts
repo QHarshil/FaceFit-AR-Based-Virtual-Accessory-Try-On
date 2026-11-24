@@ -41,7 +41,7 @@ const catalogModel = z.object({
 
 const catalogFile = z.object({ models: z.array(catalogModel).min(1) });
 
-// modelPath stays on the existing /models/glassesN.glb files, which the frontend serves today.
+// The frontend serves assets/out/<slug>.glb under /models (frontend/scripts/vendor-models.mjs).
 export const catalogToRows = (raw: unknown): ProductRow[] =>
   catalogFile.parse(raw).models.map((model) => ({
     id: model.id,
@@ -50,7 +50,7 @@ export const catalogToRows = (raw: unknown): ProductRow[] =>
     description: model.description,
     category: 'glasses',
     type: 'glasses',
-    modelPath: `/models/glasses${model.id}.glb`,
+    modelPath: `/models/${model.slug}.glb`,
     dimensionsMm: {
       total: model.totalWidthMm,
       lensWidth: model.lensWidthMm,

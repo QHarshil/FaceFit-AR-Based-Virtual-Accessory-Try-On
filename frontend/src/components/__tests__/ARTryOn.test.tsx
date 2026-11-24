@@ -23,6 +23,7 @@ vi.mock('three', async (importOriginal) => {
 
 vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
   GLTFLoader: class {
+    setMeshoptDecoder() {}
     load(_path: string, onLoad: (gltf: { scene: THREE.Object3D }) => void) {
       loadCallbacks.push(onLoad);
     }
@@ -45,7 +46,7 @@ describe('ARTryOn under StrictMode', () => {
   it('keeps one ambient and one directional light in the scene that renders', () => {
     const { unmount } = render(
       <StrictMode>
-        <ARTryOn modelPath="/models/glasses1.glb" type="glasses" />
+        <ARTryOn modelPath="/models/rectangular-acetate.glb" type="glasses" />
       </StrictMode>,
     );
 
@@ -60,7 +61,7 @@ describe('ARTryOn under StrictMode', () => {
   it('mounts one canvas and removes it on unmount', () => {
     const { container, unmount } = render(
       <StrictMode>
-        <ARTryOn modelPath="/models/glasses1.glb" type="glasses" />
+        <ARTryOn modelPath="/models/rectangular-acetate.glb" type="glasses" />
       </StrictMode>,
     );
     expect(container.querySelectorAll('canvas')).toHaveLength(1);
@@ -71,7 +72,7 @@ describe('ARTryOn under StrictMode', () => {
   it('ignores a model that finishes loading after cleanup', () => {
     render(
       <StrictMode>
-        <ARTryOn modelPath="/models/glasses1.glb" type="glasses" />
+        <ARTryOn modelPath="/models/rectangular-acetate.glb" type="glasses" />
       </StrictMode>,
     );
     expect(loadCallbacks).toHaveLength(2);

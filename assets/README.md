@@ -1,6 +1,6 @@
 # Assets
 
-Source GLBs, a catalog of fit data, and a script that turns the sources into normalized, compressed models. The app still loads `frontend/public/models/`. Switching it to `out/` belongs to the pose integration work.
+Source GLBs, a catalog of fit data, and a script that turns the sources into normalized, compressed models. The app serves `out/` under `/models/` (`frontend/scripts/vendor-models.mjs` copies it on `dev` and `build`).
 
 ## Canonical frame
 

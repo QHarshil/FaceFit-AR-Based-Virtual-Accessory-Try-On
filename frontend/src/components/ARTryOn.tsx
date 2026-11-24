@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import * as THREE from 'three';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { landmarkPoint, type LandmarkFrame } from '../perception/types';
 import type { ARTryOnHandle, ProductType } from '../types';
@@ -318,6 +319,7 @@ function ARTryOn({ modelPath, type = 'glasses', ref, onError }: ARTryOnProps) {
     camera.position.z = 2;
 
     const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
     loader.load(
       modelPath,
       (gltf) => {
