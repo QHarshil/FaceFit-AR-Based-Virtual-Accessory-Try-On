@@ -127,6 +127,8 @@ export function aggregateFaceMeasurements(
   for (const frame of frames) {
     if (!frame.ok) {
       rejectedFrames[FAILURE_REJECTION[frame.reason] ?? 'measurement-failed']++;
+    } else if (!hasUsableMeasurements(frame)) {
+      rejectedFrames['measurement-failed']++;
     } else if (
       !(frame.rmsReprojectionMm <= settings.maxRmsReprojectionMm) ||
       frame.maxRotationStdDeg === null ||
@@ -164,6 +166,18 @@ export function aggregateFaceMeasurements(
     ),
     faceScale: { median: median(scales), frameSd: standardDeviation(scales) },
   };
+}
+
+/** measureFaceFrame never returns these, but frames can come from anywhere, and one NaN would poison every median and interval. */
+function hasUsableMeasurements(frame: FaceFrame): boolean {
+  const positive = [frame.faceScale, frame.irisDepthMm, frame.nearPdMm, frame.distancePdMm, frame.faceWidthMm];
+  const nonNegative = [frame.distancePdCorrectionSdMm, frame.faceWidthModelSdMm, frame.eyeOpenness];
+  return (
+    positive.every((value) => Number.isFinite(value) && value > 0) &&
+    nonNegative.every((value) => Number.isFinite(value) && value >= 0) &&
+    Number.isFinite(frame.lineOfSightYawDeg) &&
+    Number.isFinite(frame.lineOfSightPitchDeg)
+  );
 }
 
 function interval(values: readonly number[], relativePopulationSd: number, modelSdMm: number): MeasurementInterval {

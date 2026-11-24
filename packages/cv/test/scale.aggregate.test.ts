@@ -156,6 +156,24 @@ describe('aggregateFaceMeasurements', () => {
     expect(aggregateFaceMeasurements([okFrame()], { minAcceptedFrames: 1 })).toMatchObject({ ok: false, reason: 'invalid-limits' });
   });
 
+  it('counts a frame with a non-finite measurement as failed and never returns a NaN interval', () => {
+    const bad: FaceFrame[] = [
+      okFrame({ nearPdMm: Number.NaN }),
+      okFrame({ faceWidthMm: Number.NaN }),
+      okFrame({ distancePdMm: Number.POSITIVE_INFINITY }),
+      okFrame({ faceWidthModelSdMm: Number.NaN }),
+      okFrame({ eyeOpenness: Number.NaN }),
+      okFrame({ faceScale: -1 }),
+    ];
+    const mixed = aggregateFaceMeasurements([...Array.from({ length: 12 }, () => okFrame()), ...bad]);
+    expectNoNaN(mixed);
+    expect(mixed.ok && mixed.acceptedFrames).toBe(12);
+    expect(mixed.rejectedFrames['measurement-failed']).toBe(bad.length);
+    const allBad = aggregateFaceMeasurements(Array.from({ length: 12 }, () => okFrame({ nearPdMm: Number.NaN })));
+    expect(allBad).toMatchObject({ ok: false, reason: 'too-few-frames' });
+    expectNoNaN(allBad);
+  });
+
   it('treats a pose without uncertainty as untrusted', () => {
     const frames = Array.from({ length: 12 }, () => okFrame({ maxRotationStdDeg: null }));
     const result = aggregateFaceMeasurements(frames);
