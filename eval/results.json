@@ -865,6 +865,331 @@
         "p50Us": 83.9,
         "p95Us": 114
       }
+    },
+    "pose-benchmark-aflw2000": {
+      "measuredAt": "2026-11-24T03:44:39.409Z",
+      "commit": "4615c2b4beac978a46af8130ef9597d1acf9eb46",
+      "dirty": false,
+      "command": "node eval/benchmark/pose-benchmark.mjs",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "cores": 14,
+        "memoryGB": 24,
+        "os": "darwin 25.6.0",
+        "node": "v25.1.0",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36"
+      },
+      "dataset": {
+        "name": "AFLW2000-3D",
+        "archiveSha256": "252bc35274d65ff27b6e573aa96c2f4c116ad88452cc984fb882258c0ed6e2d8",
+        "labels": "Pose_Para from a 3D morphable model fit to each image, not motion capture"
+      },
+      "protocol": "labels with any angle beyond 99 deg excluded; images with no detected face excluded and counted; metrics over images where all three methods return a pose",
+      "counts": {
+        "images": 2000,
+        "beyondProtocolLimit": 31,
+        "inProtocol": 1969,
+        "noFaceInProtocol": 220,
+        "noFaceAllImages": 245,
+        "noFaceInProtocolByAbsoluteYawDeg": {
+          "0-30": 8,
+          "30-60": 44,
+          "60-99": 168
+        },
+        "methodFailures": {
+          "heuristic": 0,
+          "mediapipeMatrix": 0,
+          "solveHeadPose": 0
+        },
+        "evaluated": 1749
+      },
+      "landmarks": {
+        "runtime": "@mediapipe/tasks-vision 1.2.3, face_landmarker.task float16/1",
+        "modelSha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+        "delegate": "CPU",
+        "options": {
+          "runningMode": "IMAGE",
+          "numFaces": 1,
+          "minFaceDetectionConfidence": 0.5,
+          "minFacePresenceConfidence": 0.5,
+          "outputFaceBlendshapes": false,
+          "outputFacialTransformationMatrixes": true
+        },
+        "extractedAtCommit": "695ea4232ed3272bbadc365e3f726b2fac1b09f4",
+        "extractedFromDirtyTree": false,
+        "extractionCpu": "Apple M4 Pro",
+        "blockedRequestCount": 0
+      },
+      "fovAssumption": {
+        "degrees": 63,
+        "focalPx": 367.167,
+        "applies": "solveHeadPose; MediaPipe fixes its own 63 deg vertical FOV; the heuristic uses none",
+        "model": "square pixels, principal point at the image centre"
+      },
+      "methods": {
+        "heuristic": {
+          "failures": 0,
+          "n": 1749,
+          "maeDeg": {
+            "pitch": 13.049,
+            "yaw": 5.574,
+            "roll": 17.2,
+            "mean": 11.941
+          },
+          "geodesicDeg": {
+            "mean": 22.769,
+            "median": 18.718,
+            "p90": 44.175
+          },
+          "shareWithinGeodesicDeg": {
+            "5": 0.041,
+            "10": 0.196,
+            "15": 0.379
+          },
+          "byAbsoluteYawDeg": {
+            "0-30": {
+              "n": 1303,
+              "maeDeg": 10.367,
+              "geodesicMedianDeg": 16.465
+            },
+            "30-60": {
+              "n": 336,
+              "maeDeg": 14.597,
+              "geodesicMedianDeg": 21.101
+            },
+            "60-99": {
+              "n": 110,
+              "maeDeg": 22.47,
+              "geodesicMedianDeg": 26.645
+            }
+          }
+        },
+        "mediapipeMatrix": {
+          "failures": 0,
+          "n": 1749,
+          "maeDeg": {
+            "pitch": 4.29,
+            "yaw": 3.419,
+            "roll": 2.278,
+            "mean": 3.329
+          },
+          "geodesicDeg": {
+            "mean": 6.259,
+            "median": 5.029,
+            "p90": 11.392
+          },
+          "shareWithinGeodesicDeg": {
+            "5": 0.496,
+            "10": 0.862,
+            "15": 0.954
+          },
+          "byAbsoluteYawDeg": {
+            "0-30": {
+              "n": 1303,
+              "maeDeg": 2.328,
+              "geodesicMedianDeg": 4.301
+            },
+            "30-60": {
+              "n": 336,
+              "maeDeg": 5.09,
+              "geodesicMedianDeg": 7.593
+            },
+            "60-99": {
+              "n": 110,
+              "maeDeg": 9.811,
+              "geodesicMedianDeg": 11.484
+            }
+          }
+        },
+        "solveHeadPose": {
+          "failures": 0,
+          "n": 1749,
+          "maeDeg": {
+            "pitch": 5.082,
+            "yaw": 3.812,
+            "roll": 2.405,
+            "mean": 3.766
+          },
+          "geodesicDeg": {
+            "mean": 7.193,
+            "median": 6.014,
+            "p90": 12.335
+          },
+          "shareWithinGeodesicDeg": {
+            "5": 0.392,
+            "10": 0.815,
+            "15": 0.943
+          },
+          "byAbsoluteYawDeg": {
+            "0-30": {
+              "n": 1303,
+              "maeDeg": 2.656,
+              "geodesicMedianDeg": 5.08
+            },
+            "30-60": {
+              "n": 336,
+              "maeDeg": 5.498,
+              "geodesicMedianDeg": 8.706
+            },
+            "60-99": {
+              "n": 110,
+              "maeDeg": 11.624,
+              "geodesicMedianDeg": 14.582
+            }
+          }
+        }
+      },
+      "sensitivity": {
+        "solveHeadPoseByFovDeg": {
+          "20": {
+            "focalPx": 1276.038,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 5.529,
+              "yaw": 3.719,
+              "roll": 2.613,
+              "mean": 3.954
+            },
+            "geodesicMedianDeg": 5.778
+          },
+          "30": {
+            "focalPx": 839.711,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 4.97,
+              "yaw": 3.678,
+              "roll": 2.596,
+              "mean": 3.748
+            },
+            "geodesicMedianDeg": 5.304
+          },
+          "40": {
+            "focalPx": 618.182,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 4.576,
+              "yaw": 3.658,
+              "roll": 2.56,
+              "mean": 3.598
+            },
+            "geodesicMedianDeg": 5.095
+          },
+          "50": {
+            "focalPx": 482.514,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 4.509,
+              "yaw": 3.675,
+              "roll": 2.5,
+              "mean": 3.561
+            },
+            "geodesicMedianDeg": 5.215
+          },
+          "60": {
+            "focalPx": 389.711,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 4.88,
+              "yaw": 3.758,
+              "roll": 2.441,
+              "mean": 3.693
+            },
+            "geodesicMedianDeg": 5.737
+          },
+          "63": {
+            "focalPx": 367.167,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 5.082,
+              "yaw": 3.812,
+              "roll": 2.405,
+              "mean": 3.766
+            },
+            "geodesicMedianDeg": 6.014
+          },
+          "70": {
+            "focalPx": 321.333,
+            "failures": 0,
+            "n": 1749,
+            "maeDeg": {
+              "pitch": 5.745,
+              "yaw": 3.943,
+              "roll": 2.387,
+              "mean": 4.025
+            },
+            "geodesicMedianDeg": 6.715
+          }
+        }
+      },
+      "conventionCheck": {
+        "nearFrontalLimitDeg": 30,
+        "labelGeometry": {
+          "n": 1206,
+          "rollVsEyeLineAngle": {
+            "expectedSign": 1,
+            "correlation": 0.962
+          },
+          "yawVsNoseOffset": {
+            "expectedSign": -1,
+            "correlation": -0.859
+          },
+          "pitchVsNoseHeight": {
+            "expectedSign": -1,
+            "correlation": -0.936
+          }
+        },
+        "methods": {
+          "n": 1200,
+          "heuristic": {
+            "pitch": {
+              "correlation": 0.017,
+              "meanSignedErrorDeg": 1.037
+            },
+            "yaw": {
+              "correlation": 0.961,
+              "meanSignedErrorDeg": -0.091
+            },
+            "roll": {
+              "correlation": -0.955,
+              "meanSignedErrorDeg": 4.115
+            }
+          },
+          "mediapipeMatrix": {
+            "pitch": {
+              "correlation": 0.93,
+              "meanSignedErrorDeg": 1.927
+            },
+            "yaw": {
+              "correlation": 0.973,
+              "meanSignedErrorDeg": -0.025
+            },
+            "roll": {
+              "correlation": 0.989,
+              "meanSignedErrorDeg": 0.154
+            }
+          },
+          "solveHeadPose": {
+            "pitch": {
+              "correlation": 0.922,
+              "meanSignedErrorDeg": 2.838
+            },
+            "yaw": {
+              "correlation": 0.97,
+              "meanSignedErrorDeg": 0.119
+            },
+            "roll": {
+              "correlation": 0.987,
+              "meanSignedErrorDeg": 0.131
+            }
+          }
+        }
+      }
     }
   }
 }

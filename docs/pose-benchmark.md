@@ -44,11 +44,49 @@ Applied to the nose direction $(0, 0, 1)$ and the crown direction $(0, 1, 0)$: p
 
 Tests in [`conventions.test.mjs`](../eval/benchmark/conventions.test.mjs) check `RotationMatrix.m` entry by entry, the three.js Euler formula, the round trip through the decomposition, and the solver mapping on synthetic faces: a label pose is projected through 450x450 intrinsics, solved, mapped back and decomposed. Without noise the angles come back within $10^{-6}$ degrees. With 0.5 px of noise the per-axis MAE must stay under twice the linearized error from [geometry.md](geometry.md).
 
-**Check on near-frontal images.** On images labelled within 30 degrees on every axis, two checks are recorded under `conventionCheck`. First, the labels against the dataset's own fitted landmarks (`pt3d_68`): the eye-line angle should rise with roll, the nose tip should move left of the eyes with yaw, and toward them with pitch. This confirms the reading of `Pose_Para` independently of any method. Second, each method's angles against the labels; a wrong sign shows as a negative correlation. Results are under Results below.
+**Check on near-frontal images.** On images labelled within 30 degrees on every axis, two checks are recorded under `conventionCheck`. First, the labels against the dataset's own fitted landmarks (`pt3d_68`): the eye-line angle should rise with roll, the nose tip should move left of the eyes with yaw, and toward them with pitch. This confirms the reading of `Pose_Para` independently of any method. Second, each method's angles against the labels; a wrong sign shows as a negative correlation. The recorded values are under Results.
 
 ## Intrinsics assumption
 
-AFLW2000 images are crops of Flickr photos, rescaled to 450x450, with unknown focal length, and the 3DDFA fit is weak perspective. solveHeadPose assumes a 63 degree FOV, horizontal and vertical since the images are square, with square pixels and the principal point at the image centre. The value was fixed before any run, to give solveHeadPose the camera MediaPipe assumes, so the two perspective methods differ only in the solver. A crop's true principal point is wherever the crop sat in the photo, so the centred principal point is also an assumption. The FOV sweep below shows how much the choice matters.
+AFLW2000 images are crops of Flickr photos, rescaled to 450x450, with unknown focal length, and the 3DDFA fit is weak perspective. solveHeadPose assumes a 63 degree FOV, horizontal and vertical since the images are square, with square pixels and the principal point at the image centre. The value was fixed before any run, to give solveHeadPose the camera MediaPipe assumes, so the two perspective methods share one camera model. A crop's true principal point is wherever the crop sat in the photo, so the centred principal point is also an assumption. The FOV sweep under Results shows how much the choice matters.
+
+## Results
+
+AFLW2000-3D, 1749 of 2000 images evaluated: 31 excluded for a label beyond 99 deg, 220 for no detected face, 0 for a failed pose. solveHeadPose assumes a 63 deg FOV. Commit `4615c2b4b`, Apple M4 Pro.
+
+| Method | Yaw MAE (deg) | Pitch MAE (deg) | Roll MAE (deg) | Mean MAE (deg) | Geodesic median (deg) | Within 5 / 10 / 15 deg |
+|---|---|---|---|---|---|---|
+| Eye-line heuristic (app today) | 5.57 | 13.05 | 17.20 | 11.94 | 18.72 | 4.1% / 19.6% / 37.9% |
+| MediaPipe transformation matrix | 3.42 | 4.29 | 2.28 | 3.33 | 5.03 | 49.6% / 86.2% / 95.4% |
+| solveHeadPose | 3.81 | 5.08 | 2.40 | 3.77 | 6.01 | 39.2% / 81.5% / 94.3% |
+
+| solveHeadPose FOV (deg) | 20 | 30 | 40 | 50 | 60 | 63 | 70 |
+|---|---|---|---|---|---|---|---|
+| Mean MAE (deg) | 3.95 | 3.75 | 3.60 | 3.56 | 3.69 | 3.77 | 4.03 |
+| Geodesic median (deg) | 5.78 | 5.30 | 5.09 | 5.21 | 5.74 | 6.01 | 6.71 |
+| Failed solves | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+MediaPipe's matrix is the most accurate of the three here, and solveHeadPose is close behind at the assumed FOV. Both are well ahead of the heuristic on every axis. Error grows with yaw for all three (`byAbsoluteYawDeg` in the results). solveHeadPose changes little across the FOV sweep and does best between 40 and 50 degrees; 63 stays the recorded assumption because it was fixed before the run, and picking the best FOV from this table would fit it to the labels.
+
+### Convention check
+
+Labels within 30 deg on every axis. Labels against the dataset's fitted landmarks (`pt3d_68`), n = 1206:
+
+| Landmark measure | Label | Expected sign | Correlation |
+|---|---|---|---|
+| Eye-line angle, image y down | roll | + | 0.96 |
+| Nose tip right of the eye midpoint, over eye distance | yaw | - | -0.86 |
+| Nose tip below the eyes, over eye-to-mouth distance | pitch | - | -0.94 |
+
+Each method against the labels, n = 1200: correlation, then mean signed error in degrees.
+
+| Method | Pitch | Yaw | Roll |
+|---|---|---|---|
+| Eye-line heuristic (app today) | 0.02 (+1.04) | 0.96 (-0.09) | -0.95 (+4.12) |
+| MediaPipe transformation matrix | 0.93 (+1.93) | 0.97 (-0.03) | 0.99 (+0.15) |
+| solveHeadPose | 0.92 (+2.84) | 0.97 (+0.12) | 0.99 (+0.13) |
+
+The labels agree in sign with the dataset's fitted landmarks on every axis. MediaPipe and solveHeadPose correlate positively with the labels on every axis, so the mapping holds for them. The heuristic's roll correlates negatively: it turns the glasses against the head's roll. The app harness saw the same on webcam video (`renderedPerFaceDeg` is negative in `runs["baseline-recordings"]`), so this comes from the heuristic, not from the mapping. The heuristic's pitch does not follow head pitch; it comes from the vertical slope of the eye line, which tracks roll. Both perspective methods read pitch higher than the labels, in line with the tilt between face frames noted under Limits.
 
 ## Reproduce
 

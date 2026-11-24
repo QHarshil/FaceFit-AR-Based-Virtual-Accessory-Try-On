@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { renderConventionCheck, renderPoseTable } from './poseTable.mjs';
 
@@ -61,4 +62,13 @@ describe('renderPoseTable', () => {
     assert.ok(lines.includes('| MediaPipe transformation matrix | 0.93 (+2.00) | 0.97 (+0.00) | 0.99 (+0.10) |'));
   });
 
+  it('matches the tables in docs/pose-benchmark.md for the recorded run', () => {
+    const results = JSON.parse(readFileSync(new URL('../results.json', import.meta.url), 'utf8'));
+    const entry = results.runs['pose-benchmark-aflw2000'];
+    assert.ok(entry, 'eval/results.json has no pose-benchmark-aflw2000 run');
+    const doc = readFileSync(new URL('../../docs/pose-benchmark.md', import.meta.url), 'utf8');
+    const stale = 'docs/pose-benchmark.md is stale; paste `node eval/benchmark/pose-benchmark.mjs --table`';
+    assert.ok(doc.includes(renderPoseTable(entry)), stale);
+    assert.ok(doc.includes(renderConventionCheck(entry)), stale);
+  });
 });
