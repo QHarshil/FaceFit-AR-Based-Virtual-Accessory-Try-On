@@ -16,6 +16,7 @@ export {
   type HeadPoseFailureReason,
   type HeadPoseResult,
   type HeadPoseSolution,
+  type HeadPoseUncertainty,
   type SolveHeadPoseOptions,
   type WeightedModelPoint,
 } from './pnp.ts';
@@ -33,3 +34,60 @@ export {
   rotationVectorFromQuaternion,
   type Quaternion,
 } from './rotation.ts';
+export {
+  DEFAULT_FACE_MEASUREMENT_LIMITS,
+  aggregateFaceMeasurements,
+  type FaceMeasurementFailure,
+  type FaceMeasurementLimits,
+  type FaceMeasurementResult,
+  type FaceMeasurementSummary,
+  type FrameRejection,
+  type MeasurementInterval,
+} from './scale/aggregate.ts';
+export {
+  IRIS_PLANE_OFFSET_MM,
+  IRIS_PLANE_OFFSET_SD_MM,
+  POPULATION_IRIS_DIAMETER_MM,
+  estimateFaceScale,
+  type FaceScaleEstimate,
+  type FaceScaleFailureReason,
+  type FaceScaleOptions,
+  type FaceScaleResult,
+} from './scale/faceScale.ts';
+export {
+  measureFaceFrame,
+  type FaceFrame,
+  type FaceFrameFailureReason,
+  type FaceFrameOptions,
+  type FaceFrameResult,
+} from './scale/frame.ts';
+export {
+  fitIris,
+  irisDiameterPx,
+  type IrisDiameterFailureReason,
+  type IrisDiameterResult,
+  type IrisFit,
+  type IrisFitFailureReason,
+  type IrisFitOptions,
+  type IrisFitResult,
+  type IrisPoints,
+} from './scale/iris.ts';
+export {
+  EYE_LANDMARKS,
+  FACE_WIDTH_LANDMARKS,
+  type Eye,
+  type EyeLandmarkIndices,
+} from './scale/landmarks.ts';
+export {
+  FOCAL_LENGTH_RELATIVE_SD,
+  PUPIL_TO_ROTATION_CENTRE_MM,
+  PUPIL_TO_ROTATION_CENTRE_SD_MM,
+  measureFaceWidth,
+  measurePupillaryDistance,
+  nearToDistancePd,
+  type DistancePdConversion,
+  type DistancePdOptions,
+  type FaceWidthMeasurement,
+  type MeasurementFailureReason,
+  type PupillaryDistanceMeasurement,
+} from './scale/measurements.ts';

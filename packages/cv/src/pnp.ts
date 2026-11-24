@@ -52,6 +52,21 @@ export type HeadPoseFailureReason =
   | 'no-solution'
   | 'implausible-depth';
 
+/**
+ * First-order uncertainty of the solved pose. The rotation perturbation is
+ * dw in exp([dw]x) R, about the camera axes.
+ */
+export interface HeadPoseUncertainty {
+  /** Per-axis pixel noise estimated from the inlier residuals. */
+  readonly residualSigmaPx: number;
+  /** Standard deviation of dw about the camera x, y and z axes, in degrees. */
+  readonly rotationStdDeg: Vec3;
+  /** Standard deviation of each component of translationMm. */
+  readonly translationStdMm: Vec3;
+  /** Row-major 6 x 6 covariance over (dw in radians, translationMm). */
+  readonly covariance: readonly number[];
+}
+
 export interface HeadPoseSolution extends HeadPose {
   readonly ok: true;
   /** Unweighted RMS reprojection error over the inliers, in pixels. */
@@ -60,6 +75,8 @@ export interface HeadPoseSolution extends HeadPose {
   readonly inlierIndices: readonly number[];
   /** Levenberg-Marquardt iterations summed over all refinement rounds. */
   readonly iterations: number;
+  /** Absent only when the normal matrix at the solution is not positive definite. */
+  readonly uncertainty?: HeadPoseUncertainty;
 }
 
 export interface HeadPoseFailure {
@@ -246,7 +263,112 @@ function solve(
   if (!(translationMm[2] >= settings.minDepthMm && translationMm[2] <= settings.maxDepthMm)) {
     return { ok: false, reason: 'implausible-depth' };
   }
-  return { ok: true, rotation, translationMm, rmsReprojectionPx: rms, inlierIndices: inliers, iterations };
+  const solution = { ok: true as const, rotation, translationMm, rmsReprojectionPx: rms, inlierIndices: inliers, iterations };
+  const uncertainty = poseUncertainty(problem, inliers, { rotation, translation: pose.translation }, centroid, sumSq);
+  return uncertainty ? { ...solution, uncertainty } : solution;
+}
+
+/**
+ * Covariance of the weighted least-squares pose, linearized at the solution:
+ * sigma^2 (J^T W J)^-1 (J^T W^2 J) (J^T W J)^-1 over the inliers, in sandwich
+ * form because the landmark weights are not inverse variances. sigma^2 is the
+ * per-axis noise variance from the unweighted residuals,
+ * sum |r|^2 / (2n - 12 + tr(P^T P)) with P = J (J^T W J)^-1 J^T W the hat
+ * matrix of the weighted fit; that is E[sum |r|^2] / sigma^2, and reduces to
+ * 2n - 6 for equal weights. The Huber loss is left out: at the noise levels
+ * the rejection threshold admits, nearly every inlier sits inside the Huber
+ * scale.
+ *
+ * The solver's translation is that of the weighted centroid c. The reported
+ * translation is t - R c, so its perturbation is dt + [R c]x dw.
+ */
+function poseUncertainty(
+  problem: Problem,
+  inliers: readonly number[],
+  pose: RigidPose,
+  centroid: Vec3,
+  sumSquaredResidualsPx: number,
+): HeadPoseUncertainty | null {
+  const { model, weights, intrinsics } = problem;
+  const { fx, fy } = intrinsics;
+  const r = pose.rotation;
+  const t = pose.translation;
+  const information = new Float64Array(36);
+  const weightedSquare = new Float64Array(36);
+  const unweighted = new Float64Array(36);
+  for (const i of inliers) {
+    const px = model[3 * i];
+    const py = model[3 * i + 1];
+    const pz = model[3 * i + 2];
+    const qx = r[0] * px + r[1] * py + r[2] * pz;
+    const qy = r[3] * px + r[4] * py + r[5] * pz;
+    const qz = r[6] * px + r[7] * py + r[8] * pz;
+    const invZ = 1 / (qz + t[2]);
+    const ux = fx * invZ;
+    const uz = -fx * (qx + t[0]) * invZ * invZ;
+    const vy = fy * invZ;
+    const vz = -fy * (qy + t[1]) * invZ * invZ;
+    const jx = [uz * qy, ux * qz - uz * qx, -ux * qy, ux, 0, uz];
+    const jy = [-vy * qz + vz * qy, -vz * qx, vy * qx, 0, vy, vz];
+    const w = weights[i];
+    for (let a = 0; a < 6; a++) {
+      for (let b = 0; b < 6; b++) {
+        const product = jx[a] * jx[b] + jy[a] * jy[b];
+        information[a * 6 + b] += w * product;
+        weightedSquare[a * 6 + b] += w * w * product;
+        unweighted[a * 6 + b] += product;
+      }
+    }
+  }
+  const inverse = new Float64Array(36);
+  for (let column = 0; column < 6; column++) {
+    const unit = new Float64Array(6);
+    unit[column] = 1;
+    const inverseColumn = solveCholesky(information, unit, 6);
+    if (!inverseColumn) return null;
+    for (let row = 0; row < 6; row++) inverse[row * 6 + column] = inverseColumn[row];
+  }
+  const centredUnit = sandwich(inverse, weightedSquare, 1);
+  let leverageSquares = 0;
+  for (let a = 0; a < 36; a++) leverageSquares += centredUnit[a] * unweighted[a];
+  const residualVariance = sumSquaredResidualsPx / (2 * inliers.length - 12 + leverageSquares);
+  const centred = centredUnit.map((value) => value * residualVariance);
+
+  // Jacobian of (dw, t - R c) with respect to (dw, dt).
+  const shift = mat3MulVec3(r, centroid);
+  const transform = new Float64Array(36);
+  for (let d = 0; d < 6; d++) transform[d * 7] = 1;
+  const cross = [0, -shift[2], shift[1], shift[2], 0, -shift[0], -shift[1], shift[0], 0];
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) transform[(row + 3) * 6 + col] = cross[row * 3 + col];
+  const covariance = sandwich(transform, centred, 1, true);
+
+  const std = (d: number): number => Math.sqrt(Math.max(covariance[d * 7], 0));
+  const toDeg = 180 / Math.PI;
+  const uncertainty: HeadPoseUncertainty = {
+    residualSigmaPx: Math.sqrt(residualVariance),
+    rotationStdDeg: [std(0) * toDeg, std(1) * toDeg, std(2) * toDeg],
+    translationStdMm: [std(3), std(4), std(5)],
+    covariance: Array.from(covariance),
+  };
+  return uncertainty.covariance.every(Number.isFinite) && Number.isFinite(uncertainty.residualSigmaPx) ? uncertainty : null;
+}
+
+/** scale * A M A^T for 6 x 6 row-major matrices; A M A when A is symmetric and transpose is false. */
+function sandwich(outer: Float64Array, middle: Float64Array, scale: number, transposeRight = false): Float64Array {
+  const product = new Float64Array(36);
+  for (let r = 0; r < 6; r++) {
+    for (let c = 0; c < 6; c++) {
+      let sum = 0;
+      for (let k = 0; k < 6; k++) {
+        for (let l = 0; l < 6; l++) {
+          const right = transposeRight ? outer[c * 6 + l] : outer[l * 6 + c];
+          sum += outer[r * 6 + k] * middle[k * 6 + l] * right;
+        }
+      }
+      product[r * 6 + c] = scale * sum;
+    }
+  }
+  return product;
 }
 
 interface Problem {

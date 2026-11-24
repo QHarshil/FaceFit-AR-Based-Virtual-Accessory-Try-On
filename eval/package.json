@@ -5,7 +5,7 @@
   "scripts": {
     "fixtures": "node fixtures/build.mjs",
     "baseline": "node harness/baseline.mjs",
-    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs"
+    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs scale/*.test.mjs"
   },
   "devDependencies": {
     "@mediapipe/tasks-vision": "1.2.3",
