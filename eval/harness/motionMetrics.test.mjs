@@ -12,7 +12,6 @@ const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expe
 // mod(x, y) = x - y * floor(x / y).
 const evaluateFfmpeg = (expression, n) => {
   const js = expression
-    .replace(/\bmod\(/g, 'mod(')
     .replace(/\bPI\b/g, 'Math.PI')
     .replace(/\b(sin|abs|floor)\(/g, 'Math.$1(');
   return new Function('n', 'mod', `return ${js};`)(n, (x, y) => x - y * Math.floor(x / y));
