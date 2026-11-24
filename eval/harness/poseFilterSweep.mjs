@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Sweeps the parameters of both pose filters by replaying runs recorded with
-// the filter off (poseReplay.mjs), one run per MediaPipe configuration, and
-// merges runs["pose-filter-sweep"] into eval/results.json.
+// the filter off (poseReplay.mjs), one run per MediaPipe configuration. Writes
+// every stage's Pareto front to eval/results/pose-filter-sweep.json and a
+// summary that points to it into runs["pose-filter-sweep"] of eval/results.json.
 //
 //   node eval/harness/poseFilterSweep.mjs --runs pose-filter-off,pose-filter-off-2faces
-//   node eval/harness/poseFilterSweep.mjs --runs ... --allow-dirty   (writes eval/.cache/results-dirty.json)
+//   node eval/harness/poseFilterSweep.mjs --runs ... --allow-dirty   (writes under eval/.cache instead)
 //
 // Each label names a baseline.mjs run in results.json and its raw runs in
 // eval/.cache/runs/<label>/. Rotation and translation are swept in turn: the
@@ -13,9 +14,9 @@
 // rotation, against position jitter and the position lag, the larger of the
 // lag to 90% on the step and the delay on the ramp. Each stage's operating
 // point is the least jitter among points with a lag under the target, or the
-// least lag when none is. results.json keeps each stage's Pareto front and
+// least lag when none is. The detail file keeps each stage's Pareto front and
 // operating point; the script and the cached runs reproduce the full grid.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { oneEuroPose, poseKalman } from '../../packages/cv/src/index.ts';
@@ -29,6 +30,8 @@ const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EVAL, '..');
 const RESULTS = join(EVAL, 'results.json');
 export const SWEEP_KEY = 'pose-filter-sweep';
+// The detail file, relative to the results file whose summary names it.
+export const SWEEP_DETAIL = 'results/pose-filter-sweep.json';
 
 // The step lag target also bounds the ramp delay and the roll delay: a step
 // alone rewards a filter that is fast on large jumps and slow at moderate
@@ -216,6 +219,55 @@ export const recommend = (configurations) => {
   return { filter: best.filter, numFaces: best.numFaces, worstJitterRatio: ratio(best), lagsUnderTarget: fast.length > 0 };
 };
 
+// The least-lag front point that meets the jitter target, or null.
+const atJitterTarget = (front, target) => front.find((p) => p.jitter <= target) ?? null;
+
+// What results.json keeps of a sweep: provenance, each filter's operating
+// point with every metric and the cheapest front point at each jitter target,
+// and the path of the detail file with every front.
+export const sweepSummary = (detail) => {
+  const filterSummary = (f) => ({
+    evaluated: f.rotation.evaluated + f.translation.evaluated,
+    chosen: f.chosen,
+    positionLagMs: positionLagOf(f.chosen),
+    rotationLagMs: rotationLagOf(f.chosen),
+    atJitterTarget: {
+      position: atJitterTarget(f.translation.front, detail.targets.positionJitterPx),
+      rotation: atJitterTarget(f.rotation.front, detail.targets.rotationJitterDeg),
+    },
+  });
+  const { recommended } = detail;
+  const recommendedFilter = detail.configurations.find((c) => c.numFaces === recommended.numFaces)[recommended.filter];
+  return {
+    measuredAt: detail.measuredAt,
+    commit: detail.commit,
+    dirty: detail.dirty,
+    command: detail.command,
+    detail: SWEEP_DETAIL,
+    hardware: detail.configurations[0].hardware,
+    targets: detail.targets,
+    recommended: { ...recommended, params: recommendedFilter.chosen.params },
+    configurations: detail.configurations.map((c) => ({
+      label: c.label,
+      numFaces: c.numFaces,
+      commit: c.commit,
+      unfiltered: c.unfiltered,
+      oneEuro: filterSummary(c.oneEuro),
+      kalman: filterSummary(c.kalman),
+    })),
+  };
+};
+
+/** The detail file a sweep summary names, resolved next to the results file at URL `resultsFile`. */
+export const readSweepDetail = (resultsFile, summary) => {
+  if (!summary?.detail) throw new Error(`no runs["${SWEEP_KEY}"] with a detail path; run poseFilterSweep.mjs`);
+  const detail = JSON.parse(readFileSync(new URL(summary.detail, resultsFile), 'utf8'));
+  if (detail.commit !== summary.commit || detail.measuredAt !== summary.measuredAt) {
+    throw new Error(`${summary.detail} is not the sweep runs["${SWEEP_KEY}"] summarizes`);
+  }
+  return detail;
+};
+
 // The unfiltered replay must draw what the run drew; otherwise the replay
 // does not model the app and the sweep means nothing.
 const replayCheck = (runs) => {
@@ -277,7 +329,7 @@ const main = () => {
       kalman,
     };
   });
-  const entry = round({
+  const detail = round({
     measuredAt: new Date().toISOString(),
     commit,
     dirty: dirty.length > 0,
@@ -292,10 +344,13 @@ const main = () => {
   });
   assertHeadUnchanged(git, commit);
   const out = dirty.length ? join(EVAL, '.cache', 'results-dirty.json') : RESULTS;
+  const detailOut = join(dirname(out), SWEEP_DETAIL);
+  mkdirSync(dirname(detailOut), { recursive: true });
+  writeFileSync(detailOut, `${JSON.stringify(detail, null, 2)}\n`);
   const target = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : { runs: {} };
-  target.runs[SWEEP_KEY] = entry;
+  target.runs[SWEEP_KEY] = sweepSummary(detail);
   writeFileSync(out, `${JSON.stringify(target, null, 2)}\n`);
-  console.log(`wrote ${out}`);
+  console.log(`wrote ${detailOut} and ${out}`);
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();

@@ -20,8 +20,8 @@ node harness/baseline.mjs --source recordings                 # refuses a dirty 
 node harness/baseline.mjs --source recordings --clips <dir> --label <name>   # clips from another checkout, results key
 node harness/baseline.mjs --source recordings --pose-filter off --label <name>   # VITE_POSE_FILTER for the build
 node fixtures/build.mjs --source recordings --only motion --recordings <dir>  # motion clips only
-node harness/poseFilterSweep.mjs --runs <label>[,<label>]   # replay filter-off runs through both filters
-node harness/plotPoseFilter.mjs                             # docs/pose-filter.svg from the sweep
+node harness/poseFilterSweep.mjs --runs <label>[,<label>]   # replay filter-off runs through both filters; fronts in results/pose-filter-sweep.json
+node harness/plotPoseFilter.mjs                             # docs/pose-filter.svg from the sweep's fronts
 node benchmark/gate-report.mjs                              # gate's hidden share by yaw (AFLW2000) and distance
 npm test
 ```

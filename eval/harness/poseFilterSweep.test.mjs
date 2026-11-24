@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrixFromVector } from '../../packages/cv/src/index.ts';
 import { seededRandom } from '../../packages/cv/test/random.ts';
 import { renderPlot } from './plotPoseFilter.mjs';
-import { operatingPoint, paretoFront, recommend, solvedPoseNoise } from './poseFilterSweep.mjs';
+import { operatingPoint, paretoFront, readSweepDetail, recommend, solvedPoseNoise, SWEEP_DETAIL, SWEEP_KEY, sweepSummary } from './poseFilterSweep.mjs';
 import { pageProjection, replayRun } from './poseReplay.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -176,4 +177,33 @@ test('renderPlot draws one curve per filter and configuration, the unfiltered po
   assert.equal((svg.match(/>none, [12]</g) ?? []).length, 4);
   assert.equal((svg.match(/>chosen</g) ?? []).length, 2);
   assert.ok(svg.includes('>target<'));
+});
+
+test('sweepSummary keeps the operating points, the cheapest front point at each target and the detail path', () => {
+  const chosen = (positionPx, rotationDeg, lagMs) => ({ params: { lagMs }, metrics: { recStatic: { positionPx, rotationDeg }, stepLagMs: lagMs, rampDelayMs: lagMs, sineDelayMs: lagMs } });
+  const front = (target) => [{ lagMs: 20, jitter: 2 * target }, { lagMs: 60, jitter: target }, { lagMs: 90, jitter: target / 2 }];
+  const filter = (lagMs) => ({ rotation: { evaluated: 10, front: front(0.1) }, translation: { evaluated: 12, front: front(0.5) }, chosen: chosen(0.9, 0.15, lagMs) });
+  const detail = {
+    measuredAt: 'then', commit: 'abc', dirty: false, command: 'node sweep', targets: { positionJitterPx: 0.5, rotationJitterDeg: 0.1, lagMs: 50 },
+    recommended: { filter: 'kalman', numFaces: 1, worstJitterRatio: 1.8, lagsUnderTarget: true },
+    configurations: [{ label: 'off', numFaces: 1, commit: 'def', hardware: { cpu: 'M' }, unfiltered: { stepLagMs: 17 }, oneEuro: filter(40), kalman: filter(30) }],
+  };
+  const summary = sweepSummary(detail);
+  assert.equal(summary.detail, SWEEP_DETAIL);
+  assert.equal(summary.commit, 'abc');
+  assert.deepEqual(summary.hardware, { cpu: 'M' });
+  assert.deepEqual(summary.recommended.params, { lagMs: 30 });
+  const kalman = summary.configurations[0].kalman;
+  assert.deepEqual(kalman.chosen, chosen(0.9, 0.15, 30));
+  assert.equal(kalman.positionLagMs, 30);
+  assert.equal(kalman.rotationLagMs, 30);
+  assert.deepEqual(kalman.atJitterTarget, { position: { lagMs: 60, jitter: 0.5 }, rotation: { lagMs: 60, jitter: 0.1 } });
+  assert.ok(!JSON.stringify(summary).includes('"front"'));
+});
+
+test('docs/pose-filter.svg regenerates byte for byte from the committed sweep', () => {
+  const resultsFile = new URL('../results.json', import.meta.url);
+  const summary = JSON.parse(readFileSync(resultsFile, 'utf8')).runs[SWEEP_KEY];
+  const detail = readSweepDetail(resultsFile, summary);
+  assert.equal(renderPlot(detail), readFileSync(new URL('../../docs/pose-filter.svg', import.meta.url), 'utf8'));
 });

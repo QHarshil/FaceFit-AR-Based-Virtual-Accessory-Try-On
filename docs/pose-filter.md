@@ -1,6 +1,6 @@
 # Head-pose filter
 
-Two temporal filters for the solved head pose, compared by measurement: a One Euro filter and an error-state Kalman filter, both on SE(3) ([`packages/cv/src/filter/`](../packages/cv/src/filter/)). The app filters each trusted pose and predicts it to the frame on screen at every render ([`frontend/src/filtering/overlayPose.ts`](../frontend/src/filtering/overlayPose.ts)). Numbers come from `runs["pose-filter-sweep"]`, `runs["pose-filter"]` and the filter-off runs in [`eval/results.json`](../eval/results.json).
+Two temporal filters for the solved head pose, compared by measurement: a One Euro filter and an error-state Kalman filter, both on SE(3) ([`packages/cv/src/filter/`](../packages/cv/src/filter/)). The app filters each trusted pose and predicts it to the frame on screen at every render ([`frontend/src/filtering/overlayPose.ts`](../frontend/src/filtering/overlayPose.ts)). Numbers come from `runs["pose-filter-sweep"]`, `runs["pose-filter"]` and the filter-off runs in [`eval/results.json`](../eval/results.json); the sweep's Pareto fronts are in [`eval/results/pose-filter-sweep.json`](../eval/results/pose-filter-sweep.json).
 
 ## Shared interface
 

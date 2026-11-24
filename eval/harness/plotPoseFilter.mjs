@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// Draws docs/pose-filter.svg from runs["pose-filter-sweep"] in
-// eval/results.json: jitter against lag, one curve per filter and MediaPipe
-// configuration (the Pareto front of its sweep), the unfiltered pose, the
-// chosen operating points and the targets.
+// Draws docs/pose-filter.svg from the sweep detail file that
+// runs["pose-filter-sweep"] in eval/results.json names: jitter against lag,
+// one curve per filter and MediaPipe configuration (the Pareto front of its
+// sweep), the unfiltered pose, the chosen operating points and the targets.
 //
 //   node eval/harness/plotPoseFilter.mjs
 //   node eval/harness/plotPoseFilter.mjs --dirty   (from eval/.cache/results-dirty.json into eval/.cache)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { positionJitterOf, positionLagOf, rotationJitterOf, rotationLagOf, SWEEP_KEY } from './poseFilterSweep.mjs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { positionJitterOf, positionLagOf, readSweepDetail, rotationJitterOf, rotationLagOf, SWEEP_KEY } from './poseFilterSweep.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(EVAL, '..', 'docs', 'pose-filter.svg');
@@ -121,8 +121,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dirty = process.argv.includes('--dirty');
   const source = join(EVAL, dirty ? join('.cache', 'results-dirty.json') : 'results.json');
   const out = dirty ? join(EVAL, '.cache', 'pose-filter.svg') : OUT;
-  const sweep = JSON.parse(readFileSync(source, 'utf8')).runs[SWEEP_KEY];
-  if (!sweep) throw new Error(`no runs["${SWEEP_KEY}"] in ${source}; run poseFilterSweep.mjs`);
-  writeFileSync(out, renderPlot(sweep));
+  const summary = JSON.parse(readFileSync(source, 'utf8')).runs[SWEEP_KEY];
+  writeFileSync(out, renderPlot(readSweepDetail(pathToFileURL(source), summary)));
   console.log(`wrote ${out}`);
 }
