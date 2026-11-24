@@ -4096,8 +4096,8 @@
       }
     },
     "metric-scale": {
-      "measuredAt": "2026-11-24T07:28:56.489Z",
-      "commit": "06a504379c594c528774b80619c0771a1ce83ba7",
+      "measuredAt": "2026-11-24T07:30:31.963Z",
+      "commit": "8e02f9954a2d9545e77d6751d8a64f26e04d45a9",
       "dirty": false,
       "command": "node eval/scale/measure.mjs --clips <dir>",
       "hardware": {
@@ -4183,6 +4183,44 @@
               "effectiveFrames": 20.5
             },
             "faceScaleFrameSdPercent": 0.567,
+            "landmarkDiagnostics": {
+              "irisVerticalOverHorizontal": 0.873,
+              "openFrameOpennessSdPercent": 1.09,
+              "irisWidthByRelativeOpenness": [
+                {
+                  "relativeOpenness": [
+                    0,
+                    0.5
+                  ],
+                  "frames": 4,
+                  "irisWidthChangePercent": -4.76
+                },
+                {
+                  "relativeOpenness": [
+                    0.5,
+                    0.9
+                  ],
+                  "frames": 10,
+                  "irisWidthChangePercent": -2.38
+                },
+                {
+                  "relativeOpenness": [
+                    0.9,
+                    0.95
+                  ],
+                  "frames": 12,
+                  "irisWidthChangePercent": -1.09
+                },
+                {
+                  "relativeOpenness": [
+                    0.95,
+                    null
+                  ],
+                  "frames": 334,
+                  "irisWidthChangePercent": 0
+                }
+              ]
+            },
             "focalSensitivity": {
               "assumed50Deg": {
                 "nearPupillaryDistance": -0.074,
@@ -4241,6 +4279,44 @@
               "effectiveFrames": 20.5
             },
             "faceScaleFrameSdPercent": 0.465,
+            "landmarkDiagnostics": {
+              "irisVerticalOverHorizontal": 0.876,
+              "openFrameOpennessSdPercent": 1.084,
+              "irisWidthByRelativeOpenness": [
+                {
+                  "relativeOpenness": [
+                    0,
+                    0.5
+                  ],
+                  "frames": 51,
+                  "irisWidthChangePercent": -15.23
+                },
+                {
+                  "relativeOpenness": [
+                    0.5,
+                    0.9
+                  ],
+                  "frames": 14,
+                  "irisWidthChangePercent": -4.04
+                },
+                {
+                  "relativeOpenness": [
+                    0.9,
+                    0.95
+                  ],
+                  "frames": 14,
+                  "irisWidthChangePercent": -1.42
+                },
+                {
+                  "relativeOpenness": [
+                    0.95,
+                    null
+                  ],
+                  "frames": 281,
+                  "irisWidthChangePercent": 0
+                }
+              ]
+            },
             "focalSensitivity": {
               "assumed50Deg": {
                 "nearPupillaryDistance": -0.077,
