@@ -103,6 +103,9 @@ function syntheticAccuracy() {
         const pose = poseAt(yawDeg, 5, 10, [30, -20, depthMm]);
         const run = measureSyntheticFrames(subject, pose, sigmaPx, 300, seededRandom(depthMm + yawDeg * 7 + sigmaPx * 1000), intrinsics);
         const irisPx = (intrinsics.fx * 11.7) / run.truth.eyeDepthMm;
+        // A frame whose scale comes from one eye has twice the iris variance.
+        const singleEyeFrames = run.frames.filter((frame) => frame.irisDiameterRatio === null).length;
+        const singleEyeShare = singleEyeFrames / run.frames.length;
         const summarize = (values, truth, extraPoints) => {
           const lengthPx = (intrinsics.fx * truth) / run.truth.eyeDepthMm;
           return {
@@ -110,7 +113,7 @@ function syntheticAccuracy() {
             medianErrorMm: round(median(values) - truth),
             medianErrorPercent: round(100 * (median(values) / truth - 1)),
             frameSdPercent: round((100 * sd(values)) / truth),
-            predictedFrameSdPercent: round(100 * sigmaPx * Math.sqrt(1 / irisPx ** 2 + extraPoints / lengthPx ** 2)),
+            predictedFrameSdPercent: round(100 * sigmaPx * Math.sqrt((1 + singleEyeShare) / irisPx ** 2 + extraPoints / lengthPx ** 2)),
           };
         };
         rows.push({
@@ -119,6 +122,7 @@ function syntheticAccuracy() {
           yawDeg,
           frames: run.frames.length,
           bothIrisesInconsistent: run.failures,
+          singleEyeFrames,
           nearPupillaryDistance: summarize(run.frames.map((f) => f.nearPdMm), run.truth.nearPdMm, 0.4375),
           distancePupillaryDistance: summarize(run.frames.map((f) => f.distancePdMm), run.truth.distancePdMm, 0.4375),
           faceWidth: summarize(run.frames.map((f) => f.faceWidthMm), run.truth.faceWidthMm, 2),
