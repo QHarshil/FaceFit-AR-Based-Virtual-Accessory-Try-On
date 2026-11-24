@@ -3,16 +3,16 @@
 // recordings. Output: eval/.cache/clips/<source>/<condition>.y4m
 //
 //   node eval/fixtures/build.mjs --source standin
-//   node eval/fixtures/build.mjs --source recordings
+//   node eval/fixtures/build.mjs --source recordings              (adds the motion clips)
+//   node eval/fixtures/build.mjs --source recordings --only motion --recordings <dir>
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONDITIONS, FRAME, RECORDED } from '../harness/conditions.mjs';
+import { CONDITIONS, FRAME, FRAME_CODE, MOTION, RECORDED, motionExpression } from '../harness/conditions.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
-const RECORDINGS = join(EVAL, 'fixtures', 'recordings');
 
 // Public-domain White House portrait from the MediaPipe sample assets. Used
 // only until recordings exist; downloaded at build time, never committed.
@@ -31,6 +31,11 @@ const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > 0 ? process.argv[i + 1] : fallback;
 };
+
+// Recordings from another checkout can be read in place with --recordings.
+const RECORDINGS = arg('recordings') ? resolve(arg('recordings')) : join(EVAL, 'fixtures', 'recordings');
+const only = arg('only', 'all');
+if (!['all', 'motion'].includes(only)) throw new Error(`unknown --only ${only}; use motion`);
 
 const ffmpeg = (args) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
 
@@ -78,6 +83,45 @@ const buildSweeps = (still, framing, outDir) => {
   }
 };
 
+// Draws the clip frame index N as FRAME_CODE.bits black or white squares
+// along the top edge, least significant bit first, with neutral chroma so the
+// page reads it back from any colour channel.
+const frameCodeFilter = () => {
+  const { bits, blockPx: b } = FRAME_CODE;
+  const inCode = (scale) => `lt(Y,${b / scale})*lt(X,${(bits * b) / scale})`;
+  return [
+    `geq=lum='if(${inCode(1)},if(bitand(N,pow(2,floor(X/${b}))),235,16),lum(X,Y))'`,
+    `cb='if(${inCode(2)},128,cb(X,Y))'`,
+    `cr='if(${inCode(2)},128,cr(X,Y))'`,
+  ].join(':');
+};
+
+// Moves the face by motionTruth in each frame. One source pixel is one output
+// pixel here, so an even whole shift survives the crop exactly.
+const motionFilter = ({ motion }) => {
+  const shift = motion.axis === 'dx' ? motionExpression(motion) : '0';
+  const roll = motion.axis === 'roll' ? motionExpression(motion) : '0';
+  return [
+    `pad=iw+${2 * PAD}:ih+${2 * PAD}:${PAD}:${PAD}:color=0x808080`,
+    `crop=${FRAME.width}:${FRAME.height}:'${PAD}-(${shift})':${PAD}`,
+    `rotate='(${roll})*PI/180':c=0x808080`,
+    NOISE,
+    'format=yuv420p',
+    frameCodeFilter(),
+  ].join(',');
+};
+
+const buildMotion = (still, outDir) => {
+  for (const condition of MOTION) {
+    const out = join(outDir, `${condition.id}.y4m`);
+    ffmpeg([
+      '-loop', '1', '-framerate', String(FRAME.fps), '-t', String(condition.clipSeconds), '-i', still,
+      '-vf', motionFilter(condition), '-r', String(FRAME.fps), out,
+    ]);
+    console.log(`built ${out}`);
+  }
+};
+
 const buildRecorded = (outDir) => {
   for (const clip of RECORDED) {
     const src = join(RECORDINGS, clip.file);
@@ -99,8 +143,9 @@ if (source === 'standin') {
   buildSweeps(fetchStandin(outDir), STANDIN, outDir);
 } else if (source === 'recordings') {
   const still = firstFrame(join(RECORDINGS, 'static.mp4'), outDir);
-  buildSweeps(still, { center: [FRAME.width / 2, FRAME.height / 2], window: [FRAME.width, FRAME.height] }, outDir);
-  buildRecorded(outDir);
+  if (only === 'all') buildSweeps(still, { center: [FRAME.width / 2, FRAME.height / 2], window: [FRAME.width, FRAME.height] }, outDir);
+  buildMotion(still, outDir);
+  if (only === 'all') buildRecorded(outDir);
 } else {
   throw new Error(`unknown source ${source}; use standin or recordings`);
 }

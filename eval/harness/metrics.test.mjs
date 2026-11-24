@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   PROBE_ORDER, blinkShift, findBlinks, outsideBlinks, landmarkToPx, latency, linearFit, maxChangeFromStillPercent, ndcToPx,
-  percentile, pointJitter, rotationJitter, shownPoses, solverSummary, windowSamples, wrapLineAngle,
+  percentile, pointJitter, renderedJitter, rotationJitter, shownPoses, solverSummary, windowSamples, wrapLineAngle,
 } from './metrics.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -205,4 +205,19 @@ test('maxChangeFromStillPercent takes the largest change from the unzoomed ratio
   close(maxChangeFromStillPercent({ 'zoom0.75': 5.344, still: 4.016, 'zoom1.33': 3.035 }), 33.07, 0.01);
   assert.equal(maxChangeFromStillPercent({ still: 1 }), null);
   assert.equal(maxChangeFromStillPercent({ 'zoom0.75': 1 }), null);
+});
+
+test('renderedJitter drops renders whose newest pose sample is masked', () => {
+  const quat = [0, 0, 0, 1];
+  // Renders at 60 Hz alternating 1 px left and right of x = 100; pose samples at 30 Hz.
+  const renders = Array.from({ length: 60 }, (_, i) => ({ t: i * 16.7, centerPx: [100 + (i % 2 ? 1 : -1), 50], quat }));
+  const poseTimes = Array.from({ length: 30 }, (_, k) => k * 33.4);
+  const all = renderedJitter(renders, poseTimes, [...Array(30).keys()]);
+  assert.equal(all.samples, 60);
+  assert.ok(all.centerPx.rmsHighPass > 0.8 && all.centerPx.rmsHighPass <= 1);
+  close(all.rotationDeg.rmsHighPass, 0);
+  // Masking pose samples 10 to 19 drops the renders they were the newest for.
+  const masked = renderedJitter(renders, poseTimes, [...Array(30).keys()].filter((k) => k < 10 || k > 19));
+  assert.equal(masked.samples, 40);
+  assert.equal(renderedJitter(renders.slice(0, 2), poseTimes, [0]), null);
 });

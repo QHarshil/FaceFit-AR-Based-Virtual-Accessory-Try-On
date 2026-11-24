@@ -115,6 +115,26 @@ export const rotationJitter = (quats, window = 9) => {
   return { rmsFromMean: fromMean, rmsHighPass: highPass, rmsStep: n > 1 ? Math.sqrt(step / (n - 1)) : 0 };
 };
 
+// Jitter of what each render drew, renders being { t, centerPx, quat }. A
+// render is dropped when the newest pose sample at or before it is not in
+// `keep`, so the blink mask of the pose samples carries over in time.
+export const renderedJitter = (renders, poseTimes, keep) => {
+  const kept = new Set(keep);
+  let k = -1;
+  const shown = renders.filter((r) => {
+    while (k + 1 < poseTimes.length && poseTimes[k + 1] <= r.t) k += 1;
+    return k >= 0 && kept.has(k);
+  });
+  if (shown.length < 3) return null;
+  const window = windowSamples(shown.map((r) => r.t));
+  return {
+    samples: shown.length,
+    windowSamples: window,
+    centerPx: pointJitter(shown.map((r) => r.centerPx), window),
+    rotationDeg: rotationJitter(shown.map((r) => r.quat), window),
+  };
+};
+
 // Odd number of samples spanning about `spanMs` at the sampling interval of
 // `times`, so a moving-average window covers the same time at 30 Hz and 60 Hz.
 export const windowSamples = (times, spanMs = 150) => {
