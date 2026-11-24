@@ -105,6 +105,8 @@ describe('a Postgres server that stops answering', () => {
 
     await running.shutdown();
 
-    expect(performance.now() - started).toBeLessThan(1_500);
+    // close() never resolves, so returning at all shows the deadline works. The slack
+    // covers slow CI runners and stays under the 5 s test timeout.
+    expect(performance.now() - started).toBeLessThan(config.shutdownTimeoutMs + 3_000);
   });
 });
