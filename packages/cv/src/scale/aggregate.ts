@@ -15,6 +15,15 @@ export interface FaceMeasurementLimits {
   readonly maxRmsReprojectionMm: number;
   /** Rotation noise above this makes the yaw and pitch gates themselves unreliable. */
   readonly maxRotationStdDeg: number;
+  /**
+   * Plausible face scale. The canonical eye spacing is 63 mm, the adult mean
+   * PD, so the face scale is about PD over 63 mm times the assumed over the
+   * true iris diameter. PD from 41 mm (young children) to 78 mm (largest
+   * adults) and an iris from 10.2 to 13.2 mm (3 SD) give 0.58 to 1.42; a
+   * frame outside 0.55 to 1.45 has an iris fit that cannot be this face's.
+   */
+  readonly minFaceScale: number;
+  readonly maxFaceScale: number;
   /** Absolute floor on eye openness, for clips where most frames are blinks. */
   readonly minEyeOpenness: number;
   /**
@@ -35,6 +44,8 @@ export const DEFAULT_FACE_MEASUREMENT_LIMITS: FaceMeasurementLimits = {
   maxPitchDeg: 20,
   maxRmsReprojectionMm: 5,
   maxRotationStdDeg: 2,
+  minFaceScale: 0.55,
+  maxFaceScale: 1.45,
   minEyeOpenness: 0.15,
   minRelativeEyeOpenness: 0.9,
   minAcceptedFrames: 10,
@@ -42,7 +53,15 @@ export const DEFAULT_FACE_MEASUREMENT_LIMITS: FaceMeasurementLimits = {
   irisDiameterSdMm: POPULATION_IRIS_DIAMETER_MM.sd,
 };
 
-export type FrameRejection = 'no-face' | 'pose-failed' | 'measurement-failed' | 'untrusted-pose' | 'off-axis' | 'eyes-closed';
+export type FrameRejection =
+  | 'no-face'
+  | 'pose-failed'
+  | 'measurement-failed'
+  | 'iris-outside-eye'
+  | 'untrusted-pose'
+  | 'off-axis'
+  | 'implausible-scale'
+  | 'eyes-closed';
 
 /** Median over accepted frames with a 95% interval. */
 export interface MeasurementInterval {
@@ -92,14 +111,16 @@ const FAILURE_REJECTION: Record<FaceFrameFailureReason, FrameRejection> = {
   'no-face': 'no-face',
   'pose-failed': 'pose-failed',
   'missing-landmarks': 'measurement-failed',
+  'iris-outside-eye': 'iris-outside-eye',
   'measurement-failed': 'measurement-failed',
 };
 
 /**
  * Combines frames, in capture order, into medians with 95% intervals.
  * Frames are accepted when measured, when the pose is trusted (reprojection
- * RMS and rotation SD), when the face is near frontal, and when the eyes are
- * open; each rejection counts under the first check it fails.
+ * RMS and rotation SD), when the face is near frontal, when the face scale
+ * is plausible, and when the eyes are open; each rejection counts under the
+ * first check it fails.
  *
  * The interval's half-width is 1.96 sqrt(population^2 + noise^2 + model^2).
  * The population term is the iris-size spread: every frame shares the
@@ -117,8 +138,10 @@ export function aggregateFaceMeasurements(
     'no-face': 0,
     'pose-failed': 0,
     'measurement-failed': 0,
+    'iris-outside-eye': 0,
     'untrusted-pose': 0,
     'off-axis': 0,
+    'implausible-scale': 0,
     'eyes-closed': 0,
   };
   if (!validLimits(settings)) return { ok: false, reason: 'invalid-limits', acceptedFrames: 0, rejectedFrames };
@@ -137,6 +160,8 @@ export function aggregateFaceMeasurements(
       rejectedFrames['untrusted-pose']++;
     } else if (!(Math.abs(frame.lineOfSightYawDeg) <= settings.maxYawDeg && Math.abs(frame.lineOfSightPitchDeg) <= settings.maxPitchDeg)) {
       rejectedFrames['off-axis']++;
+    } else if (!(frame.faceScale >= settings.minFaceScale && frame.faceScale <= settings.maxFaceScale)) {
+      rejectedFrames['implausible-scale']++;
     } else {
       posed.push(frame);
     }
@@ -221,11 +246,12 @@ function lagOneAutocorrelation(values: readonly number[]): number {
 }
 
 function validLimits(limits: FaceMeasurementLimits): boolean {
-  const positive = [limits.maxYawDeg, limits.maxPitchDeg, limits.maxRmsReprojectionMm, limits.maxRotationStdDeg, limits.irisDiameterMm];
+  const positive = [limits.maxYawDeg, limits.maxPitchDeg, limits.maxRmsReprojectionMm, limits.maxRotationStdDeg, limits.irisDiameterMm, limits.minFaceScale];
   const nonNegative = [limits.minEyeOpenness, limits.minRelativeEyeOpenness, limits.irisDiameterSdMm];
   return (
     positive.every((value) => Number.isFinite(value) && value > 0) &&
     nonNegative.every((value) => Number.isFinite(value) && value >= 0) &&
+    limits.maxFaceScale > limits.minFaceScale &&
     Number.isInteger(limits.minAcceptedFrames) &&
     limits.minAcceptedFrames >= 2
   );

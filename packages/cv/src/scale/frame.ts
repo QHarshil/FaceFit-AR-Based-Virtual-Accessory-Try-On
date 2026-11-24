@@ -46,7 +46,7 @@ export interface FaceFrame {
   readonly faceWidthModelSdMm: number;
 }
 
-export type FaceFrameFailureReason = 'no-face' | 'pose-failed' | 'missing-landmarks' | 'measurement-failed';
+export type FaceFrameFailureReason = 'no-face' | 'pose-failed' | 'missing-landmarks' | 'iris-outside-eye' | 'measurement-failed';
 
 export type FaceFrameResult = FaceFrame | { readonly ok: false; readonly reason: FaceFrameFailureReason };
 
@@ -73,7 +73,10 @@ export function measureFaceFrame(
   if (!hasFiniteLandmarks(landmarksPx, EYELID_INDICES)) return { ok: false, reason: 'missing-landmarks' };
 
   const scale = estimateFaceScale(landmarksPx, pose, intrinsics, options);
-  if (!scale.ok) return { ok: false, reason: scale.reason === 'missing-landmarks' ? 'missing-landmarks' : 'measurement-failed' };
+  if (!scale.ok) {
+    const passed = scale.reason === 'missing-landmarks' || scale.reason === 'iris-outside-eye';
+    return { ok: false, reason: passed ? scale.reason : 'measurement-failed' };
+  }
   const pd = measurePupillaryDistance(scale, pose);
   const width = measureFaceWidth(landmarksPx, pose, intrinsics, scale);
   if (!width.ok && width.reason === 'missing-landmarks') return { ok: false, reason: 'missing-landmarks' };

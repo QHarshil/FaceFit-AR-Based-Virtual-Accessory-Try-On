@@ -1,4 +1,4 @@
-import { isValidIntrinsics, type CameraIntrinsics } from '../camera.ts';
+import { isValidIntrinsics, projectPoint, type CameraIntrinsics } from '../camera.ts';
 import { mat3MulVec3, vec3Add, vec3Norm, vec3Scale, vec3Sub, type Vec2, type Vec3 } from '../linalg.ts';
 import type { HeadPose } from '../pnp.ts';
 import { isRotationMatrix } from '../rotation.ts';
@@ -59,7 +59,8 @@ export type FaceScaleFailureReason =
   | 'invalid-options'
   | 'ray-misses-plane'
   | 'iris-fit-failed'
-  | 'inconsistent-iris';
+  | 'inconsistent-iris'
+  | 'iris-outside-eye';
 
 export type FaceScaleResult = FaceScaleEstimate | { readonly ok: false; readonly reason: FaceScaleFailureReason };
 
@@ -125,6 +126,8 @@ export function estimateFaceScale(
     );
     if (!fit.ok) return { ok: false, reason: 'iris-fit-failed' };
     irisCentres[eye] = vec3Add(eyePoint, vec3Add(vec3Scale(axisU, fit.centre[0]), vec3Scale(axisV, fit.centre[1])));
+    const centrePx = projectPoint(intrinsics, irisCentres[eye]);
+    if (!centrePx || !irisInsideEye(landmarksPx, eye, centrePx)) return { ok: false, reason: 'iris-outside-eye' };
     eyePoints[eye] = eyePoint;
     if (fit.horizontalDiameter !== null) {
       diameters.push(fit.horizontalDiameter);
@@ -153,8 +156,37 @@ export function estimateFaceScale(
 
 const IRIS_LANDMARK_INDICES: readonly number[] = EYES.flatMap((eye) => {
   const indices = EYE_LANDMARKS[eye];
-  return [indices.irisCentre, ...indices.irisHorizontal, ...indices.irisVertical];
+  return [indices.irisCentre, ...indices.irisHorizontal, ...indices.irisVertical, ...indices.corners, indices.upperLid, indices.lowerLid];
 });
+
+/**
+ * True when the fitted iris centre lies in the eye: inside the ellipse
+ * through the two corners whose half-height on each side of the corner line
+ * reaches that side's lid, or one iris radius when the lid is nearer. The
+ * radius floor keeps a closing eye, whose lids meet near the line, for the
+ * openness gate to judge. Iris landmarks that belong to a different place
+ * in the image fail this, whatever scale they imply.
+ */
+function irisInsideEye(landmarksPx: readonly Vec2[], eye: Eye, centrePx: Vec2): boolean {
+  const indices = EYE_LANDMARKS[eye];
+  const [a, b] = indices.corners.map((index) => landmarksPx[index]!) as [Vec2, Vec2];
+  const halfLength = 0.5 * Math.hypot(b[0] - a[0], b[1] - a[1]);
+  if (!(halfLength > 0)) return false;
+  const along: Vec2 = [(b[0] - a[0]) / (2 * halfLength), (b[1] - a[1]) / (2 * halfLength)];
+  const middle: Vec2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const toAxis = (p: Vec2): Vec2 => {
+    const dx = p[0] - middle[0];
+    const dy = p[1] - middle[1];
+    return [dx * along[0] + dy * along[1], -dx * along[1] + dy * along[0]];
+  };
+  const [u, v] = toAxis(centrePx);
+  const [h0, h1] = indices.irisHorizontal.map((index) => landmarksPx[index]!) as [Vec2, Vec2];
+  const radiusPx = 0.5 * Math.abs(toAxis(h1)[0] - toAxis(h0)[0]);
+  const lidOffsets = [toAxis(landmarksPx[indices.upperLid]!)[1], toAxis(landmarksPx[indices.lowerLid]!)[1]];
+  const sameSide = lidOffsets.filter((offset) => Math.sign(offset) === Math.sign(v)).map(Math.abs);
+  const halfHeight = Math.max(radiusPx, ...sameSide);
+  return (u / halfLength) ** 2 + (v / halfHeight) ** 2 <= 1;
+}
 
 /** True when landmarksPx has the full Face Mesh length and finite pixels at the given indices. */
 export function hasFiniteLandmarks(landmarksPx: readonly Vec2[], indices: readonly number[]): boolean {

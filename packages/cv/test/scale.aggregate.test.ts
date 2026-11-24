@@ -121,8 +121,10 @@ describe('aggregateFaceMeasurements', () => {
       'no-face': 3,
       'pose-failed': 3,
       'measurement-failed': 0,
+      'iris-outside-eye': 0,
       'untrusted-pose': 3,
       'off-axis': 10,
+      'implausible-scale': 0,
       'eyes-closed': 12,
     });
     // 40 frames at 1.3% per-frame SD: 4 standard errors of the median is 1%.
