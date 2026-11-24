@@ -23,8 +23,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONDITIONS, PRODUCTS, RECORDED } from './conditions.mjs';
-import { blinkShift, findBlinks, latency, linearFit, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, windowSamples, wrapLineAngle } from './metrics.mjs';
+import { CONDITIONS, PRODUCT_ZOOMS, PRODUCTS, RECORDED } from './conditions.mjs';
+import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
 import { runCondition, selfTestWorkerGuard } from './run.mjs';
 
@@ -126,7 +126,7 @@ try {
 }
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
-const conditions = [...CONDITIONS, ...PRODUCTS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
+const conditions = [...CONDITIONS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
 const runs = {};
 let environment;
 let guardSelfTest;
@@ -187,9 +187,7 @@ if (networkProblems.length) {
 }
 const blockedAttempts = Object.values(network).flatMap((n) => n.blocked);
 
-const geometryOf = (run) => run.events
-  .filter((e) => e.stage === 'glassesPose')
-  .map((e) => sampleGeometry(e, run.environment.video, run.environment.viewport));
+const geometryOf = (run) => shownPoses(run.events).map((e) => sampleGeometry(e, run.environment.video, run.environment.viewport));
 
 const round = (value, digits = 2) => (value == null ? null : Number(value.toFixed(digits)));
 const roundAll = (obj) => JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === 'number' ? round(v, 3) : v)));
@@ -197,7 +195,7 @@ const roundAll = (obj) => JSON.parse(JSON.stringify(obj, (_, v) => (typeof v ===
 // Jitter with blinks and their neighbours masked out. The high-pass window
 // spans about 150 ms whatever the pose rate.
 const jitterOf = (allGeometry, run) => {
-  const allPoses = run.events.filter((e) => e.stage === 'glassesPose');
+  const allPoses = shownPoses(run.events);
   const blinks = findBlinks(allGeometry.map((g) => g.eyeOpenness));
   const keep = outsideBlinks(allGeometry.length, blinks);
   const geometry = keep.map((i) => allGeometry[i]);
@@ -217,9 +215,16 @@ const jitterOf = (allGeometry, run) => {
   };
 };
 
-const summary = { latency: {}, jitter: {}, roll: null, registration: null, scale: null, products: null, blink: null };
+const summary = { latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null };
 const geometry = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, geometryOf(run)]));
 const medianOf = (id, key) => median(geometry[id].map((g) => g[key]));
+
+const solver = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, solverSummary(run.events)]));
+const allSamples = Object.values(solver).reduce((sum, s) => sum + s.samples, 0);
+summary.solver = {
+  gatedShare: allSamples ? Object.values(solver).reduce((sum, s) => sum + s.gated, 0) / allSamples : null,
+  byCondition: solver,
+};
 
 for (const id of ['still', 'rec-static']) {
   if (!runs[id]) continue;
@@ -237,9 +242,12 @@ if (rollIds.length > 2) {
     faceAngleDeg: face,
     renderedAngleDeg: rendered,
     renderedPerFaceDeg: linearFit(face, rendered).slope,
-    heuristicPitchPerFaceRollDeg: linearFit(face, eulerAxis(0)).slope,
-    heuristicYawPerFaceRollDeg: linearFit(face, eulerAxis(1)).slope,
-    heuristicRollPerFaceRollDeg: linearFit(face, eulerAxis(2)).slope,
+    // XYZ Euler angles of the rendered pose, decomposed for reporting only.
+    // Roll is about the viewer-facing axis, so it runs opposite to the
+    // clockwise screen angle.
+    eulerPitchPerFaceRollDeg: linearFit(face, eulerAxis(0)).slope,
+    eulerYawPerFaceRollDeg: linearFit(face, eulerAxis(1)).slope,
+    eulerRollPerFaceRollDeg: linearFit(face, eulerAxis(2)).slope,
   };
 }
 
@@ -264,6 +272,16 @@ if (runs.still) {
   }]));
 }
 
+// Rendered width over face width at each zoom, per product.
+const ratioAt = (id) => (geometry[id].length ? medianOf(id, 'renderedWidth') / medianOf(id, 'faceWidth') : null);
+const zoomIdsOf = (productId) => (productId === 1
+  ? { 'zoom0.75': 'zoom0.75', still: 'still', 'zoom1.33': 'zoom1.33' }
+  : { 'zoom0.75': `product${productId}-zoom0.75`, still: `product${productId}`, 'zoom1.33': `product${productId}-zoom1.33` });
+summary.scaleByProduct = Object.fromEntries([1, 2, 3, 4].map((productId) => {
+  const ratios = Object.fromEntries(Object.entries(zoomIdsOf(productId)).filter(([, id]) => runs[id]).map(([zoom, id]) => [zoom, ratioAt(id)]));
+  return [`product${productId}`, { renderedOverFace: ratios, maxChangeFromStillPercent: maxChangeFromStillPercent(ratios) }];
+}));
+
 const productIds = ['still', ...PRODUCTS.map((c) => c.id)].filter((id) => runs[id]);
 if (productIds.length > 1) {
   summary.products = Object.fromEntries(productIds.map((id) => [id === 'still' ? 'product1' : id, {
@@ -281,7 +299,7 @@ if (runs['rec-blink']) {
   const smoothed = shifts('renderedCenter');
   const landmark = shifts('noseBridge');
   const anchorShift = (key) => blinkShift(g.map((s) => s[key]), blinks);
-  const current = anchorShift('currentAnchorY');
+  const heuristic = anchorShift('heuristicAnchorY');
   const corners = anchorShift('cornerAnchorY');
   summary.blink = {
     samples: g.length,
@@ -290,11 +308,17 @@ if (runs['rec-blink']) {
     rawCenterShiftPx: { median: median(raw), max: Math.max(...raw) },
     smoothedCenterShiftPx: { median: median(smoothed), max: Math.max(...smoothed) },
     noseBridgeLandmarkShiftPx: { median: median(landmark), max: Math.max(...landmark) },
-    currentAnchorShiftPx: { median: median(current), max: Math.max(...current) },
+    heuristicAnchorShiftPx: { median: median(heuristic), max: Math.max(...heuristic) },
     eyeCornerAnchorShiftPx: { median: median(corners), max: Math.max(...corners) },
     smoothedShiftPercentOfInterocular: (100 * median(smoothed)) / iod,
   };
 }
+
+// The pose settings the app reported with its first pose sample.
+const firstPose = Object.values(runs).flatMap((run) => run.events).find((e) => e.stage === 'glassesPose' && e.focalPx != null);
+const poseDescription = firstPose
+  ? `solveHeadPose on the 33 rigid landmarks, ${(2 * Math.atan(firstPose.frameSize[0] / 2 / firstPose.focalPx) * 180 / Math.PI).toFixed(1)} deg horizontal FOV assumed, overlay hidden above ${firstPose.gateMaxRmsMm} mm reprojection RMS, no temporal filter`
+  : 'no pose samples';
 
 const tasksVisionVersion = JSON.parse(readFileSync(join(FRONTEND, 'node_modules', '@mediapipe', 'tasks-vision', 'package.json'), 'utf8')).version;
 const delegates = [...new Set(Object.values(runs).map((run) => run.delegate))];
@@ -303,7 +327,7 @@ const entry = roundAll({
   commit: git('rev-parse', 'HEAD'),
   dirty: dirty.length > 0,
   command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
-  pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces ${numFaces}, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; heuristic Euler pose, lerp/slerp alpha 0.3`,
+  pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces ${numFaces}, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; ${poseDescription}`,
   hardware: {
     cpu: cpus()[0].model,
     memoryGB: Math.round(totalmem() / 2 ** 30),
@@ -316,7 +340,7 @@ const entry = roundAll({
     perceptionDelegate: delegates.join('/'),
   },
   input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise' : 'webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise',
-  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests, blockedOffOriginAttempts: network[c.id].blocked.length }])),
+  conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, gated: solver[c.id].gated, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests, blockedOffOriginAttempts: network[c.id].blocked.length }])),
   network: {
     requests: Object.values(network).reduce((sum, n) => sum + n.requests, 0),
     offDeviceRequests: 0,

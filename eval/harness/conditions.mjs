@@ -16,6 +16,9 @@ export const CONDITIONS = [
 // Remaining catalog models on the still clip, for per-model fit.
 export const PRODUCTS = [2, 3, 4].map((productId) => ({ ...base, id: `product${productId}`, group: 'product', clip: 'still', productId }));
 
+// The same models on the zoom clips, so scale is checked for every model.
+export const PRODUCT_ZOOMS = [2, 3, 4].flatMap((productId) => [0.75, 1.33].map((zoom) => ({ ...base, id: `product${productId}-zoom${zoom}`, group: 'productZoom', clip: `zoom${zoom}`, productId, zoom })));
+
 // Recorded clips replay as captured: no synthetic noise or transform.
 export const RECORDED = [
   { id: 'rec-static', group: 'recorded', productId: 1, file: 'static.mp4', warmupSeconds: 2, measureSeconds: 10 },
