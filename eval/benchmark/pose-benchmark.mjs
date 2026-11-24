@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Head-pose accuracy on AFLW2000-3D for three methods on the same MediaPipe
-// landmarks: the app's eye-line heuristic, MediaPipe's facial transformation
-// matrix and solveHeadPose from packages/cv. Merges
-// runs["pose-benchmark-aflw2000"] into eval/results.json.
+// landmarks: the eye-line heuristic the app used before solveHeadPose,
+// MediaPipe's facial transformation matrix and solveHeadPose from packages/cv.
+// Merges runs["pose-benchmark-aflw2000"] into eval/results.json.
 //
 //   node eval/benchmark/pose-benchmark.mjs                 refuses a dirty working tree
 //   node eval/benchmark/pose-benchmark.mjs --allow-dirty   writes eval/.cache/results-dirty.json instead

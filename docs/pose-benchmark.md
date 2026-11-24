@@ -4,7 +4,7 @@ Yaw, pitch and roll error of three head-pose methods run on the same MediaPipe l
 
 ## Methods
 
-- **Eye-line heuristic.** What the app does today (`updateGlasses` in [`ARTryOn.tsx`](../frontend/src/components/ARTryOn.tsx)), ported with the same constants to [`heuristicPose.mjs`](../eval/benchmark/heuristicPose.mjs). Hand-tuned gains on the angles of the line between the eyes, plus a fixed pitch offset. It is a heuristic, not a fitted model. A test fails if the app's formulas change and the port does not follow.
+- **Eye-line heuristic.** What the app did before it switched to solveHeadPose (`updateGlasses` in `frontend/src/components/ARTryOn.tsx` up to commit `1dffe23`), ported with the same constants to [`heuristicPose.mjs`](../eval/benchmark/heuristicPose.mjs). Hand-tuned gains on the angles of the line between the eyes, plus a fixed pitch offset. It is a heuristic, not a fitted model.
 - **MediaPipe transformation matrix.** FaceLandmarker's facial transformation matrix, which maps MediaPipe's canonical face into a metric camera space. It assumes a 63 degree vertical FOV and an average face.
 - **solveHeadPose.** The PnP solver in [`packages/cv`](../packages/cv/README.md) on the 33 `RIGID_FACE_LANDMARKS`, with pixels as normalized landmarks times 450 and intrinsics from an assumed FOV (below).
 
@@ -56,7 +56,7 @@ AFLW2000-3D, 1749 of 2000 images evaluated: 31 excluded for a label beyond 99 de
 
 | Method | Yaw MAE (deg) | Pitch MAE (deg) | Roll MAE (deg) | Mean MAE (deg) | Geodesic median (deg) | Within 5 / 10 / 15 deg |
 |---|---|---|---|---|---|---|
-| Eye-line heuristic (app today) | 5.57 | 13.05 | 17.20 | 11.94 | 18.72 | 4.1% / 19.6% / 37.9% |
+| Eye-line heuristic (old app pose) | 5.57 | 13.05 | 17.20 | 11.94 | 18.72 | 4.1% / 19.6% / 37.9% |
 | MediaPipe transformation matrix | 3.42 | 4.29 | 2.28 | 3.33 | 5.03 | 49.6% / 86.2% / 95.4% |
 | solveHeadPose | 3.81 | 5.08 | 2.40 | 3.77 | 6.01 | 39.2% / 81.5% / 94.3% |
 
@@ -82,7 +82,7 @@ Each method against the labels, n = 1200: correlation, then mean signed error in
 
 | Method | Pitch | Yaw | Roll |
 |---|---|---|---|
-| Eye-line heuristic (app today) | 0.02 (+1.04) | 0.96 (-0.09) | -0.95 (+4.12) |
+| Eye-line heuristic (old app pose) | 0.02 (+1.04) | 0.96 (-0.09) | -0.95 (+4.12) |
 | MediaPipe transformation matrix | 0.93 (+1.93) | 0.97 (-0.03) | 0.99 (+0.15) |
 | solveHeadPose | 0.92 (+2.84) | 0.97 (+0.12) | 0.99 (+0.13) |
 

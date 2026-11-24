@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { rotationFromEulerXYZ } from './conventions.mjs';
 import { heuristicEuler, heuristicRotation } from './heuristicPose.mjs';
@@ -19,25 +18,6 @@ const FACE = [
 ];
 
 describe('heuristicEuler', () => {
-  it('matches the app source it ports', () => {
-    const source = readFileSync(new URL('../../frontend/src/components/ARTryOn.tsx', import.meta.url), 'utf8');
-    for (const line of [
-      'const LEFT_EYE_INDICES = [33, 133, 159, 145];',
-      'const RIGHT_EYE_INDICES = [362, 263, 386, 374];',
-      'const LEFT_TEMPLE_INDEX = 234;',
-      'const RIGHT_TEMPLE_INDEX = 454;',
-      'const FOREHEAD_INDEX = 10;',
-      'const eyeVector = rightEye.clone().sub(leftEye);',
-      'const yaw = Math.atan2(eyeVector.z, eyeVector.x) * 0.8;',
-      'const pitch = Math.atan2(-eyeVector.y, horizontalMagnitude) * 0.75 + 0.08;',
-      'const verticalReference = browPoint.clone().sub(eyeMidpoint);',
-      'const roll = Math.atan2(eyeVector.y, eyeVector.x) * 0.55 + verticalReference.y * 0.3;',
-      "new THREE.Euler(pitch, yaw, roll, 'XYZ')",
-    ]) {
-      assert.ok(source.includes(line), `ARTryOn.tsx no longer contains: ${line}`);
-    }
-  });
-
   it('gives the hand-computed angles for a tilted eye line', () => {
     // Eye vector (0.2, 0.05, 0.05), eye midpoint y 0.525, forehead y 0.3.
     const [pitch, yaw, roll] = heuristicEuler(landmarksWith(FACE));
