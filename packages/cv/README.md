@@ -1,6 +1,6 @@
 # @facefit/cv
 
-Head-pose geometry for FaceFit: camera intrinsics, a GL projection matrix, a rigid face model and a PnP solver with outlier rejection. Pure TypeScript with no runtime dependencies and no DOM, MediaPipe or Three.js types. Equations and conventions: [docs/geometry.md](../../docs/geometry.md).
+Head-pose geometry for FaceFit: camera intrinsics, a GL projection matrix, a rigid face model, a PnP solver with outlier rejection and temporal pose filters. Pure TypeScript with no runtime dependencies and no DOM, MediaPipe or Three.js types. Equations and conventions: [docs/geometry.md](../../docs/geometry.md).
 
 ## API
 
@@ -21,6 +21,7 @@ const pose = solveHeadPose(imagePoints, RIGID_FACE_LANDMARKS, intrinsics, { init
 - `projectionMatrixFromIntrinsics(intrinsics, near, far)` returns a column-major 4x4 `Float64Array` for an OpenGL eye space that looks down -z. A solver camera point `(x, y, z)` is `(x, -y, -z)` in that space. Returns `null` for invalid input.
 - `RIGID_FACE_LANDMARKS` holds the 33 Procrustes landmarks from MediaPipe's canonical face model, in millimetres, keyed by Face Mesh landmark index, with weights that sum to 1. Blink-affected landmarks are downweighted; see `src/faceModel.ts`. `RIGID_FACE_LANDMARK_INDICES` lists the same indices in order.
 - `solveHeadPose(imagePoints, modelPoints, intrinsics, options)` pairs `imagePoints[i]` (pixels) with `modelPoints[i]`. It returns `{ ok: true, rotation, translationMm, rmsReprojectionPx, inlierIndices, iterations }`, where a model point `p` maps to `rotation * p + translationMm` in camera coordinates (x right, y down, z forward). On bad input, or a depth outside `minDepthMm` to `maxDepthMm` (default 100 to 5000), it returns `{ ok: false, reason }`. It never throws and never returns NaN. Points with weight 0 are ignored. At least `MIN_POINTS` (6) need positive weight, and the model points must span 3D.
+- `oneEuroPose(options)` and `poseKalman(options)` return a `PoseFilter`: `update(pose, timestampMs)` returns the filtered pose at that time, `predict(timestampMs)` extrapolates it at constant velocity (at most `maxPredictionMs` ahead, default `DEFAULT_MAX_PREDICTION_MS`), and `reset()` drops the state. A gap above `maxGapMs` (default `DEFAULT_MAX_GAP_MS`) or a non-increasing timestamp restarts the filter from the new pose. `oneEuroPose` is a One Euro filter with rotation on the tangent space and one filter per translation axis; `poseKalman` is an error-state Kalman filter with a constant-velocity model. Equations: [docs/pose-filter.md](../../docs/pose-filter.md).
 - `rotation.ts` exports quaternion and matrix conversions, rotation-vector exp and log maps, and the angle between two rotations; `linalg.ts` exports the 3x3 matrix helpers and the `Mat3`, `Vec2` and `Vec3` types.
 
 ## Commands

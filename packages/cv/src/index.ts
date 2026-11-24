@@ -26,6 +26,7 @@ export {
   type SolveHeadPoseOptions,
   type WeightedModelPoint,
 } from './pnp.ts';
+export { poseKalman, type PoseKalmanOptions } from './filter/poseKalman.ts';
 export {
   angleBetweenQuaternions,
   angleBetweenRotations,
