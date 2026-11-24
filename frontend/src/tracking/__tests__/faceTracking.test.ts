@@ -107,6 +107,31 @@ describe('startFaceTracking', () => {
     expect(landmarkers[0]?.submit).toHaveBeenCalledWith(captured);
   });
 
+  it('reports every presented frame with its capture time before submitting it', async () => {
+    const order: string[] = [];
+    const onFramePresented = vi.fn((timestampMs: number) => order.push(`presented ${timestampMs}`));
+    const tracking = startFaceTracking(document.createElement('video'), {
+      ...callbacks(),
+      onFramePresented,
+    });
+    await flush();
+    cameras[0]?.attach();
+    landmarkers[0]?.resolveReady('GPU');
+    await tracking.started;
+    landmarkers[0]?.submit.mockImplementation(() => order.push('submitted'));
+
+    frameSources[0]?.callbacks.onFrame({
+      frameId: 0,
+      frame: {} as VideoFrame,
+      timestampMs: 41.5,
+      capturedAt: 50,
+    });
+
+    expect(onFramePresented).toHaveBeenCalledWith(41.5);
+    expect(order).toEqual(['presented 41.5', 'submitted']);
+    tracking.stop();
+  });
+
   it('never starts the camera when stop arrives first', async () => {
     const tracking = startFaceTracking(document.createElement('video'), callbacks());
     tracking.stop();

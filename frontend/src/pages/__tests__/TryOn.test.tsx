@@ -106,6 +106,15 @@ describe('TryOn', () => {
     expect(await screen.findByText('Align your face with the camera.')).toBeInTheDocument();
   });
 
+  it('forwards presented camera frames to the overlay', async () => {
+    getProductById.mockResolvedValue(PRODUCTS[0]);
+    renderTryOn();
+    await screen.findByText('Align your face with the camera.');
+
+    expect(tracking.callbacks?.onFramePresented).toBeTypeOf('function');
+    expect(() => act(() => tracking.callbacks?.onFramePresented?.(33.3))).not.toThrow();
+  });
+
   it('shows a camera error with a way back when access is denied', async () => {
     getProductById.mockResolvedValue(PRODUCTS[0]);
     tracking.start.mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'));

@@ -99,6 +99,9 @@ function TryOn() {
             probe({ stage: 'pose', start: poseStart, end: performance.now() });
           }
         },
+        onFramePresented: (timestampMs) => {
+          arRef.current?.presentFrame(timestampMs);
+        },
         onError: reportTrackingError,
       });
     } catch (err) {

@@ -15,6 +15,11 @@ export interface FaceTracking {
 export interface FaceTrackingCallbacks {
   /** One call per processed camera frame, with or without a face. */
   onLandmarks: (frame: LandmarkFrame) => void;
+  /**
+   * One call per camera frame the video presents, processed or not, with its
+   * capture time on the clock of `LandmarkFrame.timestampMs`.
+   */
+  onFramePresented?: (timestampMs: number) => void;
   /** A failure after `started` resolved. Tracking has stopped when this runs. */
   onError: (error: unknown) => void;
 }
@@ -34,7 +39,7 @@ let previousSession: Promise<void> = Promise.resolve();
  */
 export const startFaceTracking = (
   video: HTMLVideoElement,
-  { onLandmarks, onError }: FaceTrackingCallbacks,
+  { onLandmarks, onFramePresented, onError }: FaceTrackingCallbacks,
 ): FaceTracking => {
   let active = true;
   let releaseCamera: (() => void) | null = null;
@@ -84,6 +89,7 @@ export const startFaceTracking = (
     probe({ stage: 'perceptionReady', delegate });
     stopFrames = startFrameSource(video, {
       onFrame: (captured) => {
+        onFramePresented?.(captured.timestampMs);
         landmarker.submit(captured);
       },
       onError: failRunning,

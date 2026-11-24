@@ -198,6 +198,72 @@ describe('ARTryOn overlay gate', () => {
   });
 });
 
+describe('ARTryOn render loop', () => {
+  const FRAME_MS = 1000 / 30;
+  let pending: FrameRequestCallback[] = [];
+
+  beforeEach(() => {
+    renderedScenes.length = 0;
+    renderedCameras.length = 0;
+    canvasSizes.length = 0;
+    drawingBuffers.length = 0;
+    loadCallbacks.length = 0;
+    pending = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      pending.push(callback);
+      return pending.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const renderFrame = () => {
+    const due = pending.splice(0);
+    act(() => due.forEach((callback) => callback(performance.now())));
+  };
+
+  // A face moving 3 mm per frame to the right.
+  const frameAt = (k: number): LandmarkFrame => ({
+    ...syntheticLandmarkFrame(
+      { rotation: POSE.rotation, translationMm: [20 + 3 * k, -10, 600] },
+      intrinsics,
+    ),
+    timestampMs: k * FRAME_MS,
+  });
+
+  it('draws the filtered pose, predicted forward once a newer frame is on screen', () => {
+    const { handle, glasses, view } = mountWithModel();
+    for (let k = 0; k < 30; k++) handle.updateModel(frameAt(k));
+    renderFrame();
+    const atLastPose = glasses.position.x;
+
+    handle.presentFrame(30 * FRAME_MS);
+    renderFrame();
+
+    expect(glasses.visible).toBe(true);
+    expect(glasses.position.x).toBeGreaterThan(atLastPose);
+    view.unmount();
+  });
+
+  it('does not move hidden glasses', () => {
+    const { handle, glasses, view } = mountWithModel();
+    for (let k = 0; k < 30; k++) handle.updateModel(frameAt(k));
+    renderFrame();
+    const shownAt = glasses.position.x;
+
+    handle.updateModel(NO_FACE);
+    handle.presentFrame(30 * FRAME_MS);
+    renderFrame();
+
+    expect(glasses.visible).toBe(false);
+    expect(glasses.position.x).toBe(shownAt);
+    view.unmount();
+  });
+});
+
 describe('ARTryOn drawing buffer', () => {
   beforeEach(() => {
     renderedCameras.length = 0;

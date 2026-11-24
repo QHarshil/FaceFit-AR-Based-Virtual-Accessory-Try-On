@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   /** Faces FaceLandmarker tracks; 1 when unset. */
   readonly VITE_NUM_FACES?: string;
+  /** Head pose filter: off, one-euro or kalman; see src/filtering/overlayPose.ts. */
+  readonly VITE_POSE_FILTER?: string;
 }
 
 interface ImportMeta {
