@@ -40,10 +40,16 @@ export interface LandmarkerServiceDeps {
   post: (message: WorkerResponse) => void;
 }
 
-// Two faces so a second person in view can be reported. With more than one
-// face MediaPipe skips its built-in landmark smoothing and runs the face
-// detector on every frame where fewer faces are tracked.
-export const MAX_FACES = 2;
+export const numFacesFrom = (value: string | undefined): number => {
+  const faces = Number(value);
+  return Number.isInteger(faces) && faces >= 1 ? faces : 1;
+};
+
+// One face, because nothing downstream reads a second. With more than one face
+// MediaPipe skips its built-in landmark smoothing and runs the face detector on
+// every frame where fewer faces are tracked. The eval harness builds with
+// VITE_NUM_FACES=2 to measure that cost.
+export const NUM_FACES = numFacesFrom(import.meta.env.VITE_NUM_FACES);
 
 // MediaPipe needs strictly increasing timestamps. It converts milliseconds to
 // integer microseconds, so a whole-millisecond step survives the rounding.
@@ -191,7 +197,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
         landmarker = await deps.createLandmarker(filesetForAttempt(fileset, delegate, attempt), {
           baseOptions: { modelAssetBuffer: model, delegate },
           runningMode: 'VIDEO',
-          numFaces: MAX_FACES,
+          numFaces: NUM_FACES,
         });
         state = 'ready';
         deps.post({ type: 'ready', delegate });

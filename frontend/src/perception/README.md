@@ -12,7 +12,7 @@ Camera frames go to a module worker running MediaPipe Tasks Vision `FaceLandmark
 
 Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronously in the frame callback, wraps the decoded camera frame without a copy, and is closed explicitly; `createImageBitmap` is asynchronous and makes a copy. Closing matters: an open frame holds a camera buffer, so at most two exist at once.
 
-`numFaces` is 2 so a second person can be reported. MediaPipe applies its built-in One Euro filter only when `numFaces` is 1, and runs the face detector on every frame where fewer than `numFaces` faces are tracked (`face_landmarker_graph.cc`, v1.2.3).
+`numFaces` is 1 (`NUM_FACES` in `landmarkerService.ts`) because nothing reads a second face. MediaPipe applies its built-in One Euro filter only when `numFaces` is 1, and runs the face detector on every frame where fewer than `numFaces` faces are tracked (`face_landmarker_graph.cc`, v1.2.3). `VITE_NUM_FACES` at build time overrides it; the eval harness uses that to measure two faces.
 
 ## Self-hosted assets
 

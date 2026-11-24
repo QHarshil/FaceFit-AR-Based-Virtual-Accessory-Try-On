@@ -1,9 +1,10 @@
 import type { FaceLandmarkerOptions, FaceLandmarkerResult } from '@mediapipe/tasks-vision';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  MAX_FACES,
+  NUM_FACES,
   createLandmarkerService,
   isZipArchive,
+  numFacesFrom,
   toLandmarkFrame,
   wasmFilesetAt,
   type LandmarkerServiceDeps,
@@ -107,7 +108,7 @@ describe('landmarker service init', () => {
     );
     expect(h.options[0]).toMatchObject({
       runningMode: 'VIDEO',
-      numFaces: MAX_FACES,
+      numFaces: 1,
       baseOptions: { delegate: 'GPU' },
     });
     expect(h.options[0]?.baseOptions?.modelAssetBuffer).toEqual(MODEL_BYTES);
@@ -374,6 +375,13 @@ describe('landmarker service frames', () => {
 });
 
 describe('helpers', () => {
+  it('tracks one face unless the build sets a positive integer', () => {
+    expect(NUM_FACES).toBe(1);
+    expect(numFacesFrom(undefined)).toBe(1);
+    expect(numFacesFrom('2')).toBe(2);
+    for (const invalid of ['', '0', '-1', '1.5', 'two']) expect(numFacesFrom(invalid)).toBe(1);
+  });
+
   it('builds the module WASM paths without doubling slashes', () => {
     expect(wasmFilesetAt('/w/')).toEqual(wasmFilesetAt('/w'));
   });
