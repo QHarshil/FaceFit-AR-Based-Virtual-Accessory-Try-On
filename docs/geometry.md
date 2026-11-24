@@ -98,6 +98,8 @@ $$\kappa = \frac{1}{\left(1 - e^{-c^2/2\sigma^2}\right)\left(1 - e^{-\tau^2/2\si
 
 treats points past the Huber scale $c$ or the rejection threshold $\tau$ as carrying no information: 1.0003, 1.018 and 1.49 at $\sigma$ = 0.5, 1 and 2 px. EPnP without refinement and a pitch bias of 1.5 degrees per pixel both exceed the bound. Outlier tests whiten by the covariance of a fit to the uncorrupted points, the accuracy perfect rejection would reach, and bound the 95th percentile of the whitened error.
 
+`solveHeadPose` reports the same covariance at its own solution, with the noise estimated from the residuals ([metric-scale.md](metric-scale.md#pose-covariance)).
+
 ## In the app
 
 [`frontend/src/geometry/headPose.ts`](../frontend/src/geometry/headPose.ts) runs once per landmark frame. Landmarks map to pixels of the camera frame as $(xW, yH)$, intrinsics come from an assumed 60 degree horizontal FOV, and `solveHeadPose` fits the 33 rigid landmarks, warm-started from the last trusted pose. The overlay hides when the solve fails, when no face is found, when the face's forward axis points away from the camera, or when the reprojection RMS scaled to the face,

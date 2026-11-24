@@ -38,7 +38,7 @@ This project investigates lightweight facial landmark detection for consumer AR 
 
 ## Performance
 
-Measured numbers live in [`eval/results.json`](eval/results.json), produced by the scripts in [`eval/`](eval/README.md). Each run records the commit, hardware and sample size. Pose accuracy on AFLW2000-3D is in [`docs/pose-benchmark.md`](docs/pose-benchmark.md).
+Measured numbers live in [`eval/results.json`](eval/results.json), produced by the scripts in [`eval/`](eval/README.md). Each run records the commit, hardware and sample size. Pose accuracy on AFLW2000-3D is in [`docs/pose-benchmark.md`](docs/pose-benchmark.md); PD and face width from the iris are in [`docs/metric-scale.md`](docs/metric-scale.md).
 
 ## Repository Structure
 
