@@ -83,7 +83,7 @@ The live run matches the replay except for rotation jitter, 0.150 against 0.166 
 
 With `numFaces` 1, FaceLandmarker smooths landmarks with its own One Euro filter before the solver sees them, and with 2 it does not ([perception README](../frontend/src/perception/README.md)). Our filter stacks on top of it either way.
 
-Measured with the filter off (`runs["pose-filter-off"]` and `runs["pose-filter-off-2faces"]`, rendered over 10 s of rec-static and 8 s of each motion clip), and the operating points of the sweep with each configuration:
+Measured with the filter off on the same machine (`runs["pose-filter-off"]` and `runs["pose-filter-off-2faces"]`, 10 s of rec-static and 8 s of each motion clip), with the operating points of the sweep for each configuration:
 
 | | `numFaces` 1 | `numFaces` 2 |
 |---|---|---|
