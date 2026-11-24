@@ -41,10 +41,43 @@ test('presentedFrames joins capture events to frame codes by mediaTime', () => {
     { stage: 'render', start: 11 },
   ];
   const codes = [{ mediaTime: 0.46, code: 7 }, { mediaTime: 0.5, code: 8 }];
-  assert.deepEqual(presentedFrames(events, codes), [
+  assert.deepEqual(presentedFrames(events, codes, 120), [
     { t: 10, timestampMs: 5, mediaTime: 0.46, index: 7 },
     { t: 20, timestampMs: 15, mediaTime: 0.5, index: 8 },
   ]);
+});
+
+// Capture events and their codes for frames presented every 33 ms.
+const codedFrames = (codes) => ({
+  events: codes.map((_, k) => ({ stage: 'capture', start: 1000 + 33 * k, timestampMs: 995 + 33 * k, mediaTime: k / 30 })),
+  frameCodes: codes.map((code, k) => ({ mediaTime: k / 30, code })),
+});
+
+test('presentedFrames accepts codes that advance by one, wrap at the clip length and sometimes repeat', () => {
+  const codes = Array.from({ length: 240 }, (_, k) => (k + 100) % 120);
+  codes.splice(50, 0, codes[49]);
+  const { events, frameCodes } = codedFrames(codes);
+  assert.equal(presentedFrames(events, frameCodes, 120).length, 241);
+});
+
+test('presentedFrames rejects a code outside the clip', () => {
+  for (const bad of [120, 255, -1, 3.5]) {
+    const codes = Array.from({ length: 60 }, (_, k) => k);
+    codes[30] = bad;
+    const { events, frameCodes } = codedFrames(codes);
+    assert.throws(() => presentedFrames(events, frameCodes, 120), /outside the clip/, String(bad));
+  }
+});
+
+test('presentedFrames rejects codes that mostly fail to advance by one', () => {
+  // A corner the reader cannot see reads as one code; a misplaced reader as noise.
+  const stuck = Array.from({ length: 60 }, () => 0);
+  const scrambled = Array.from({ length: 60 }, (_, k) => (k * 37) % 120);
+  const tripled = Array.from({ length: 60 }, (_, k) => Math.floor(k / 3));
+  for (const codes of [stuck, scrambled, tripled]) {
+    const { events, frameCodes } = codedFrames(codes);
+    assert.throws(() => presentedFrames(events, frameCodes, 120), /advance by one/);
+  }
 });
 
 test('mediaTimeMismatchShare counts frames off the most common offset', () => {

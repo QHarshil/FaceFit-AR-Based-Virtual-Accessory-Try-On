@@ -346,7 +346,7 @@ summary.motion = Object.fromEntries(MOTION.filter((c) => runs[c.id]).map((condit
   const { viewport, video } = run.environment;
   const truthOf = (index) => motionTruth(condition.motion, index);
   const clipFrames = condition.clipSeconds * FRAME.fps;
-  const frames = presentedFrames(run.events, run.frameCodes);
+  const frames = presentedFrames(run.events, run.frameCodes, clipFrames);
   const fps = presentationRate(frames, clipFrames);
   const roll = condition.motion.axis === 'roll';
   const renderRead = roll ? (e) => readLineAngle(viewport)(e.endsNdc) : (e) => readCenterX(viewport)(e.centerNdc);

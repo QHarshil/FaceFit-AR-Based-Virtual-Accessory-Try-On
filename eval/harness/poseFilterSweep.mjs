@@ -76,8 +76,9 @@ export const prepare = (runs) => {
   };
   const motion = Object.fromEntries(MOTION.map((condition) => {
     const run = runs[condition.id];
-    const frames = presentedFrames(run.events, run.frameCodes);
-    return [condition.id, { condition, frames, fps: presentationRate(frames, condition.clipSeconds * FRAME.fps) }];
+    const clipFrames = condition.clipSeconds * FRAME.fps;
+    const frames = presentedFrames(run.events, run.frameCodes, clipFrames);
+    return [condition.id, { condition, frames, fps: presentationRate(frames, clipFrames) }];
   }));
   return { still: blinksOf(runs.still), recStatic: blinksOf(runs['rec-static']), recBlink: blinksOf(runs['rec-blink']), motion };
 };

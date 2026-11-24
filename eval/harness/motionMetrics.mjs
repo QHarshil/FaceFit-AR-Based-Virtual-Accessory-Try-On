@@ -4,15 +4,29 @@
 // t, and the truth of the frame it should match.
 import { lineAngle, median, ndcToPx, percentile } from './metrics.mjs';
 
+// Below this share of presented frames whose code is the previous one plus
+// one, the codes are misread: Chrome's fake camera repeats or skips a frame
+// now and then, not most of the time.
+export const MIN_CODE_ADVANCE_SHARE = 0.5;
+
 // Presented camera frames with their clip frame index. The harness reads the
 // frame code in its own frame callback, which sees the same mediaTime as the
-// app's capture callback for the same frame.
-export const presentedFrames = (events, frameCodes) => {
+// app's capture callback for the same frame. Throws on a code outside the
+// clip's clipFrames frames, or when the codes mostly fail to advance by one,
+// since every metric would then compare against the wrong truth.
+export const presentedFrames = (events, frameCodes, clipFrames) => {
+  const outside = frameCodes.filter((c) => !Number.isInteger(c.code) || c.code < 0 || c.code >= clipFrames);
+  if (outside.length) throw new Error(`frame codes outside the clip's ${clipFrames} frames: ${outside.slice(0, 5).map((c) => c.code).join(', ')}`);
   const indexOf = new Map(frameCodes.map((c) => [c.mediaTime, c.code]));
-  return events
+  const frames = events
     .filter((e) => e.stage === 'capture' && indexOf.has(e.mediaTime))
     .map((e) => ({ t: e.start, timestampMs: e.timestampMs, mediaTime: e.mediaTime, index: indexOf.get(e.mediaTime) }))
     .sort((a, b) => a.t - b.t);
+  const advances = frames.filter((f, i) => i > 0 && f.index === (frames[i - 1].index + 1) % clipFrames).length;
+  if (frames.length > 1 && advances / (frames.length - 1) < MIN_CODE_ADVANCE_SHARE) {
+    throw new Error(`frame codes advance by one in only ${advances} of ${frames.length - 1} presented frames`);
+  }
+  return frames;
 };
 
 // Share of frames whose clip index is not round(mediaTime * fps) plus the
