@@ -7,6 +7,7 @@ import {
   wasmFilesetAt,
   type LandmarkerServiceDeps,
   type VideoLandmarker,
+  type WasmFileset,
 } from '../landmarkerService';
 import type { WorkerResponse } from '../protocol';
 import { LANDMARK_COUNT } from '../types';
@@ -103,6 +104,31 @@ describe('landmarker service init', () => {
       create.mock.calls.map(([, opts]) => (opts as FaceLandmarkerOptions).baseOptions?.delegate),
     ).toEqual(['GPU', 'CPU']);
     expect(h.posted).toEqual([{ type: 'ready', delegate: 'CPU' }]);
+  });
+
+  it('loads the WASM loader under a new URL for the CPU attempt and keeps the binary', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('StartGraph failed'))
+      .mockResolvedValueOnce(h.landmarker);
+    h = harness({ createLandmarker: create });
+
+    await createLandmarkerService(h.deps).handle(INIT);
+
+    const [gpu, cpu] = create.mock.calls.map(([fileset]) => fileset as WasmFileset);
+    expect(cpu?.wasmLoaderPath).not.toBe(gpu?.wasmLoaderPath);
+    expect(cpu?.wasmLoaderPath).toMatch(/^\/mediapipe\/tasks-vision\/1\.2\.3\/.*\.js\?/);
+    expect(cpu?.wasmBinaryPath).toBe(gpu?.wasmBinaryPath);
+  });
+
+  it('uses the plain loader URL when the CPU is the only attempt', async () => {
+    h = harness({ gpuAvailable: () => false });
+    await createLandmarkerService(h.deps).handle(INIT);
+
+    expect(h.deps.createLandmarker).toHaveBeenCalledWith(
+      wasmFilesetAt(INIT.wasmBaseUrl),
+      expect.anything(),
+    );
   });
 
   it('goes straight to the CPU when no WebGL2 worker context exists', async () => {

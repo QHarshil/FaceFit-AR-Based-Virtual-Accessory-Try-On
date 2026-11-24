@@ -59,6 +59,20 @@ export const wasmFilesetAt = (baseUrl: string): WasmFileset => {
   };
 };
 
+// The loader is an ES module that sets `globalThis.ModuleFactory` when it is
+// evaluated, and tasks-vision clears that global once a runtime is created. A
+// worker evaluates a module URL only once, so importing the same URL again
+// leaves the global unset. A retry imports the loader under its own URL to
+// evaluate it again.
+const filesetForAttempt = (
+  fileset: WasmFileset,
+  delegate: PerceptionDelegate,
+  attempt: number,
+): WasmFileset =>
+  attempt === 0
+    ? fileset
+    : { ...fileset, wasmLoaderPath: `${fileset.wasmLoaderPath}?${delegate.toLowerCase()}` };
+
 const describeError = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
@@ -136,9 +150,9 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
 
     const delegates: PerceptionDelegate[] = deps.gpuAvailable() ? ['GPU', 'CPU'] : ['CPU'];
     const failures: string[] = [];
-    for (const delegate of delegates) {
+    for (const [attempt, delegate] of delegates.entries()) {
       try {
-        landmarker = await deps.createLandmarker(fileset, {
+        landmarker = await deps.createLandmarker(filesetForAttempt(fileset, delegate, attempt), {
           baseOptions: { modelAssetBuffer: model, delegate },
           runningMode: 'VIDEO',
           numFaces: MAX_FACES,
