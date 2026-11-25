@@ -4,7 +4,7 @@
 // face, so Firefox stops at `searching`. WebKit has no fake camera in
 // Playwright and reports the permission as denied; see denied.spec.mjs for
 // what follows.
-import { PRODUCTS, assertStayedOnDevice, axeViolations, expect, status, test } from './support.mjs';
+import { PRODUCTS, assertStayedOnDevice, axeViolations, expect, hasWebGl, status, test } from './support.mjs';
 
 test.describe('catalogue and routes', () => {
   test('lists the frames, links their credits and passes axe', async ({ app }) => {
@@ -65,8 +65,29 @@ test.describe('try-on with the camera granted', () => {
       'Playwright WebKit has no fake camera: getUserMedia is denied without a grant, and there is no way to grant it',
     );
     const { page } = app;
+    await page.goto('/');
+    test.skip(!(await hasWebGl(page)), 'this browser has no WebGL here (Playwright Firefox on a runner without a GPU), so the try-on stops at "3D rendering is off"');
     await page.goto('/try-on/1');
     await page.locator('[data-status="searching"], [data-status="tracking"]').first().waitFor({ timeout: 90_000 });
+    await assertStayedOnDevice(app);
+    expect(await axeViolations(page)).toEqual([]);
+  });
+});
+
+test.describe('try-on without WebGL', () => {
+  test('says 3D rendering is off, offers a retry and passes axe', async ({ app }) => {
+    const { page } = app;
+    await page.addInitScript(() => {
+      const getContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+        return /webgl/.test(type) ? null : getContext.call(this, type, ...rest);
+      };
+    });
+    await page.goto('/try-on/1');
+    await status(page, 'webglUnavailable', 30_000);
+    await expect(page.getByRole('alert')).toContainText('3D rendering is off');
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Back to catalogue' })).toBeVisible();
     await assertStayedOnDevice(app);
     expect(await axeViolations(page)).toEqual([]);
   });

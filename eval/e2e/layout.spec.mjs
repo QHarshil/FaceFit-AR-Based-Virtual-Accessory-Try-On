@@ -22,7 +22,7 @@
 // times the largest. A missing crop offset moves the point by 555 px in the
 // portrait phone and 43 px in the landscape one, 0.8 of its interocular
 // distance and more.
-import { PRODUCTS, assertStayedOnDevice, expect, status, test } from './support.mjs';
+import { PRODUCTS, assertStayedOnDevice, countEvents, expect, status, test } from './support.mjs';
 
 const TOLERANCE_IOD = 0.1;
 // The landmarks the probe reports, in order (frontend/src/rendering/overlayProbe.ts).
@@ -133,7 +133,9 @@ test('the rendered frame lands on the face under the cover crop and mirror', asy
   const drawn = ndcToScreen(frame.rendered.centerNdc, view);
   expect(distance(drawn, bridge), `rendered bridge ${drawn} against landmark ${bridge}`).toBeLessThan(tolerance);
 
-  // 3. The pixels the overlay adds.
+  // 3. The pixels the overlay adds. A software-rendered canvas can miss a
+  // frame, so a screenshot is retaken after the next render until the
+  // overlay shows in it.
   await page.evaluate(() => {
     document.querySelector('canvas.overlay-canvas').style.visibility = 'hidden';
   });
@@ -142,9 +144,12 @@ test('the rendered frame lands on the face under the cover crop and mirror', asy
   await page.evaluate(() => {
     document.querySelector('canvas.overlay-canvas').style.visibility = 'visible';
   });
-  await page.waitForTimeout(100);
-  const after = await page.screenshot();
-  const box = await changedBox(context, before, after, dpr);
+  let box = { minX: Infinity };
+  for (let attempt = 0; attempt < 8 && !Number.isFinite(box.minX); attempt += 1) {
+    const renders = await countEvents(page, 'renderedPose');
+    await page.waitForFunction((count) => window.__events.filter((e) => e.stage === 'renderedPose').length > count, renders, { timeout: 10_000 });
+    box = await changedBox(context, before, await page.screenshot(), dpr);
+  }
   expect(Number.isFinite(box.minX), 'the overlay changed no pixels').toBe(true);
   const middleX = (box.minX + box.maxX) / 2;
   expect(Math.abs(middleX - bridge[0]), `glasses span x ${box.minX}..${box.maxX}, bridge at ${bridge[0]}`).toBeLessThan(tolerance);

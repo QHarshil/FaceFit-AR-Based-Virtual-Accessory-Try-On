@@ -21,10 +21,15 @@ const CROSS_BROWSER = ['cross-browser.spec.mjs'];
 const DENIED = ['denied.spec.mjs'];
 const LAYOUT = ['layout.spec.mjs'];
 
+// A runner has no GPU, and Firefox blocks software WebGL unless told otherwise.
+// Harmless where a GPU exists.
+const FIREFOX_SOFTWARE_WEBGL = { 'webgl.force-enabled': true, 'webgl.forbid-software': false };
+
 // Firefox's generated stream, granted without a prompt.
 const FIREFOX_FAKE_CAMERA = {
   'media.navigator.streams.fake': true,
   'media.navigator.permission.disabled': true,
+  ...FIREFOX_SOFTWARE_WEBGL,
 };
 
 // New headless mode, unlike the headless shell, honours camera grants and denials.
@@ -94,7 +99,7 @@ export default defineConfig({
     {
       name: 'firefox-denied',
       testMatch: DENIED,
-      use: { browserName: 'firefox', launchOptions: { firefoxUserPrefs: { 'permissions.default.camera': 2 } } },
+      use: { browserName: 'firefox', launchOptions: { firefoxUserPrefs: { 'permissions.default.camera': 2, ...FIREFOX_SOFTWARE_WEBGL } } },
     },
     { name: 'webkit', testMatch: [...CROSS_BROWSER, ...DENIED], use: { browserName: 'webkit' } },
   ],

@@ -7,10 +7,14 @@
 // Playwright's Firefox 159 (its wcag2a, ARIA and keyboard rule groups each
 // trigger it; the blocked-camera view is fine), so that one check is skipped
 // there and recorded as an annotation. Chromium and WebKit run it.
-import { PORTRAIT, assertStayedOnDevice, axeViolations, countEvents, expect, status, test } from './support.mjs';
+import { PORTRAIT, assertStayedOnDevice, axeViolations, countEvents, expect, hasWebGl, status, test, workerHasWebGl } from './support.mjs';
+
+const NO_WEBGL = 'this browser has no WebGL here (Playwright Firefox on a runner without a GPU), so the try-on stops at "3D rendering is off"';
 
 test('explains the blocked camera and tries on the stand-in portrait instead', async ({ app, browserName }) => {
   const { page } = app;
+  await page.goto('/');
+  test.skip(!(await hasWebGl(page)), NO_WEBGL);
   await page.goto('/try-on/1');
   await status(page, 'cameraDenied');
   await expect(page.getByRole('alert')).toContainText('Camera access is blocked');
@@ -20,6 +24,19 @@ test('explains the blocked camera and tries on the stand-in portrait instead', a
   await page.getByRole('button', { name: 'Use a photo' }).click();
   await status(page, 'photoChoosing');
   await page.getByLabel('Photo of your face').setInputFiles(PORTRAIT);
+
+  // Photo detection runs FaceLandmarker in a worker and needs WebGL there.
+  // Where a worker has none, the app must say so instead of hanging.
+  if (!(await workerHasWebGl(app.context))) {
+    await status(page, 'photoFailed', 90_000);
+    await expect(page.getByRole('alert')).toContainText('Could not read this photo');
+    await assertStayedOnDevice(app);
+    test.info().annotations.push({
+      type: 'photo detection skipped',
+      description: 'this browser has no WebGL in workers (Playwright WebKit on Linux), so the app reports "Could not read this photo"',
+    });
+    return;
+  }
   await status(page, 'photoShowing', 90_000);
   await page.waitForTimeout(500);
   expect(await countEvents(page, 'renderedPose')).toBeGreaterThan(0);
@@ -33,6 +50,8 @@ test('explains the blocked camera and tries on the stand-in portrait instead', a
 
 test('passes axe on the blocked-camera state', async ({ app }) => {
   const { page } = app;
+  await page.goto('/');
+  test.skip(!(await hasWebGl(page)), NO_WEBGL);
   await page.goto('/try-on/1');
   await status(page, 'cameraDenied');
   await assertStayedOnDevice(app);

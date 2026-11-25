@@ -7,44 +7,14 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test as base } from '@playwright/test';
 import { offDeviceRequests } from '../harness/network.mjs';
+import { API, APP, PRODUCTS, json } from './catalogue.mjs';
+
+export { API, PRODUCTS };
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
-const REPO = join(EVAL, '..');
 export const STANDIN = resolve(process.env.FACEFIT_STANDIN_DIR ?? join(EVAL, '.cache', 'clips', 'standin'));
 export const PORTRAIT = join(STANDIN, 'portrait.jpg');
-export const API = 'http://localhost:5099';
-const APP = 'http://localhost:4199';
 const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
-
-export const PRODUCTS = JSON.parse(readFileSync(join(REPO, 'assets', 'catalog.json'), 'utf8')).models.map(
-  (model) => ({
-    id: model.id,
-    slug: model.slug,
-    name: model.name,
-    description: model.description,
-    category: 'glasses',
-    type: 'glasses',
-    modelPath: `/models/${model.slug}.glb`,
-    dimensionsMm: {
-      total: model.totalWidthMm,
-      lensWidth: model.lensWidthMm,
-      lensHeight: model.lensHeightMm,
-      bridge: model.bridgeMm,
-      templeLength: model.templeLengthMm,
-    },
-    dimensionsSource: model.dimensionsSource,
-    bridgeOriginMm: model.bridgeOriginMm,
-    anchors: model.anchors,
-    attribution: model.attribution,
-  }),
-);
-
-const json = (body, status = 200) => ({
-  status,
-  contentType: 'application/json',
-  headers: { 'access-control-allow-origin': APP, 'access-control-allow-credentials': 'true' },
-  body: JSON.stringify(body),
-});
 
 /**
  * `app` is a page with probe and CSP recording and the API served by route
@@ -94,4 +64,31 @@ export const axeViolations = async (page) => {
 export const assertStayedOnDevice = async ({ page, requests }) => {
   expect(offDeviceRequests(requests)).toEqual([]);
   expect(await page.evaluate(() => window.__csp)).toEqual([]);
+};
+
+/** Whether this browser can create a WebGL2 context, which the try-on's overlay needs. */
+export const hasWebGl = (page) => page.evaluate(() => Boolean(document.createElement('canvas').getContext('webgl2')));
+
+/**
+ * Whether a worker can create a WebGL2 context on an OffscreenCanvas. Photo
+ * detection runs FaceLandmarker in a worker and needs one; WebKit on Linux
+ * has WebGL on the page but not in workers.
+ */
+export const workerHasWebGl = async (context) => {
+  const page = await context.newPage();
+  try {
+    return await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const source =
+            'self.onmessage = () => { try { postMessage(Boolean(new OffscreenCanvas(4, 4).getContext("webgl2"))); } catch { postMessage(false); } };';
+          const worker = new Worker(URL.createObjectURL(new Blob([source])));
+          worker.onmessage = (event) => resolve(event.data);
+          worker.postMessage(0);
+          setTimeout(() => resolve(false), 5000);
+        }),
+    );
+  } finally {
+    await page.close();
+  }
 };
