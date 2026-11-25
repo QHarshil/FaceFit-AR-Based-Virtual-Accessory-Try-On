@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Replays harness runs through both filters' swept operating points and
+// Replays harness runs through both filters' swept operating points, and
+// without a filter, and
 // records the result under `replayCheck` in the sweep detail file
 // (eval/results/pose-filter-sweep.json). A run recorded with a filter on still
 // carries every solved pose, so the two points can be compared on the
@@ -64,6 +65,8 @@ const main = () => {
       const { params } = configuration[name].chosen;
       return [name, replayedPoint(evaluate(runs, prepared, () => create(params)))];
     }));
+    // The same run without a filter: each render holds the last solved pose.
+    points.none = replayedPoint(evaluate(runs, prepared, () => null));
     const setting = runs['rec-static'].events.find((e) => e.stage === 'glassesPose')?.poseFilter;
     const filter = SETTING_OF[setting];
     const reproductionErrorPx = filter ? replayErrorPx(runs, () => FILTERS[filter](configuration[filter].chosen.params)) : null;
@@ -75,7 +78,7 @@ const main = () => {
     measuredAt: new Date().toISOString(),
     commit,
     command: `node eval/harness/poseFilterReplayCheck.mjs ${process.argv.slice(2).join(' ')}`.trim(),
-    method: 'Each run replayed through the swept One Euro and Kalman operating points for its numFaces, as the sweep replays (eval/harness/poseReplay.mjs). reproductionErrorPx: largest distance between what a filtered run drew and the replay of that filter at its swept point.',
+    method: 'Each run replayed through the swept One Euro and Kalman operating points for its numFaces, and without a filter, as the sweep replays (eval/harness/poseReplay.mjs). reproductionErrorPx: largest distance between what a filtered run drew and the replay of that filter at its swept point.',
     runs: checked,
   });
   const out = join(EVAL, SWEEP_DETAIL);
