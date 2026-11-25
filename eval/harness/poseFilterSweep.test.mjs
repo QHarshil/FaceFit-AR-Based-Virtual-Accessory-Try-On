@@ -6,7 +6,7 @@ import { seededRandom } from '../../packages/cv/test/random.ts';
 import { renderPlot } from './plotPoseFilter.mjs';
 import {
   gridEdges, operatingPoint, paretoFront, positionLagOf, readSweepDetail, recommend, rotationLagOf, solvedPoseNoise, SWEEP_DETAIL, SWEEP_KEY,
-  sweepSummary,
+  sweepSummary, TARGETS,
 } from './poseFilterSweep.mjs';
 import { pageProjection, replayRun } from './poseReplay.mjs';
 
@@ -234,4 +234,14 @@ test('docs/pose-filter.svg regenerates byte for byte from the committed sweep', 
   const summary = JSON.parse(readFileSync(resultsFile, 'utf8')).runs[SWEEP_KEY];
   const detail = readSweepDetail(resultsFile, summary);
   assert.equal(renderPlot(detail), readFileSync(new URL('../../docs/pose-filter.svg', import.meta.url), 'utf8'));
+});
+
+test('the recommended point keeps every lag under the target, the 30 px/s ramp included, off the grid edges', () => {
+  const summary = JSON.parse(readFileSync(new URL('../results.json', import.meta.url), 'utf8')).runs[SWEEP_KEY];
+  const { filter, numFaces } = summary.recommended;
+  const point = summary.configurations.find((c) => c.numFaces === numFaces)[filter];
+  assert.ok(point.chosen.metrics.delayMs['ramp-x-30'] < TARGETS.lagMs, `${point.chosen.metrics.delayMs['ramp-x-30']} ms on ramp-x-30`);
+  assert.ok(point.positionLagMs < TARGETS.lagMs);
+  assert.ok(point.rotationLagMs < TARGETS.lagMs);
+  assert.deepEqual(point.chosenAtGridEdge, { rotation: [], translation: [] });
 });

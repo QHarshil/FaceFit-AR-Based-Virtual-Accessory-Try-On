@@ -3,7 +3,8 @@ export const POSE_FILTER_SETTINGS = ['off', 'one-euro', 'kalman'] as const;
 
 export type PoseFilterSetting = (typeof POSE_FILTER_SETTINGS)[number];
 
-export const DEFAULT_POSE_FILTER: PoseFilterSetting = 'one-euro';
+/** The filter the parameter sweep recommends (docs/pose-filter.md). */
+export const DEFAULT_POSE_FILTER: PoseFilterSetting = 'kalman';
 
 const isPoseFilterSetting = (value: string): value is PoseFilterSetting =>
   (POSE_FILTER_SETTINGS as readonly string[]).includes(value);

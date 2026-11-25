@@ -12,21 +12,30 @@ import { parsePoseFilterSetting, type PoseFilterSetting } from './poseFilterSett
 export const POSE_FILTER = parsePoseFilterSetting(import.meta.env.VITE_POSE_FILTER);
 
 /**
- * Operating points of each filter for `numFaces` 1 from the parameter sweep,
+ * Operating points of each filter for `numFaces` 2 from the parameter sweep,
  * `runs["pose-filter-sweep"]` in eval/results.json: the least jitter on the
- * recorded still clip with every lag under 50 ms (docs/pose-filter.md).
+ * recorded still clip with the worst lag across speeds under 50 ms
+ * (docs/pose-filter.md). The sweep recommends the Kalman filter.
  */
 export const ONE_EURO_OPTIONS: OneEuroPoseOptions = {
-  rotation: { minCutoffHz: 0.02, beta: 30, derivativeCutoffHz: 1 },
-  translation: { minCutoffHz: 0.02, beta: 0.03, derivativeCutoffHz: 2 },
+  rotation: { minCutoffHz: 0.2, beta: 100, derivativeCutoffHz: 0.25 },
+  translation: { minCutoffHz: 4, beta: 0.01, derivativeCutoffHz: 2 },
 };
 
-/** The measurement noise is that of the solved poses on the recorded still clip. */
+/**
+ * Noise of the solved pose on the recorded still clip with `numFaces` 2, per
+ * axis (`solvedPoseNoise` in the sweep). The Kalman filter's measurement noise.
+ */
+export const MEASURED_POSE_NOISE = {
+  rotationRad: 0.008877,
+  translationMm: [0.8784, 0.6203, 2.853],
+} as const;
+
 export const KALMAN_OPTIONS: PoseKalmanOptions = {
-  angularAccelerationNoise: 0.06463,
+  angularAccelerationNoise: 0.1392,
   linearAccelerationNoiseMm: 64.63,
-  rotationNoiseRad: 0.002996,
-  translationNoiseMm: [0.7842, 0.2793, 1.792],
+  rotationNoiseRad: MEASURED_POSE_NOISE.rotationRad,
+  translationNoiseMm: MEASURED_POSE_NOISE.translationMm,
 };
 
 export const createPoseFilter = (setting: PoseFilterSetting): PoseFilter | null => {
