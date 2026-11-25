@@ -73,6 +73,7 @@
 
 .back-button {
   display: inline-block;
+  text-decoration: none;
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.4);
   padding: 10px 20px;
@@ -148,10 +149,6 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-}
-
-.status-actions .back-button {
-  text-decoration: none;
 }
 
 .status-message {
@@ -245,6 +242,26 @@
 .error-message .back-button:hover {
   background: #1e293b;
   transform: translateY(-1px);
+}
+
+.bottom-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.model-credit--overlay {
+  align-self: flex-start;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #e2e8f0;
+  pointer-events: auto;
+}
+
+.model-credit--overlay a {
+  color: #bfdbfe;
 }
 
 @media (max-width: 768px) {

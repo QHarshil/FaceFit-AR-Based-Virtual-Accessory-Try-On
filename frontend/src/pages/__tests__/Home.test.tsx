@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -73,6 +73,19 @@ describe('Home', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Aviator Glasses')).toBeInTheDocument();
     expect(getProducts).toHaveBeenCalledTimes(2);
+  });
+
+  it('credits each model with its title, author and license', async () => {
+    getProducts.mockResolvedValue(PRODUCTS);
+    renderHome();
+
+    const card = (await screen.findByText('Aviator Glasses')).closest('article') as HTMLElement;
+    expect(within(card).getByRole('link', { name: 'Glasses' })).toHaveAttribute(
+      'href',
+      PRODUCTS[0]?.attribution.sourceUrl,
+    );
+    expect(within(card).getByRole('link', { name: 'AlbertVictory' })).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: 'CC BY 4.0' })).toBeInTheDocument();
   });
 
   it('puts content in landmarks and announces the catalogue', async () => {

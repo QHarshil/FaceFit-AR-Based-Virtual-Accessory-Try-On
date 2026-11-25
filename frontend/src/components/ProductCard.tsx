@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Product } from '../types';
+import ModelCredit from './ModelCredit';
 
 interface IllustrationTheme {
   frame: string;
@@ -56,6 +57,7 @@ function ProductCard({ product }: ProductCardProps) {
         <h3 className="product-name">{product.name}</h3>
         <p className="product-category">{product.category}</p>
         <p className="product-description">{product.description}</p>
+        <ModelCredit attribution={product.attribution} />
       </div>
       <button
         type="button"

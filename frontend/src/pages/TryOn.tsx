@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ARTryOn from '../components/ARTryOn';
 import ErrorBoundary from '../components/ErrorBoundary';
+import ModelCredit from '../components/ModelCredit';
 import PhotoView from '../components/PhotoView';
 import StatusPanel from '../components/StatusPanel';
 import { sendTelemetry } from '../telemetry/client';
@@ -62,11 +63,17 @@ function TryOnView({ productId }: { productId: number | null }) {
           <div className="spacer" />
         </header>
 
-        <StatusPanel
-          status={status}
-          onSend={(type) => actor.send({ type })}
-          onPhoto={(photo) => actor.send({ type: 'PHOTO_SELECTED', photo })}
-        />
+        <div className="bottom-bar">
+          <StatusPanel
+            status={status}
+            onSend={(type) => actor.send({ type })}
+            onPhoto={(photo) => actor.send({ type: 'PHOTO_SELECTED', photo })}
+          />
+
+          {product && (
+            <ModelCredit attribution={product.attribution} className="model-credit--overlay" />
+          )}
+        </div>
       </div>
     </main>
   );

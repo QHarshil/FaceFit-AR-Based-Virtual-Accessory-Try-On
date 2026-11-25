@@ -193,6 +193,21 @@ describe('TryOn', () => {
     expect(screen.getByRole('status')).toHaveTextContent(STATUS_VIEWS.tracking.announcement);
   });
 
+  it('credits the model on the try-on page', async () => {
+    getProductById.mockResolvedValue(PRODUCT);
+    renderTryOn();
+    await heading('cameraRequesting');
+    expect(screen.getByRole('link', { name: PRODUCT.attribution.title })).toHaveAttribute(
+      'href',
+      PRODUCT.attribution.sourceUrl,
+    );
+    expect(screen.getByRole('link', { name: PRODUCT.attribution.author })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'CC BY 4.0' })).toHaveAttribute(
+      'href',
+      PRODUCT.attribution.licenseUrl,
+    );
+  });
+
   it('tells a missing product from a network failure, and retries the second', async () => {
     getProductById.mockRejectedValueOnce(new ApiError('network', 'offline'));
     renderTryOn();
