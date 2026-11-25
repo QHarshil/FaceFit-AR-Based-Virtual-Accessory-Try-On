@@ -9,8 +9,10 @@ Fastify was the alternative; its plugin system adds more than this API needs.
 
 ## Run
 
+Request and telemetry schemas come from [`packages/contracts`](../packages/contracts/README.md); install it first.
+
 ```sh
-cd backend && npm ci
+npm ci --prefix packages/contracts && cd backend && npm ci
 export DATABASE_URL=pglite://./.data/facefit   # Postgres in WASM, files in backend/.data
 npm run migrate && npm run seed && npm run dev
 ```
@@ -49,12 +51,10 @@ Errors are `{ "error": string, "requestId": string }`. Validation errors (400) a
 
 All routes also return 429 with `Retry-After` over the rate limit.
 
-Product: `id, slug, name, category, type, modelPath, description, dimensionsMm {total, lensWidth, lensHeight, bridge, templeLength}, dimensionsSource, bridgeOriginMm, anchors, attribution {author, authorUrl, sourceUrl, license, licenseUrl}`.
+Product: `id, slug, name, category, type, modelPath, description, dimensionsMm {total, lensWidth, lensHeight, bridge, templeLength}, dimensionsSource, bridgeOriginMm, anchors, attribution {title, author, authorUrl, sourceUrl, license, licenseUrl}`. The schema is `product` in `packages/contracts/src/products.ts`.
 
-Telemetry body: `{ eventType, payload?, timestamp? }`.
+Telemetry body: `{ eventType, payload?, timestamp? }`, validated by `telemetryBody` in `packages/contracts/src/telemetry.ts`. Each event type allows only its own payload keys, and every value is a number, boolean or enum member. The payload may be left out where all of its keys are optional.
 
-- `eventType`: `catalogue_loaded`, `catalogue_failed`, `product_viewed`, `product_load_failed`, `camera_started`, `camera_error`, `tracking_state_changed`.
-- `payload` keys: `count` (0 to 1000), `productId` (positive int or null), `faceDetected` (boolean), `errorCode` (`network`, `not_found`, `permission_denied`, `timeout`, `unsupported`, `unknown`).
 - Events are logged as JSON without client address or user agent. Nothing is stored.
 
 ## CORS

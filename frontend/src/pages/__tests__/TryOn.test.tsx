@@ -17,8 +17,11 @@ const tracking = vi.hoisted(() => ({
   callbacks: undefined as FaceTrackingCallbacks | undefined,
 }));
 
-vi.mock('../../services/apiClient', () => ({ getProductById }));
-vi.mock('../../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
+vi.mock('../../services/apiClient', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/apiClient')>()),
+  getProductById,
+}));
+vi.mock('../../telemetry/client', () => ({ sendTelemetry: vi.fn().mockReturnValue(true) }));
 
 // StrictMode starts tracking twice; the callbacks of the last start are live.
 vi.mock('../../tracking/faceTracking', () => ({

@@ -27,7 +27,3 @@ export const trackingErrorMessage = (error: unknown): string => {
   if (error instanceof DOMException) return CAMERA_ERROR_MESSAGE;
   return GENERIC_MESSAGE;
 };
-
-/** Telemetry event name for a camera or tracking failure. */
-export const trackingErrorEvent = (error: unknown): 'tracking_error' | 'camera_error' =>
-  error instanceof PerceptionError ? 'tracking_error' : 'camera_error';

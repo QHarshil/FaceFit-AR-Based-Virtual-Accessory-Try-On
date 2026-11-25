@@ -75,6 +75,8 @@ facefit-ar/
 ### Local Development
 
 ```bash
+npm ci --prefix packages/contracts   # shared API schemas, used by both
+
 # Terminal 1
 cd backend && npm install && npm start
 

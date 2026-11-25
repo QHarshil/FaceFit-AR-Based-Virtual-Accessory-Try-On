@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { MAX_TELEMETRY_BYTES, noQuery, productIdParam, telemetryBody } from '@facefit/contracts';
 import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
@@ -11,7 +12,6 @@ import { productRepository, type Product } from './db/products.js';
 import type { Logger } from './logger.js';
 import { cors } from './middleware/cors.js';
 import { rateLimit } from './middleware/rateLimit.js';
-import { noQuery, productIdParam, telemetryBody } from './schemas.js';
 
 export type AppConfig = Pick<
   Config,
@@ -34,7 +34,6 @@ interface Env {
   Variables: { requestId: string };
 }
 
-const MAX_TELEMETRY_BYTES = 2_048;
 const MAX_LOGGED_PATH = 200;
 const JSON_CONTENT_TYPE = /^application\/json\s*(;|$)/i;
 const PRODUCTS_CACHE = 'public, max-age=60';

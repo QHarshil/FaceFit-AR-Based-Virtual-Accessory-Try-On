@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PerceptionError } from '../../perception/errors';
 import type { PerceptionErrorCode } from '../../perception/protocol';
-import { CAMERA_ERROR_MESSAGE, trackingErrorEvent, trackingErrorMessage } from '../errorMessages';
+import { CAMERA_ERROR_MESSAGE, trackingErrorMessage } from '../errorMessages';
 
 describe('trackingErrorMessage', () => {
   it.each<[PerceptionErrorCode, RegExp]>([
@@ -25,10 +25,5 @@ describe('trackingErrorMessage', () => {
 
   it('does not blame the camera for an unknown failure', () => {
     expect(trackingErrorMessage(new TypeError('x is undefined'))).not.toBe(CAMERA_ERROR_MESSAGE);
-  });
-
-  it('names the telemetry event after the failing part', () => {
-    expect(trackingErrorEvent(new PerceptionError('worker', ''))).toBe('tracking_error');
-    expect(trackingErrorEvent(new DOMException('denied', 'NotAllowedError'))).toBe('camera_error');
   });
 });

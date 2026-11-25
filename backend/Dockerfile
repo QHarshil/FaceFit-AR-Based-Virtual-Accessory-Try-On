@@ -1,5 +1,11 @@
-# Build context is the repository root so the image can include assets/catalog.json for the seed.
+# Build context is the repository root so the image can include assets/catalog.json
+# for the seed and packages/contracts, which the backend links as a file dependency.
 FROM node:22-alpine AS build
+WORKDIR /app/packages/contracts
+COPY packages/contracts/package.json packages/contracts/package-lock.json ./
+RUN npm ci --omit=dev
+COPY packages/contracts/tsconfig.json packages/contracts/tsconfig.build.json ./
+COPY packages/contracts/src ./src
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci
@@ -9,6 +15,10 @@ RUN npm run build
 
 FROM node:22-alpine
 ENV NODE_ENV=production
+WORKDIR /app/packages/contracts
+COPY packages/contracts/package.json packages/contracts/package-lock.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/packages/contracts/dist ./dist
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev

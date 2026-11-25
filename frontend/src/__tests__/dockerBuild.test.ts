@@ -18,6 +18,12 @@ describe('frontend Dockerfile', () => {
     // Its "type": "module" makes nodenext read the sources as ES modules.
     'packages/cv/package.json',
     'packages/cv/src',
+    // The contracts build reads zod from the package's own install.
+    'packages/contracts/package.json',
+    'packages/contracts/package-lock.json',
+    'packages/contracts/tsconfig.json',
+    'packages/contracts/tsconfig.build.json',
+    'packages/contracts/src',
     'assets/out',
   ])('copies %s for the build', (path) => {
     expect(copied).toContain(path);
@@ -49,6 +55,7 @@ describe('root .dockerignore', () => {
       'assets/out',
       'assets/catalog.json',
       'packages/cv',
+      'packages/contracts',
       'frontend',
       'backend',
     ]) {

@@ -7,8 +7,11 @@ import Home from '../Home';
 
 const getProducts = vi.hoisted(() => vi.fn());
 
-vi.mock('../../services/apiClient', () => ({ getProducts }));
-vi.mock('../../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
+vi.mock('../../services/apiClient', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/apiClient')>()),
+  getProducts,
+}));
+vi.mock('../../telemetry/client', () => ({ sendTelemetry: vi.fn().mockReturnValue(true) }));
 
 const renderHome = () =>
   render(

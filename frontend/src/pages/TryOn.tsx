@@ -3,19 +3,16 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ARTryOn from '../components/ARTryOn';
 import { PerceptionError } from '../perception/errors';
 import { hasFace } from '../perception/types';
-import { getProductById } from '../services/apiClient';
-import {
-  RENDER_ERROR_MESSAGE,
-  trackingErrorEvent,
-  trackingErrorMessage,
-} from '../tracking/errorMessages';
+import { parseProductId } from '@facefit/contracts';
+import { ApiError, apiFailureOf, getProductById } from '../services/apiClient';
+import { sendTelemetry } from '../telemetry/client';
+import { telemetryEvents } from '../telemetry/events';
+import { RENDER_ERROR_MESSAGE, trackingErrorMessage } from '../tracking/errorMessages';
+import { cameraFailureOf, perceptionFailureOf } from '../tracking/failures';
 import { startFaceTracking } from '../tracking/faceTracking';
 import type { ARTryOnHandle, Product } from '../types';
 import { probe } from '../utils/probe';
-import { sendTelemetry } from '../utils/telemetry';
 import '../styles/TryOn.css';
-
-const errorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 function TryOn() {
   const { id } = useParams();
@@ -41,18 +38,20 @@ function TryOn() {
   useEffect(() => {
     let isMounted = true;
 
+    const productId = parseProductId(id);
     const fetchProduct = async () => {
       try {
-        const item = await getProductById(id);
+        if (productId === null) throw new ApiError('not_found', 'Invalid product id');
+        const item = await getProductById(productId);
         if (!isMounted) return;
         setProduct(item);
-        void sendTelemetry('product_viewed', { productId: item.id });
+        sendTelemetry(telemetryEvents.productViewed(item.id));
       } catch (err) {
         if (!isMounted) return;
         console.error('Product load error:', err);
         setProduct(null);
         setError('Product not found. Please choose another frame.');
-        void sendTelemetry('product_load_failed', { productId: id, message: errorMessage(err) });
+        sendTelemetry(telemetryEvents.productLoadFailed(productId, apiFailureOf(err)));
       } finally {
         if (isMounted) {
           setProductLoading(false);
@@ -81,10 +80,11 @@ function TryOn() {
       if (!isActive) return;
       console.error('Tracking error:', err);
       setError(trackingErrorMessage(err));
-      void sendTelemetry(trackingErrorEvent(err), {
-        productId,
-        ...(err instanceof PerceptionError ? { code: err.code } : { message: errorMessage(err) }),
-      });
+      sendTelemetry(
+        err instanceof PerceptionError
+          ? telemetryEvents.trackingError(productId, perceptionFailureOf(err))
+          : telemetryEvents.cameraError(productId, cameraFailureOf(err)),
+      );
     };
 
     let tracking: ReturnType<typeof startFaceTracking>;
@@ -112,7 +112,7 @@ function TryOn() {
     tracking.started.then(() => {
       if (!isActive) return;
       setCameraReady(true);
-      void sendTelemetry('camera_started', { productId });
+      sendTelemetry(telemetryEvents.cameraStarted(productId));
     }, reportTrackingError);
 
     return () => {
@@ -126,7 +126,7 @@ function TryOn() {
     (err: unknown) => {
       console.error('Render error:', err);
       setError(RENDER_ERROR_MESSAGE);
-      void sendTelemetry('render_error', { productId: product?.id ?? null });
+      if (product) sendTelemetry(telemetryEvents.renderError(product.id, 'webgl_unavailable'));
     },
     [product],
   );
@@ -135,10 +135,7 @@ function TryOn() {
     if (!cameraReady) return;
     if (faceStateRef.current === faceDetected) return;
     faceStateRef.current = faceDetected;
-    void sendTelemetry('tracking_state_changed', {
-      productId: product?.id || null,
-      faceDetected,
-    });
+    if (product) sendTelemetry(telemetryEvents.faceDetectedChanged(product.id, faceDetected));
   }, [cameraReady, faceDetected, product]);
 
   if (error) {

@@ -6,7 +6,7 @@ vi.mock('../services/apiClient', () => ({
   getProducts: vi.fn().mockResolvedValue(PRODUCTS),
   getProductById: vi.fn(),
 }));
-vi.mock('../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
+vi.mock('../telemetry/client', () => ({ sendTelemetry: vi.fn().mockReturnValue(true) }));
 
 const { default: App } = await import('../App');
 

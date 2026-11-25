@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Home.css';
-import { getProducts } from '../services/apiClient';
+import { apiFailureOf, getProducts } from '../services/apiClient';
+import { sendTelemetry } from '../telemetry/client';
+import { telemetryEvents } from '../telemetry/events';
 import type { Product } from '../types';
-import { sendTelemetry } from '../utils/telemetry';
 
 const CAPABILITIES = [
   {
@@ -39,43 +40,28 @@ const ILLUSTRATION_THEMES: [IllustrationTheme, ...IllustrationTheme[]] = [
 ];
 
 function ProductImage({ product }: { product: Product }) {
-  const [failed, setFailed] = useState(false);
   const theme =
     ILLUSTRATION_THEMES[(product.id - 1) % ILLUSTRATION_THEMES.length] ?? ILLUSTRATION_THEMES[0];
-  const hasValidImage = Boolean(product.image) && !failed;
-
-  if (!hasValidImage) {
-    return (
-      <div className="product-illustration" style={{ backgroundColor: theme.background }}>
-        <span
-          className="product-illustration__temple product-illustration__temple--left"
-          style={{ backgroundColor: theme.frame }}
-        />
-        <span
-          className="product-illustration__lens product-illustration__lens--left"
-          style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
-        />
-        <span className="product-illustration__bridge" style={{ backgroundColor: theme.accent }} />
-        <span
-          className="product-illustration__lens product-illustration__lens--right"
-          style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
-        />
-        <span
-          className="product-illustration__temple product-illustration__temple--right"
-          style={{ backgroundColor: theme.frame }}
-        />
-      </div>
-    );
-  }
-
   return (
-    <img
-      src={product.image}
-      alt={product.name}
-      className="product-image"
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
+    <div className="product-illustration" style={{ backgroundColor: theme.background }}>
+      <span
+        className="product-illustration__temple product-illustration__temple--left"
+        style={{ backgroundColor: theme.frame }}
+      />
+      <span
+        className="product-illustration__lens product-illustration__lens--left"
+        style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
+      />
+      <span className="product-illustration__bridge" style={{ backgroundColor: theme.accent }} />
+      <span
+        className="product-illustration__lens product-illustration__lens--right"
+        style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
+      />
+      <span
+        className="product-illustration__temple product-illustration__temple--right"
+        style={{ backgroundColor: theme.frame }}
+      />
+    </div>
   );
 }
 
@@ -95,14 +81,12 @@ function Home() {
         const catalogue = await getProducts();
         if (!isMounted) return;
         setProducts(catalogue);
-        void sendTelemetry('catalogue_loaded', { count: catalogue.length });
+        sendTelemetry(telemetryEvents.catalogueLoaded(catalogue.length));
       } catch (err) {
         if (!isMounted) return;
         console.error('Failed to load products:', err);
         setError('We could not reach the product catalogue. Please retry in a moment.');
-        void sendTelemetry('catalogue_failed', {
-          message: err instanceof Error ? err.message : String(err),
-        });
+        sendTelemetry(telemetryEvents.catalogueFailed(apiFailureOf(err)));
       } finally {
         if (isMounted) {
           setLoading(false);
