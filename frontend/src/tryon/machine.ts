@@ -312,11 +312,13 @@ export const tryOnMachine = tryOnSetup.createMachine({
                           always: { guard: 'pageHidden', target: 'paused' },
                           on: { PAGE_HIDDEN: 'paused' },
                         },
+                        // The camera is released while hidden and asked
+                        // for again when shown, so the page waits for it.
                         paused: {
                           entry: sendTo('camera', { type: 'PAUSE' }),
                           on: {
                             PAGE_VISIBLE: {
-                              target: 'streaming',
+                              target: 'requesting',
                               actions: sendTo('camera', { type: 'RESUME' }),
                             },
                           },

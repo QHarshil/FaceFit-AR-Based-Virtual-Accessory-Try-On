@@ -1,9 +1,11 @@
-// One camera attempt for the try-on: start, pause while the page is hidden,
-// notice the device going away, stop.
+// One camera attempt for the try-on: start, release the camera while the page
+// is hidden and ask for it again when shown, notice the device going away,
+// stop.
 import { startCamera, type CameraHandle } from './camera';
 import { cameraFailureOf, type CameraFailure } from './failures';
 
 export interface CameraSessionCallbacks {
+  /** The camera is streaming: first start, or again after a resume. */
   onReady: () => void;
   onFailed: (failure: CameraFailure) => void;
   /** The track ended: unplugged, revoked, or stopped by the OS. */
@@ -11,7 +13,9 @@ export interface CameraSessionCallbacks {
 }
 
 export interface CameraSession {
+  /** Stops the tracks, so the browser's camera indicator goes off. */
   pause: () => void;
+  /** Asks for the same camera again; reports ready or the failure. */
   resume: () => void;
   /** Safe at any point, including before the camera starts. */
   stop: () => void;
@@ -30,52 +34,65 @@ let previousSession: Promise<void> = Promise.resolve();
 export const startCameraSession = (
   video: HTMLVideoElement,
   callbacks: CameraSessionCallbacks,
-  start: (video: HTMLVideoElement) => Promise<CameraHandle> = startCamera,
+  start: (video: HTMLVideoElement, deviceId: string | null) => Promise<CameraHandle> = startCamera,
 ): CameraSession => {
   let active = true;
   let paused = false;
   let camera: CameraHandle | null = null;
+  let deviceId: string | null = null;
+  // Each request gets a number; a stream that arrives after a newer request,
+  // a pause or a stop is released unused.
+  let request = 0;
 
   const onEnded = () => {
     if (active) callbacks.onEnded();
   };
 
-  const started = previousSession.then(async () => {
-    if (!active) return;
-    const handle = await start(video);
-    if (!active) {
-      handle.release();
-      return;
-    }
-    camera = handle;
-    handle.track?.addEventListener('ended', onEnded);
-    callbacks.onReady();
-  });
-  previousSession = started.catch(() => {});
-  started.catch((error: unknown) => {
-    if (active) callbacks.onFailed(cameraFailureOf(error));
-  });
+  const acquire = () => {
+    request += 1;
+    const mine = request;
+    const wanted = () => active && !paused && request === mine;
+    const started = previousSession.then(async () => {
+      if (!wanted()) return;
+      const handle = await start(video, deviceId);
+      if (!wanted()) {
+        handle.release();
+        return;
+      }
+      camera = handle;
+      deviceId = handle.deviceId;
+      handle.track?.addEventListener('ended', onEnded);
+      callbacks.onReady();
+    });
+    previousSession = started.catch(() => {});
+    started.catch((error: unknown) => {
+      if (wanted()) callbacks.onFailed(cameraFailureOf(error));
+    });
+  };
+
+  const release = () => {
+    camera?.track?.removeEventListener('ended', onEnded);
+    camera?.release();
+    camera = null;
+  };
+
+  acquire();
 
   return {
     pause() {
+      if (!active || paused) return;
       paused = true;
-      if (camera?.track) camera.track.enabled = false;
-      video.pause();
+      release();
     },
     resume() {
-      if (!paused) return;
+      if (!active || !paused) return;
       paused = false;
-      if (camera?.track) camera.track.enabled = true;
-      // Autoplay rules can refuse play() without a gesture; the track keeps
-      // its frames and the next play succeeds.
-      video.play().catch(() => {});
+      acquire();
     },
     stop() {
       if (!active) return;
       active = false;
-      camera?.track?.removeEventListener('ended', onEnded);
-      camera?.release();
-      camera = null;
+      release();
     },
   };
 };

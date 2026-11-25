@@ -13,7 +13,7 @@
   - `running` holds the face states: `searching`, `tracking`, `multiple`, `lowLight`, `lost`. They come from `faceStatus.ts`, which debounces the worker's face counts and frame brightness. Low light is a mean luma below 40 of 255 on two samples in a row, reported only while no face is tracked.
 - `session.source.photo`: `choosing`, `detecting`, `showing`, `noFace`, `failed`.
 
-A hidden page moves `camera` and `perception` to `paused`, which disables the camera track and stops sending frames; showing it resumes both.
+A hidden page moves `camera` and `perception` to `paused`, which stops the camera track, so the browser's camera indicator goes off, and stops sending frames. Showing the page asks for the same camera again from `requesting`; a refusal or a missing device ends in `denied` or `missing`.
 
 ## Status
 

@@ -7,6 +7,8 @@ interface FakeCamera {
   fail: (error: unknown) => void;
   live: boolean;
   track: MediaStreamTrack;
+  /** The device asked for, null for any front camera. */
+  deviceId: string | null;
 }
 
 const cameras: FakeCamera[] = [];
@@ -18,15 +20,17 @@ const fakeTrack = () => {
 };
 
 // Resolves only once the test hands over a stream, like getUserMedia.
-const start = () =>
+const start = (_video: HTMLVideoElement, deviceId: string | null) =>
   new Promise<CameraHandle>((resolve, reject) => {
     const camera: FakeCamera = {
       live: false,
       track: fakeTrack(),
+      deviceId,
       attach: () => {
         camera.live = true;
         resolve({
           track: camera.track,
+          deviceId: 'front-camera',
           release: () => {
             camera.live = false;
           },
@@ -136,20 +140,76 @@ describe('startCameraSession', () => {
     expect(events.onFailed).toHaveBeenCalledWith(failure);
   });
 
-  it('disables the track and pauses the video while hidden, and restores both', async () => {
-    const element = video();
-    const session = startCameraSession(element, callbacks(), start);
+  it('stops the camera while hidden and asks for the same one when shown', async () => {
+    const events = callbacks();
+    const session = startCameraSession(video(), events, start);
     await flush();
+    expect(latest().deviceId).toBeNull();
     latest().attach();
     await flush();
 
     session.pause();
-    expect(latest().track.enabled).toBe(false);
-    expect(pause).toHaveBeenCalled();
+    expect(liveStreams()).toBe(0);
+    await flush();
+    expect(cameras).toHaveLength(1);
 
     session.resume();
-    expect(latest().track.enabled).toBe(true);
-    expect(play).toHaveBeenCalled();
+    await flush();
+    expect(cameras).toHaveLength(2);
+    expect(latest().deviceId).toBe('front-camera');
+    latest().attach();
+    await flush();
+    expect(liveStreams()).toBe(1);
+    expect(events.onReady).toHaveBeenCalledTimes(2);
+
+    // The new track is watched; the released one is not.
+    (cameras[0] as FakeCamera).track.dispatchEvent(new Event('ended'));
+    expect(events.onEnded).not.toHaveBeenCalled();
+    latest().track.dispatchEvent(new Event('ended'));
+    expect(events.onEnded).toHaveBeenCalledTimes(1);
+    session.stop();
+  });
+
+  it.each([
+    ['NotAllowedError', 'denied'],
+    ['OverconstrainedError', 'missing'],
+  ])('reports a camera that fails on resume with %s as %s', async (name, failure) => {
+    const events = callbacks();
+    const session = startCameraSession(video(), events, start);
+    await flush();
+    latest().attach();
+    await flush();
+    session.pause();
+    session.resume();
+    await flush();
+    latest().fail(new DOMException('x', name));
+    await flush();
+    expect(events.onFailed).toHaveBeenCalledWith(failure);
+    session.stop();
+  });
+
+  it('releases a stream that arrives after the page was hidden again', async () => {
+    const events = callbacks();
+    const session = startCameraSession(video(), events, start);
+    await flush();
+    latest().attach();
+    await flush();
+    session.pause();
+    session.resume();
+    await flush();
+    session.pause();
+    latest().attach();
+    await flush();
+    expect(liveStreams()).toBe(0);
+    expect(events.onReady).toHaveBeenCalledTimes(1);
+
+    session.resume();
+    await flush();
+    latest().attach();
+    await flush();
+    expect(liveStreams()).toBe(1);
+    session.stop();
+    expect(liveStreams()).toBe(0);
   });
 
   it('reports an ended track while running, and not after stop', async () => {

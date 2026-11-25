@@ -243,7 +243,7 @@ describe('try-on in Chrome with the stand-in face', () => {
 
   // Headless Chrome reports every tab as visible, so the test sets the
   // visibility the browser would report and fires the event it would fire.
-  it('pauses the camera and inference while the tab is hidden and resumes after', async () => {
+  it('stops the camera and inference while the tab is hidden and resumes after', async () => {
     const session = await open();
     const { page, context } = session;
     await page.goto(`${APP}/try-on/1`);
@@ -259,14 +259,24 @@ describe('try-on in Chrome with the stand-in face', () => {
         document.dispatchEvent(new Event('visibilitychange'));
       }, hidden);
 
+    // The track that was live before hiding, kept to check it was stopped.
+    await page.evaluate(() => {
+      window.__track = document.querySelector('video').srcObject.getVideoTracks()[0];
+    });
+    const camera = () =>
+      page.evaluate(() => {
+        const stream = document.querySelector('video').srcObject;
+        const track = stream?.getVideoTracks()[0];
+        return {
+          before: window.__track.readyState,
+          now: track ? track.readyState : null,
+          sameTrack: track === window.__track,
+        };
+      });
+
     await setHidden(true);
     await status(page, 'paused', 5_000);
-    const track = () =>
-      page.evaluate(() => {
-        const video = document.querySelector('video');
-        return { enabled: video.srcObject.getVideoTracks()[0].enabled, paused: video.paused };
-      });
-    assert.deepEqual(await track(), { enabled: false, paused: true });
+    assert.deepEqual(await camera(), { before: 'ended', now: null, sameTrack: false });
     await page.waitForTimeout(300);
     const inferred = await countEvents(page, 'inference');
     await page.waitForTimeout(1_000);
@@ -274,7 +284,7 @@ describe('try-on in Chrome with the stand-in face', () => {
 
     await setHidden(false);
     await status(page, 'tracking');
-    assert.deepEqual(await track(), { enabled: true, paused: false });
+    assert.deepEqual(await camera(), { before: 'ended', now: 'live', sameTrack: false });
     assert.ok((await countEvents(page, 'inference')) > inferred, 'inference resumed');
     await assertStayedOnDevice(session);
     await context.close();

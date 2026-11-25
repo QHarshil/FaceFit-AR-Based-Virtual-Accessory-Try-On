@@ -380,10 +380,10 @@ const EDGES: EdgeCase[] = [
     },
   },
   {
-    edge: 'live.camera.active.paused PAGE_VISIBLE -> live.camera.active.streaming',
+    edge: 'live.camera.active.paused PAGE_VISIBLE -> live.camera.active.requesting',
     from: sending({ type: 'CAMERA_READY' }, { type: 'PAGE_HIDDEN' }),
     fire: fire({ type: 'PAGE_VISIBLE' }),
-    to: camera({ active: 'streaming' }),
+    to: camera({ active: 'requesting' }),
     check: (run) => {
       expect(run.commands).toEqual(['camera PAUSE', 'camera RESUME']);
     },

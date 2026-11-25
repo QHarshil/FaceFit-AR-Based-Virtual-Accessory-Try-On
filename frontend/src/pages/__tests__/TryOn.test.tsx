@@ -19,7 +19,12 @@ import { STATUS_VIEWS } from '../../tryon/status';
 const getProductById = vi.hoisted(() => vi.fn());
 const webgl = vi.hoisted(() => ({ available: true }));
 const sessions = vi.hoisted(() => ({
-  cameras: [] as { callbacks: CameraSessionCallbacks; pause: () => void; stop: () => void }[],
+  cameras: [] as {
+    callbacks: CameraSessionCallbacks;
+    pause: () => void;
+    resume: () => void;
+    stop: () => void;
+  }[],
   perceptions: [] as {
     callbacks: PerceptionCallbacks;
     poseStream: PoseStream;
@@ -312,8 +317,12 @@ describe('TryOn', () => {
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
-    await heading('searching');
+    // The camera was released, so the page waits for it again.
+    await heading('cameraRequesting');
+    expect(latest(sessions.cameras).resume).toHaveBeenCalled();
     expect(latest(sessions.perceptions).resume).toHaveBeenCalled();
+    act(() => latest(sessions.cameras).callbacks.onReady());
+    await heading('searching');
     hidden.mockRestore();
   });
 
