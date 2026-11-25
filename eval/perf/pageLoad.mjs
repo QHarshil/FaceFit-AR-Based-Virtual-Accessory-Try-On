@@ -49,7 +49,7 @@ export const totalBlockingTime = (longTasks, fcp, windowMs = WINDOW_MS) =>
 
 /** Problems, one line each, for every median over its budget. */
 export const overBudget = (medians, budgets) =>
-  Object.entries(budgets).flatMap(([page, limits]) =>
+  Object.entries(budgets).filter(([, limits]) => typeof limits === 'object').flatMap(([page, limits]) =>
     Object.entries(limits).flatMap(([key, max]) => {
       const metric = key.replace(/^max/, '').replace(/^./, (c) => c.toLowerCase());
       const value = medians[page]?.[metric];

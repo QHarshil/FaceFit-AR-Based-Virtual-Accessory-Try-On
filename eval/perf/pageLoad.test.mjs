@@ -21,6 +21,7 @@ test('the median of an even count is the mean of the middle pair', () => {
 test('a median over its budget, and a page with no measurement, are reported', () => {
   const medians = { catalogue: { lcpMs: 2600, cls: 0.02, tbtMs: 100 }, tryOn: { lcpMs: 900, cls: 0, tbtMs: 0 } };
   const budgets = {
+    basis: 'text that explains the numbers',
     catalogue: { maxLcpMs: 2500, maxCls: 0.1, maxTbtMs: 200 },
     tryOn: { maxLcpMs: 2500 },
     missing: { maxLcpMs: 1 },
