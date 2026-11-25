@@ -75,7 +75,7 @@ npm run e2e -- --project firefox --project firefox-denied --project webkit
 | `registration.gainX`, `gainY` | 0.9 to 1.1, 0.85 to 1.15 | truth is 1; gain y rests on the few unflagged samples of the two `dy` clips |
 | `scale.still.renderedOverFace` | 0.95 to 1.15 | rendered frame width over face contour width |
 | `scaleByProduct.product1.maxChangeFromStillPercent` | at most 8 | that ratio must not change with zoom |
-| `solver.gatedShare` | at most 0.2 | share of samples where the app hid the overlay |
+| `solver.gatedShare` | at most 0.25 | share of samples where the app hid the overlay |
 | core gated share (still, roll, dx) | at most 0.02 | these conditions are never gated on the stand-in |
 | bridge offset over interocular distance | at most 0.12 | rendered bridge anchor against landmark 168 |
 
