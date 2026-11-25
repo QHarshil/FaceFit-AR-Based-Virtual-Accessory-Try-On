@@ -108,12 +108,9 @@ const status = (page, name, timeout = 60_000) =>
 const countEvents = (page, stage) =>
   page.evaluate((name) => window.__events.filter((event) => event.stage === name).length, stage);
 
-// axe-core calls eval, which the production CSP refuses. On a page the test
-// injected axe into, that report comes from the test's script, not the app.
-const axePages = new WeakSet();
-
+// axe-core builds its messages with `new Function`, which the production CSP
+// reports. Each test checks the CSP before it injects axe into a document.
 const axeViolations = async (page) => {
-  axePages.add(page);
   await page.evaluate(AXE);
   const { violations } = await page.evaluate(() => window.axe.run(document));
   return violations
@@ -123,9 +120,7 @@ const axeViolations = async (page) => {
 
 const assertStayedOnDevice = async ({ page, requests }) => {
   assert.deepEqual(offDeviceRequests(requests), []);
-  const reports = await page.evaluate(() => window.__csp);
-  const fromAxe = (report) => axePages.has(page) && report === 'script-src eval';
-  assert.deepEqual(reports.filter((report) => !fromAxe(report)), []);
+  assert.deepEqual(await page.evaluate(() => window.__csp), []);
 };
 
 before(async () => {
@@ -164,6 +159,7 @@ describe('try-on in Chrome with the stand-in face', () => {
     const { page } = session;
     await page.goto(APP);
     await page.getByRole('heading', { name: PRODUCTS[0].name }).waitFor();
+    await assertStayedOnDevice(session);
     assert.deepEqual(await axeViolations(page), []);
     assert.ok(
       await page.getByRole('link', { name: PRODUCTS[0].attribution.title, exact: true }).first().isVisible(),
@@ -173,8 +169,8 @@ describe('try-on in Chrome with the stand-in face', () => {
     await status(page, 'tracking');
     await page.waitForTimeout(1_000);
     assert.ok((await countEvents(page, 'renderedPose')) > 0, 'the overlay drew poses');
-    assert.deepEqual(await axeViolations(page), []);
     await assertStayedOnDevice(session);
+    assert.deepEqual(await axeViolations(page), []);
     await session.context.close();
   });
 
@@ -213,6 +209,7 @@ describe('try-on in Chrome with the stand-in face', () => {
     );
     await page.goto(`${APP}/try-on/1`);
     await status(page, 'modelFetchFailed');
+    await assertStayedOnDevice(session);
     assert.deepEqual(await axeViolations(page), []);
 
     missing = false;
@@ -222,7 +219,8 @@ describe('try-on in Chrome with the stand-in face', () => {
   });
 
   it('shows the loss of the WebGL context and resumes drawing when it is restored', async () => {
-    const { page, context } = await open();
+    const session = await open();
+    const { page, context } = session;
     await page.goto(`${APP}/try-on/1`);
     await status(page, 'tracking');
 
@@ -239,13 +237,15 @@ describe('try-on in Chrome with the stand-in face', () => {
     const drawn = await countEvents(page, 'renderedPose');
     await page.waitForTimeout(1_000);
     assert.ok((await countEvents(page, 'renderedPose')) > drawn, 'drawing resumed');
+    await assertStayedOnDevice(session);
     await context.close();
   });
 
   // Headless Chrome reports every tab as visible, so the test sets the
   // visibility the browser would report and fires the event it would fire.
   it('pauses the camera and inference while the tab is hidden and resumes after', async () => {
-    const { page, context } = await open();
+    const session = await open();
+    const { page, context } = session;
     await page.goto(`${APP}/try-on/1`);
     await status(page, 'tracking');
 
@@ -276,6 +276,7 @@ describe('try-on in Chrome with the stand-in face', () => {
     await status(page, 'tracking');
     assert.deepEqual(await track(), { enabled: true, paused: false });
     assert.ok((await countEvents(page, 'inference')) > inferred, 'inference resumed');
+    await assertStayedOnDevice(session);
     await context.close();
   });
 });
@@ -290,7 +291,7 @@ describe('try-on without camera access', () => {
       await status(page, 'cameraDenied');
       assert.match(await page.getByRole('alert').innerText(), /Camera access is blocked/);
       assert.ok(await page.getByRole('button', { name: 'Try again' }).isVisible());
-      assert.deepEqual(await axeViolations(page), []);
+      await assertStayedOnDevice(session);
 
       await page.getByRole('button', { name: 'Use a photo' }).click();
       await status(page, 'photoChoosing');
@@ -299,7 +300,16 @@ describe('try-on without camera access', () => {
       await page.waitForTimeout(500);
       assert.ok((await countEvents(page, 'renderedPose')) > 0, 'the overlay drew on the photo');
       await assertStayedOnDevice(session);
+      assert.deepEqual(await axeViolations(page), []);
       await session.context.close();
+
+      // axe on the blocked-camera state, in a document of its own.
+      const blocked = await open(denied, { camera: false });
+      await blocked.page.goto(`${APP}/try-on/1`);
+      await status(blocked.page, 'cameraDenied');
+      await assertStayedOnDevice(blocked);
+      assert.deepEqual(await axeViolations(blocked.page), []);
+      await blocked.context.close();
     } finally {
       await denied.close();
     }
