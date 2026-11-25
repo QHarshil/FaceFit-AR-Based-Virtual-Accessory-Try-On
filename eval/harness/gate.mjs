@@ -23,6 +23,18 @@ export const coreGatedShare = (solver) => {
   return samples ? core.reduce((sum, [, condition]) => sum + condition.gated, 0) / samples : null;
 };
 
+/**
+ * Mean over conditions of each condition's gated share. Pooling samples
+ * instead lets a slow runner skew the result: a condition the solver gates at
+ * every sample still yields frames at the camera rate, while conditions with
+ * a face wait on inference.
+ */
+export const meanConditionGatedShare = (solver) => {
+  const conditions = Object.values(solver?.byCondition ?? {}).filter((condition) => condition.samples > 0);
+  if (!conditions.length) return null;
+  return conditions.reduce((sum, condition) => sum + condition.gated / condition.samples, 0) / conditions.length;
+};
+
 /** One line per metric outside its `min` or `max`, or missing. */
 export const gateProblems = (summary, limits) => {
   const derived = {
@@ -30,6 +42,7 @@ export const gateProblems = (summary, limits) => {
     derived: {
       bridgeOffsetOverInterocular: bridgeOffsetOverInterocular(summary.registration),
       coreGatedShare: coreGatedShare(summary.solver),
+      meanConditionGatedShare: meanConditionGatedShare(summary.solver),
     },
   };
   return Object.entries(limits.metrics).flatMap(([path, { min, max }]) => {
