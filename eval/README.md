@@ -42,6 +42,8 @@ Playwright Test (`playwright.config.mjs`) runs the production build under `vite 
 | `chromium.spec.mjs` | tracking with axe on the catalogue and try-on, a product request that fails on the network, a missing face model, a lost WebGL context, a hidden tab | Chromium |
 | `cross-browser.spec.mjs` | catalogue, credits, the 404 page, an unknown product, keyboard entry to a frame, axe, the camera starting | all three |
 | `denied.spec.mjs` | a blocked camera, the photo fallback, axe | all three |
+| `accessibility.spec.mjs` | axe on the catalogue, the 404 page and the try-on while tracking, searching (a grey canvas as the camera), model failed, product not found, camera denied and photo showing; serious and critical violations fail | Chromium |
+| `keyboard.spec.mjs` | Tab from the catalogue into a frame, to every recovery action of a blocked camera, into photo mode and back, and out to the catalogue; each stop shows a focus ring and Tab never sticks | Chromium |
 
 The camera differs by engine, and the specs run what each one supports:
 
