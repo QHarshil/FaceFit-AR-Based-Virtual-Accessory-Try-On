@@ -32,6 +32,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # Sizes of the built assets against eval/perf/budgets.json; plain Node, no install.
+      - run: node ../eval/perf/bundleBudget.mjs --dist dist
       - run: npm audit --audit-level=high
 
   contracts:

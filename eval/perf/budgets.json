@@ -1,0 +1,29 @@
+{
+  "basis": "Sizes of the build at commit 2213a09 plus 10%, rounded up to 100 bytes, for the JS and CSS the app ships. The wasm, its loader and the model are pinned by SHA-256 in frontend/scripts/vendor-mediapipe.mjs, so their budget is the exact size. A JS file outside these classes fails the otherJs budget.",
+  "budgets": {
+    "mainJs": {
+      "maxRawBytes": 1223000,
+      "maxBrotliBytes": 280300
+    },
+    "workerJs": {
+      "maxRawBytes": 175700,
+      "maxBrotliBytes": 44300
+    },
+    "css": {
+      "maxRawBytes": 10900,
+      "maxBrotliBytes": 2600
+    },
+    "wasm": {
+      "maxRawBytes": 14665738
+    },
+    "wasmLoaderJs": {
+      "maxRawBytes": 336662
+    },
+    "model": {
+      "maxRawBytes": 3758596
+    },
+    "otherJs": {
+      "maxRawBytes": 0
+    }
+  }
+}

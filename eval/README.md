@@ -81,6 +81,12 @@ npm run e2e -- --project firefox --project firefox-denied --project webkit
 
 The limits come from the `standin-cpu` run in `results.json` (basis in `gate.json`). The stand-in's `zoom1.33` and `dy` clips are gated by the solver at most samples, which is why the overall gated share is not zero and the core share is gated separately. Timing metrics (`inferenceMs`, `pipelineMs`, rates) are not gated: runner hardware changes them without a code change.
 
+## Bundle budget
+
+`node perf/bundleBudget.mjs --dist ../frontend/dist` (`npm run bundle`) reports the raw, gzip and brotli size of the main JS, worker JS, CSS, WASM, WASM loader and face model in the production build, and exits 1 over a limit in `perf/budgets.json`. CI runs it after the frontend build. Any JS file outside the named classes counts against `otherJs`, whose budget is zero, so a new chunk fails until the budget is set on purpose. `--write --label <name>` records the sizes in `results.json` from a clean tree.
+
+The JS and CSS budgets are the measured size plus 10 percent. The WASM, its loader and the model are pinned by SHA-256 in `frontend/scripts/vendor-mediapipe.mjs`, so their budget is the exact size.
+
 ## Conditions
 
 | Id | Input | Measured |
