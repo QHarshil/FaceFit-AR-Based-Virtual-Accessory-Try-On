@@ -32,7 +32,7 @@ This project investigates lightweight facial landmark detection for consumer AR 
 |-----------|----------------|
 | Landmark detection | MediaPipe Tasks Vision `FaceLandmarker` in a module worker, self-hosted and pinned ([details](frontend/src/perception/README.md)) |
 | Pose estimation | `solveHeadPose` from [`packages/cv`](packages/cv/README.md): EPnP, then Huber Levenberg-Marquardt with outlier rejection, against MediaPipe's canonical face; hidden when the reprojection error is high |
-| Temporal filtering | Error-state Kalman filter on SE(3) over each solved pose, predicted at every render to the frame on screen; chosen over a One Euro filter by a measured sweep, with MediaPipe's own landmark smoothing off ([details](docs/pose-filter.md)) |
+| Temporal filtering | One Euro filter on SE(3) over each solved pose, predicted at every render to the frame on screen; chosen over an error-state Kalman filter by a measured sweep and a live check, with MediaPipe's own landmark smoothing off ([details](docs/pose-filter.md)) |
 | Depth/scale | Metric: depth in millimetres under the assumed FOV, models in millimetres |
 | Rendering | Three.js camera with the projection of the camera intrinsics; the canvas renders at the video's size with the same `object-fit: cover` |
 | Asset format | Normalized, meshopt-compressed GLBs with the origin on the bridge ([assets](assets/README.md)) |

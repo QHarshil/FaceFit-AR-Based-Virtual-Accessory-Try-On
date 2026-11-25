@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // Replays harness runs through both filters' swept operating points, and
-// without a filter, and
-// records the result under `replayCheck` in the sweep detail file
-// (eval/results/pose-filter-sweep.json). A run recorded with a filter on still
+// without a filter, and records the result under `replayCheck` in the sweep
+// detail file (eval/results/pose-filter-sweep.json). A run recorded with a filter on still
 // carries every solved pose, so the two points can be compared on the
 // landmark noise of more than the run the sweep used. For a run recorded with
 // a filter, it also measures how far the replay of that filter is from what
