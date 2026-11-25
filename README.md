@@ -94,7 +94,7 @@ cd frontend && npm install && npm run dev   # http://localhost:3000
 
 ## Technical Notes
 
-- **State management**: Landmarks arrive from the worker and update the Three.js scene through a ref, decoupling high-frequency perception updates from React's render cycle.
+- **State management**: An XState statechart runs the camera, worker, overlay and photo fallback, with a status and recovery for each state ([frontend/src/tryon](frontend/src/tryon/README.md)). Landmarks go to a pose store outside React; the render loop reads it each frame and React re-renders only on state changes.
 - **Asset pipeline**: `assets/normalize.mjs` writes millimetre GLBs with the origin on the bridge, and the app seats that origin on the face model's nose bridge.
 - **Browser requirements**: Camera API requires `https://` or `localhost`. Chromium-based browsers recommended.
 
