@@ -34,7 +34,7 @@ const measureCameraFps = () => new Promise((resolve) => {
 });
 
 const launch = (clip, extraArgs = [], headless = true) => chromium.launch({
-  channel: 'chrome',
+  channel: process.env.FACEFIT_CHROME ?? 'chrome',
   headless,
   args: [
     '--use-fake-ui-for-media-stream',

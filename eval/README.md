@@ -65,6 +65,22 @@ npm run e2e -- --project firefox --project firefox-denied --project webkit
 
 `FACEFIT_STANDIN_DIR=<dir>` reads the clips from another checkout. `FACEFIT_CHROME=chrome` runs an installed Chrome instead of Playwright's Chromium.
 
+## Registration gate
+
+`node harness/baseline.mjs --source standin --gate` runs the stand-in's sweep conditions (`still`, `roll±5/10/15`, `dx±160/320`, `dy±120`, `zoom0.75/1.33`) on the CPU delegate and fails when a registration metric leaves its limit in `harness/gate.json`. CI runs it on every change. It forces the CPU delegate in every condition, so runner hardware without a GPU measures the same path, and it skips the guard self-test and the CPU fallback run. It writes results only with `--write`.
+
+| Metric | Limit | Why |
+|--------|-------|-----|
+| `roll.renderedPerFaceDeg` | 0.9 to 1.1 | truth is 1; a mirrored roll gives -1 |
+| `registration.gainX`, `gainY` | 0.9 to 1.1, 0.85 to 1.15 | truth is 1; gain y rests on the few unflagged samples of the two `dy` clips |
+| `scale.still.renderedOverFace` | 0.95 to 1.15 | rendered frame width over face contour width |
+| `scaleByProduct.product1.maxChangeFromStillPercent` | at most 8 | that ratio must not change with zoom |
+| `solver.gatedShare` | at most 0.2 | share of samples where the app hid the overlay |
+| core gated share (still, roll, dx) | at most 0.02 | these conditions are never gated on the stand-in |
+| bridge offset over interocular distance | at most 0.12 | rendered bridge anchor against landmark 168 |
+
+The limits come from the `standin-cpu` run in `results.json` (basis in `gate.json`). The stand-in's `zoom1.33` and `dy` clips are gated by the solver at most samples, which is why the overall gated share is not zero and the core share is gated separately. Timing metrics (`inferenceMs`, `pipelineMs`, rates) are not gated: runner hardware changes them without a code change.
+
 ## Conditions
 
 | Id | Input | Measured |
