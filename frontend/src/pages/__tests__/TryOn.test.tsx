@@ -340,7 +340,7 @@ describe('TryOn', () => {
     const photo = new File(['jpeg bytes'], 'me.jpg', { type: 'image/jpeg' });
     await userEvent.upload(screen.getByLabelText('Photo of your face'), photo);
     await heading('photoShowing');
-    expect(photos.detect).toHaveBeenCalledWith(photo);
+    expect(photos.detect).toHaveBeenCalledWith(photo, expect.any(AbortSignal));
     expect(screen.getByRole('img', { name: 'Your photo' })).toBeInTheDocument();
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(localStorage.length + sessionStorage.length).toBe(0);

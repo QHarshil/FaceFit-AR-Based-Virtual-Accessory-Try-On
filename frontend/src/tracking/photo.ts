@@ -43,12 +43,21 @@ export interface PhotoDeps {
 
 const DEFAULT_DEPS: PhotoDeps = { decode: decodePhoto, startLandmarker };
 
-/** Landmarks of the largest face in the photo; the frame has no face when none was found. */
+/**
+ * Landmarks of the largest face in the photo; the frame has no face when none
+ * was found. Aborting stops the worker and releases the decoded photo.
+ */
 export const detectPhotoFace = async (
   photo: Blob,
+  signal: AbortSignal,
   { decode, startLandmarker: start }: PhotoDeps = DEFAULT_DEPS,
 ): Promise<LandmarkFrame> => {
+  signal.throwIfAborted();
   const image = await decode(photo);
+  if (signal.aborted) {
+    image.close();
+    signal.throwIfAborted();
+  }
   let client: ReturnType<typeof start>;
   try {
     client = start({
@@ -61,17 +70,23 @@ export const detectPhotoFace = async (
     image.close();
     throw error;
   }
-  try {
-    await client.ready;
-  } catch (error) {
-    // Never handed to the worker, so it is still ours to release.
-    image.close();
+  // Stopping rejects a pending `ready` or `detectImage`; detectImage closes
+  // the photo itself when the client has already stopped.
+  const onAbort = () => {
     client.stop();
-    throw error;
-  }
+  };
+  signal.addEventListener('abort', onAbort, { once: true });
   try {
+    try {
+      await client.ready;
+    } catch (error) {
+      // Never handed to the worker, so it is still ours to release.
+      image.close();
+      throw error;
+    }
     return await client.detectImage(image);
   } finally {
+    signal.removeEventListener('abort', onAbort);
     client.stop();
   }
 };

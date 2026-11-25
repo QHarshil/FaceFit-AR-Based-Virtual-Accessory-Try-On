@@ -37,6 +37,52 @@ const fakeClient = (outcome: { ready: Promise<'GPU'>; frame?: LandmarkFrame }) =
   return { deps, client, calls, image: image.image, closeImage: image.close };
 };
 
+const live = () => new AbortController().signal;
+
+/**
+ * A client whose `ready` and `detectImage` settle when the test says, and
+ * reject on stop, as the landmarker client's do.
+ */
+const controlledClient = () => {
+  const image = bitmap();
+  const pending: ((error: Error) => void)[] = [];
+  let finishReady: () => void = () => {};
+  const settleOnStop = <T>(executor: (resolve: (value: T) => void) => void) =>
+    new Promise<T>((resolve, reject) => {
+      pending.push(reject);
+      executor(resolve);
+    });
+  const client = {
+    ready: settleOnStop<'GPU'>((resolve) => {
+      finishReady = () => resolve('GPU');
+    }),
+    submit: vi.fn(),
+    detectImage: vi.fn((_image: ImageBitmap) => settleOnStop<LandmarkFrame>(() => {})),
+    stop: vi.fn(() => {
+      pending.forEach((reject) => reject(new PerceptionError('worker', 'stopped')));
+    }),
+  };
+  let decoded: (bitmap: ImageBitmap) => void = () => {};
+  const deps: PhotoDeps = {
+    decode: () =>
+      new Promise((resolve) => {
+        decoded = resolve;
+      }),
+    startLandmarker: () => client,
+  };
+  return {
+    client,
+    deps,
+    closeImage: image.close,
+    decodeDone: () => decoded(image.image),
+    readyDone: () => finishReady(),
+  };
+};
+
+const settle = async () => {
+  for (let i = 0; i < 5; i += 1) await Promise.resolve();
+};
+
 describe('scaledSize', () => {
   it('keeps a photo within MAX_PHOTO_SIDE and keeps its aspect ratio', () => {
     expect(scaledSize(4032, 3024)).toEqual({ width: MAX_PHOTO_SIDE, height: 960 });
@@ -59,7 +105,7 @@ describe('detectPhotoFace', () => {
     const run = fakeClient({ ready: Promise.resolve('GPU'), frame: FRAME });
     const photo = new Blob(['jpeg']);
 
-    await expect(detectPhotoFace(photo, run.deps)).resolves.toBe(FRAME);
+    await expect(detectPhotoFace(photo, live(), run.deps)).resolves.toBe(FRAME);
 
     expect(run.deps.decode).toHaveBeenCalledWith(photo);
     expect(run.calls[0]?.runningMode).toBe('IMAGE');
@@ -70,7 +116,7 @@ describe('detectPhotoFace', () => {
   it('releases the photo and the worker when the model cannot load', async () => {
     const run = fakeClient({ ready: Promise.reject(new PerceptionError('model-fetch', '404')) });
 
-    await expect(detectPhotoFace(new Blob(['jpeg']), run.deps)).rejects.toBeInstanceOf(
+    await expect(detectPhotoFace(new Blob(['jpeg']), live(), run.deps)).rejects.toBeInstanceOf(
       PerceptionError,
     );
     expect(run.closeImage).toHaveBeenCalled();
@@ -78,10 +124,65 @@ describe('detectPhotoFace', () => {
     expect(run.client.detectImage).not.toHaveBeenCalled();
   });
 
+  it('stops the worker when detection fails', async () => {
+    const run = fakeClient({ ready: Promise.resolve('GPU') });
+    run.client.detectImage.mockRejectedValueOnce(new PerceptionError('inference', 'threw'));
+    await expect(detectPhotoFace(new Blob(['jpeg']), live(), run.deps)).rejects.toBeInstanceOf(
+      PerceptionError,
+    );
+    expect(run.client.stop).toHaveBeenCalled();
+  });
+
+  it('stops the worker and closes the photo when aborted while the model loads', async () => {
+    const run = controlledClient();
+    const abort = new AbortController();
+    const detection = detectPhotoFace(new Blob(['jpeg']), abort.signal, run.deps);
+    detection.catch(() => {});
+    run.decodeDone();
+    await settle();
+
+    abort.abort();
+    await expect(detection).rejects.toThrow();
+    expect(run.client.stop).toHaveBeenCalled();
+    expect(run.closeImage).toHaveBeenCalled();
+    expect(run.client.detectImage).not.toHaveBeenCalled();
+  });
+
+  it('stops the worker when aborted while it reads the photo', async () => {
+    const run = controlledClient();
+    const abort = new AbortController();
+    const detection = detectPhotoFace(new Blob(['jpeg']), abort.signal, run.deps);
+    detection.catch(() => {});
+    run.decodeDone();
+    run.readyDone();
+    await settle();
+    expect(run.client.detectImage).toHaveBeenCalled();
+
+    abort.abort();
+    await expect(detection).rejects.toThrow();
+    expect(run.client.stop).toHaveBeenCalled();
+  });
+
+  it('closes the photo and starts no worker when aborted while it decodes', async () => {
+    const run = controlledClient();
+    const start = vi.spyOn(run.deps, 'startLandmarker');
+    const abort = new AbortController();
+    const detection = detectPhotoFace(new Blob(['jpeg']), abort.signal, run.deps);
+    detection.catch(() => {});
+    abort.abort();
+    run.decodeDone();
+
+    await expect(detection).rejects.toThrow();
+    expect(run.closeImage).toHaveBeenCalled();
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it('rejects a file that does not decode, before starting a worker', async () => {
     const run = fakeClient({ ready: Promise.resolve('GPU') });
     run.deps.decode = () => Promise.reject(new DOMException('bad image', 'InvalidStateError'));
-    await expect(detectPhotoFace(new Blob(['text']), run.deps)).rejects.toThrow('bad image');
+    await expect(detectPhotoFace(new Blob(['text']), live(), run.deps)).rejects.toThrow(
+      'bad image',
+    );
     expect(run.calls).toHaveLength(0);
   });
 });

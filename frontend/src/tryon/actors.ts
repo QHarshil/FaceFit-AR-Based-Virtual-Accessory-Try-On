@@ -15,7 +15,7 @@ export interface TryOnDeps {
   video: { readonly current: HTMLVideoElement | null };
   poseStream: PoseStream;
   getProduct?: (id: number, signal: AbortSignal) => Promise<Product>;
-  detectPhoto?: (photo: Blob) => Promise<LandmarkFrame>;
+  detectPhoto?: (photo: Blob, signal: AbortSignal) => Promise<LandmarkFrame>;
 }
 
 type SendBack = (event: TryOnEvent) => void;
@@ -93,7 +93,9 @@ export const createTryOnActors = ({
 
   detectPhoto: fromPromise<PhotoDetection, { photo: Blob | null }>(async ({ input, signal }) => {
     if (!input.photo) throw new Error('No photo chosen');
-    const frame = await detectPhoto(input.photo);
+    // The last photo's pose must not show over this one while it is read.
+    poseStream.reset();
+    const frame = await detectPhoto(input.photo, signal);
     // The user may have gone back to the camera while the photo was read.
     signal.throwIfAborted();
     return { faceFound: poseStream.showStill(frame) };

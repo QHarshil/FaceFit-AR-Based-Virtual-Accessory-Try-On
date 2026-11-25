@@ -1,10 +1,14 @@
+import { estimateIntrinsics } from '@facefit/cv';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createActor, createMachine, type AnyActorLogic } from 'xstate';
+import { createActor, createMachine, fromPromise, type AnyActorLogic } from 'xstate';
 import { ApiError } from '../../services/apiClient';
 import { PRODUCTS } from '../../test/fixtures';
+import { rotationFromDegrees, syntheticLandmarkFrame } from '../../test/syntheticFace';
+import { deferred, flush, PRODUCT, type Deferred } from '../../test/tryOnHarness';
 import { createPoseStream } from '../../tracking/poseStream';
 import type { LandmarkFrame } from '../../perception/types';
 import { createTryOnActors } from '../actors';
+import { tryOnMachine } from '../machine';
 
 const NO_FACE_FRAME: LandmarkFrame = {
   timestampMs: 0,
@@ -114,6 +118,62 @@ describe('try-on actors', () => {
     finish(NO_FACE_FRAME);
     expect(await done).toEqual({ faceFound: false });
     expect(showStill).toHaveBeenCalledWith(NO_FACE_FRAME);
+  });
+
+  it('aborts photo detection when the user leaves photo mode', () => {
+    const signals: AbortSignal[] = [];
+    const set = createTryOnActors({
+      video: { current: null },
+      poseStream: createPoseStream(),
+      detectPhoto: (_photo, signal) => {
+        signals.push(signal);
+        return new Promise(() => {});
+      },
+    });
+    const detection = createActor(set.detectPhoto, { input: { photo: new Blob(['x']) } });
+    detection.start();
+    expect(signals[0]?.aborted).toBe(false);
+    detection.stop();
+    expect(signals[0]?.aborted).toBe(true);
+  });
+
+  it('clears the last photo pose as soon as another photo is chosen', async () => {
+    const poseStream = createPoseStream();
+    const detections: Deferred<LandmarkFrame>[] = [];
+    const set = createTryOnActors({
+      video: { current: null },
+      poseStream,
+      detectPhoto: () => {
+        const detection = deferred<LandmarkFrame>();
+        detections.push(detection);
+        return detection.promise;
+      },
+    });
+    const machine = tryOnMachine.provide({
+      actors: {
+        loadProduct: fromPromise(() => Promise.resolve(PRODUCT)),
+        detectPhoto: set.detectPhoto,
+      },
+    });
+    const tryOn = createActor(machine, { input: { productId: PRODUCT.id } });
+    tryOn.start();
+    await flush();
+    tryOn.send({ type: 'USE_PHOTO' });
+    tryOn.send({ type: 'PHOTO_SELECTED', photo: new Blob(['first']) });
+    const photo = estimateIntrinsics({ width: 820, height: 1024, horizontalFovDeg: 40 })!;
+    detections[0]?.resolve(
+      syntheticLandmarkFrame(
+        { rotation: rotationFromDegrees(0, 10, 0), translationMm: [0, 0, (photo.fx * 150) / 320] },
+        photo,
+      ),
+    );
+    await flush();
+    expect(tryOn.getSnapshot().matches({ session: { source: { photo: 'showing' } } })).toBe(true);
+    expect(poseStream.poseForRender()).not.toBeNull();
+
+    tryOn.send({ type: 'PHOTO_SELECTED', photo: new Blob(['second']) });
+    expect(poseStream.poseForRender()).toBeNull();
+    tryOn.stop();
   });
 
   it('fails the camera and perception without a video element', () => {
