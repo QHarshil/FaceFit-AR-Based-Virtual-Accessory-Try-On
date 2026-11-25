@@ -45,7 +45,11 @@ export interface PoseStream {
   reset: () => void;
   /** The pose the current render should draw. Read by the render loop each frame. */
   poseForRender: () => RenderPose | null;
-  /** Every processed frame, for the renderer. React components use `subscribe`. */
+  /**
+   * Every processed frame, for the renderer. A listener added while a photo
+   * is shown gets the photo's update at once, since it is published only
+   * once. React components use `subscribe`.
+   */
   onUpdate: (listener: (update: PoseUpdate) => void) => () => void;
   /** For useSyncExternalStore: fires only when `getSnapshot` changes. */
   subscribe: (listener: () => void) => () => void;
@@ -64,6 +68,7 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
   let snapshot = INITIAL;
   let untrustedRun = 0;
   let still: RenderPose | null = null;
+  let stillUpdate: PoseUpdate | null = null;
 
   const publish = (next: PoseSnapshot) => {
     if (next.face === snapshot.face && next.poseShown === snapshot.poseShown) return;
@@ -75,6 +80,7 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
 
   const reset = () => {
     still = null;
+    stillUpdate = null;
     trackId = null;
     untrustedRun = 0;
     tracker.reset();
@@ -87,6 +93,7 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
     setting: overlayPose.setting,
     push(frame) {
       still = null;
+      stillUpdate = null;
       // Filter state carried to another face would swing the overlay across
       // from the last one.
       if (frame.trackId !== trackId) {
@@ -121,8 +128,10 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
       const { estimate } = solveStillPose(frame);
       // Nothing to smooth in one frame, and no newer frame to go stale against.
       still = estimate.trusted ? { pose: estimate.fit.pose, timestampMs: frame.timestampMs } : null;
+      const update: PoseUpdate = { frame, estimate, filtered: still?.pose ?? null };
+      stillUpdate = update;
       updateListeners.forEach((listener) => {
-        listener({ frame, estimate, filtered: still?.pose ?? null });
+        listener(update);
       });
       return still !== null;
     },
@@ -130,6 +139,7 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
     poseForRender: () => still ?? overlayPose.poseForRender(),
     onUpdate(listener) {
       updateListeners.add(listener);
+      if (stillUpdate) listener(stillUpdate);
       return () => {
         updateListeners.delete(listener);
       };

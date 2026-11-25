@@ -231,6 +231,70 @@ describe('ARTryOn overlay gate', () => {
   });
 });
 
+describe('ARTryOn with a photo', () => {
+  // A portrait photo; its pose is solved once and published once.
+  const photo = estimateIntrinsics({ width: 820, height: 1024, horizontalFovDeg: 40 })!;
+  const photoFrame = () =>
+    syntheticLandmarkFrame(
+      { rotation: rotationFromDegrees(-3, 8, 2), translationMm: [0, 0, (photo.fx * 150) / 320] },
+      photo,
+    );
+
+  beforeEach(() => {
+    loadCallbacks.length = 0;
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('shows the glasses when the model loads after the photo was solved', () => {
+    const stream = createPoseStream();
+    const view = render(
+      <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} poseStream={stream} />,
+    );
+    expect(stream.showStill(photoFrame())).toBe(true);
+    const model = new THREE.Group();
+    act(() => loadCallbacks.at(-1)?.({ scene: model }));
+    expect(model.parent?.visible).toBe(true);
+    view.unmount();
+  });
+
+  it('shows the glasses on an overlay mounted again while the photo is shown', () => {
+    const stream = createPoseStream();
+    expect(stream.showStill(photoFrame())).toBe(true);
+    const first = render(
+      <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} poseStream={stream} />,
+    );
+    act(() => loadCallbacks.at(-1)?.({ scene: new THREE.Group() }));
+    first.unmount();
+
+    // An overlay retry mounts a new scene for the same photo.
+    const again = render(
+      <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} poseStream={stream} />,
+    );
+    const model = new THREE.Group();
+    act(() => loadCallbacks.at(-1)?.({ scene: model }));
+    expect(model.parent?.visible).toBe(true);
+    again.unmount();
+  });
+
+  it('hides the glasses of a photo once the stream is reset', () => {
+    const stream = createPoseStream();
+    stream.showStill(photoFrame());
+    stream.reset();
+    const view = render(
+      <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} poseStream={stream} />,
+    );
+    const model = new THREE.Group();
+    act(() => loadCallbacks.at(-1)?.({ scene: model }));
+    expect(model.parent?.visible).toBe(false);
+    view.unmount();
+  });
+});
+
 describe('ARTryOn render loop', () => {
   const FRAME_MS = 1000 / 30;
   let pending: FrameRequestCallback[] = [];

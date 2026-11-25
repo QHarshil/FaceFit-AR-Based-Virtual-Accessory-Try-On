@@ -105,4 +105,24 @@ describe('createPoseStream', () => {
     expect(stream.getSnapshot().face.tracked).toBe(false);
     expect(listener).toHaveBeenCalledTimes(2);
   });
+
+  it('gives a renderer added after a photo the photo pose, until a frame or reset replaces it', () => {
+    const stream = createPoseStream();
+    stream.showStill(faceAt(0));
+    const late = vi.fn();
+    stream.onUpdate(late);
+    expect(late).toHaveBeenCalledTimes(1);
+    expect(late.mock.calls[0]?.[0]).toMatchObject({ estimate: { trusted: true } });
+
+    stream.reset();
+    const afterReset = vi.fn();
+    stream.onUpdate(afterReset);
+    expect(afterReset).not.toHaveBeenCalled();
+
+    stream.showStill(faceAt(1));
+    stream.push(faceAt(2));
+    const afterFrame = vi.fn();
+    stream.onUpdate(afterFrame);
+    expect(afterFrame).not.toHaveBeenCalled();
+  });
 });

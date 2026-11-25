@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { probeGlassesPose, probeRenderedPose } from '../rendering/overlayProbe';
-import { createStage, fitToVideo, placeGlasses, resizeRenderer } from '../rendering/overlayStage';
-import type { PoseStream } from '../tracking/poseStream';
+import {
+  createStage,
+  fitToVideo,
+  placeGlasses,
+  resizeRenderer,
+  type Stage,
+} from '../rendering/overlayStage';
+import type { PoseStream, PoseUpdate } from '../tracking/poseStream';
 import type { TryOnEvent } from '../tryon/machine';
 import type { ProductAnchors } from '../types';
 import { probe, probeEnabled } from '../utils/probe';
@@ -27,6 +33,12 @@ interface ARTryOnProps {
   onEvent?: (event: OverlayEvent) => void;
 }
 
+/** Shows the glasses for a trusted pose once the video's projection is known. */
+const showFor = (stage: Stage, { estimate }: PoseUpdate) => {
+  if (estimate.intrinsics) fitToVideo(stage, estimate.intrinsics);
+  if (stage.glasses) stage.glasses.visible = estimate.trusted && stage.intrinsics !== null;
+};
+
 /**
  * Draws the glasses over the video. The render loop reads the pose stream
  * directly each animation frame, so pose updates never re-render React.
@@ -46,11 +58,17 @@ function ARTryOn({ modelPath, anchors, poseStream, onEvent }: ARTryOnProps) {
     const container = containerRef.current;
     if (!container) return;
     const report = (event: OverlayEvent) => onEventRef.current?.(event);
+    // A photo's pose is published once, so a model that loads after it is
+    // shown from the last update.
+    let latest: PoseUpdate | null = null;
 
     let created: ReturnType<typeof createStage>;
     try {
       created = createStage(container, modelPath, {
-        onModelLoaded: () => report({ type: 'MODEL_LOADED' }),
+        onModelLoaded: () => {
+          if (latest) showFor(created.stage, latest);
+          report({ type: 'MODEL_LOADED' });
+        },
         onModelFailed: (error) => {
           console.error('Error loading model:', error);
           report({ type: 'MODEL_FAILED' });
@@ -67,12 +85,11 @@ function ARTryOn({ modelPath, anchors, poseStream, onEvent }: ARTryOnProps) {
     const { stage, dispose } = created;
     let animationFrameId = 0;
 
-    const stopUpdates = poseStream.onUpdate(({ frame, estimate, filtered }) => {
-      if (estimate.intrinsics) fitToVideo(stage, estimate.intrinsics);
-      const glasses = stage.glasses;
-      if (!glasses) return;
-      glasses.visible = estimate.trusted && stage.intrinsics !== null;
-      if (probeEnabled()) {
+    const stopUpdates = poseStream.onUpdate((update) => {
+      latest = update;
+      showFor(stage, update);
+      if (stage.glasses && probeEnabled()) {
+        const { frame, estimate, filtered } = update;
         probeGlassesPose(stage, frame, estimate, filtered, anchorsRef.current, poseStream.setting);
       }
     });
