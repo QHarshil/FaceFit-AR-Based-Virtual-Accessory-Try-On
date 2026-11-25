@@ -58,6 +58,7 @@ const noFace = (width: number, height: number): LandmarkFrame => ({
   height,
   landmarks: new Float32Array(0),
   faceCount: 0,
+  trackId: null,
 });
 
 beforeEach(() => {
@@ -160,6 +161,41 @@ describe('createHeadPoseTracker warm start', () => {
     expect(solveCalls[0]?.initialPose).toBeUndefined();
     expect(firstEstimate.trusted && solveCalls[1]?.initialPose).toEqual(firstEstimate.fit?.pose);
     expect(solveCalls[2]?.initialPose).toBeUndefined();
+  });
+
+  it('drops the warm start when the tracked face changes', () => {
+    const intrinsics = intrinsicsOf(1280, 720);
+    const user: HeadPose = { rotation: rotationFromDegrees(0, 48, 0), translationMm: [0, 0, 600] };
+    const bystander: HeadPose = { rotation: IDENTITY3, translationMm: [260, 0, 700] };
+    const tracker = createHeadPoseTracker();
+
+    const userEstimate = tracker.update(syntheticLandmarkFrame(user, intrinsics));
+    tracker.update(syntheticLandmarkFrame(user, intrinsics));
+    tracker.update({ ...syntheticLandmarkFrame(bystander, intrinsics), trackId: 2 });
+
+    expect(userEstimate.trusted && solveCalls[1]?.initialPose).toEqual(userEstimate.fit?.pose);
+    expect(solveCalls[2]?.initialPose).toBeUndefined();
+  });
+
+  it('starts the gate over when the tracked face changes', () => {
+    const pose: HeadPose = { rotation: rotationFromDegrees(0, 5, 0), translationMm: [0, 0, 600] };
+    const size = intrinsicsOf(1280, 720);
+    const withNoise = (sigmaPx: number) =>
+      syntheticLandmarkFrame(pose, size, { sigmaPx, gaussian: seededGaussian(11) });
+    const [low, high] = [1, 4].map(withNoise) as [LandmarkFrame, LandmarkFrame];
+    const rms = (frame: LandmarkFrame) =>
+      createHeadPoseTracker({ maxRmsReprojectionMm: Infinity }).update(frame).fit
+        ?.rmsReprojectionMm ?? Number.NaN;
+    // A reading between the two values shows only a face whose last frame was shown.
+    const between = withNoise(2);
+    const tracker = createHeadPoseTracker({
+      maxRmsReprojectionMm: (rms(between) + rms(high)) / 2,
+      showBelowRmsMm: (rms(low) + rms(between)) / 2,
+    });
+
+    expect(tracker.update(high).trusted).toBe(false);
+    expect(tracker.update(between).trusted).toBe(false);
+    expect(tracker.update({ ...between, trackId: 2 }).trusted).toBe(true);
   });
 
   it('keeps the last trusted pose as the warm start across a gated frame', () => {

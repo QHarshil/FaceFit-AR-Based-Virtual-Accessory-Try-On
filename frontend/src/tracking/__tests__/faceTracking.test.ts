@@ -246,6 +246,7 @@ describe('startFaceTracking', () => {
       height: 1,
       landmarks: new Float32Array(0),
       faceCount: 0,
+      trackId: null,
     });
     expect(handlers.onLandmarks).not.toHaveBeenCalled();
   });

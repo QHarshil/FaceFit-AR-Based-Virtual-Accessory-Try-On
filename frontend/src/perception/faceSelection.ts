@@ -28,16 +28,23 @@ const spanOf = (face: readonly LandmarkPoint[], width: number, height: number): 
   };
 };
 
+export interface TrackedFace {
+  /** Index of the face in this frame's list of faces. */
+  readonly index: number;
+  /** The same while the selector follows one face, new when it moves to another. */
+  readonly trackId: number;
+}
+
 export interface TrackedFaceSelector {
   /**
-   * Index in `faces` (landmarks normalized to a `width` by `height` frame) of
-   * the face to track, or null when there is none.
+   * The face to track among `faces` (landmarks normalized to a `width` by
+   * `height` frame), or null when there is none.
    */
   select(
     faces: readonly (readonly LandmarkPoint[])[],
     width: number,
     height: number,
-  ): number | null;
+  ): TrackedFace | null;
 }
 
 /**
@@ -49,6 +56,7 @@ export interface TrackedFaceSelector {
  */
 export const createTrackedFaceSelector = (): TrackedFaceSelector => {
   let tracked: FaceSpan | null = null;
+  let trackId = 0;
   return {
     select(faces, width, height) {
       const spans = faces.map((face) => spanOf(face, width, height));
@@ -73,7 +81,9 @@ export const createTrackedFaceSelector = (): TrackedFaceSelector => {
         spans[largest]!.interocularPx <= SWITCH_RATIO * spans[incumbent]!.interocularPx;
       const chosen = keep ? incumbent : largest;
       tracked = chosen >= 0 ? spans[chosen]! : null;
-      return chosen >= 0 ? chosen : null;
+      if (chosen < 0) return null;
+      if (!keep) trackId += 1;
+      return { index: chosen, trackId };
     },
   };
 };

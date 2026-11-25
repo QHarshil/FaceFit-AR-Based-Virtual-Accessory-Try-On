@@ -1,4 +1,9 @@
-import { estimateIntrinsics, projectionMatrixFromIntrinsics, type HeadPose } from '@facefit/cv';
+import {
+  estimateIntrinsics,
+  IDENTITY3,
+  projectionMatrixFromIntrinsics,
+  type HeadPose,
+} from '@facefit/cv';
 import { act, render } from '@testing-library/react';
 import { createRef, StrictMode } from 'react';
 import * as THREE from 'three';
@@ -70,6 +75,7 @@ const NO_FACE: LandmarkFrame = {
   height: 720,
   landmarks: new Float32Array(0),
   faceCount: 0,
+  trackId: null,
 };
 
 /** Mounts the overlay, loads a model, and returns the handle and the glasses group. */
@@ -245,6 +251,55 @@ describe('ARTryOn render loop', () => {
 
     expect(glasses.visible).toBe(true);
     expect(glasses.position.x).toBeGreaterThan(atLastPose);
+    view.unmount();
+  });
+
+  // Video pixels of the bridge and hinge anchors as the glasses are drawn now.
+  const drawnAnchorPixels = (glasses: THREE.Object3D) => {
+    const camera = renderedCameras[renderedCameras.length - 1] as THREE.Camera;
+    return [ANCHORS.bridgeCenter, ANCHORS.hingeRight, ANCHORS.hingeLeft].map((anchor) =>
+      eyeToVideoPixel(
+        camera,
+        intrinsics,
+        new THREE.Vector3(...anchor).applyMatrix4(glasses.matrixWorld).toArray(),
+      ),
+    );
+  };
+
+  const anchorPixelsAt = (pose: HeadPose) => {
+    const camera = renderedCameras[renderedCameras.length - 1] as THREE.Camera;
+    const transform = glassesTransform(pose, ANCHORS.bridgeCenter);
+    return [ANCHORS.bridgeCenter, ANCHORS.hingeRight, ANCHORS.hingeLeft].map((anchor) =>
+      eyeToVideoPixel(camera, intrinsics, transformPoint(transform, anchor)),
+    );
+  };
+
+  it('draws a new tracked face at its own pose on the first render after the change', () => {
+    const { handle, glasses, view } = mountWithModel();
+    // The user turned 48 degrees; a bystander faces the camera 260 mm to the side.
+    const user: HeadPose = { rotation: rotationFromDegrees(0, 48, 0), translationMm: [0, 0, 600] };
+    const bystander: HeadPose = { rotation: IDENTITY3, translationMm: [260, 0, 700] };
+    for (let k = 0; k < 30; k++) {
+      handle.updateModel({
+        ...syntheticLandmarkFrame(user, intrinsics),
+        timestampMs: k * FRAME_MS,
+      });
+    }
+    renderFrame();
+
+    handle.updateModel({
+      ...syntheticLandmarkFrame(bystander, intrinsics),
+      timestampMs: 30 * FRAME_MS,
+      trackId: 2,
+    });
+    handle.presentFrame(31 * FRAME_MS);
+    renderFrame();
+
+    const expected = anchorPixelsAt(bystander);
+    drawnAnchorPixels(glasses).forEach(([u, v], i) => {
+      const [eu, ev] = expected[i]!;
+      expect(Math.hypot(u - eu, v - ev)).toBeLessThan(1);
+    });
     view.unmount();
   });
 

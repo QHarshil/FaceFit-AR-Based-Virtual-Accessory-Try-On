@@ -67,6 +67,7 @@ export const syntheticLandmarkFrame = (
     height: intrinsics.height,
     landmarks,
     faceCount: 1,
+    trackId: 1,
   };
 };
 

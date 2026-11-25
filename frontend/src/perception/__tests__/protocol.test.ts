@@ -13,7 +13,7 @@ const faceFrame = (): LandmarkFrame => {
   landmarks.forEach((_, i) => {
     landmarks[i] = i / landmarks.length;
   });
-  return { timestampMs: 12.5, width: 1280, height: 720, landmarks, faceCount: 1 };
+  return { timestampMs: 12.5, width: 1280, height: 720, landmarks, faceCount: 1, trackId: 3 };
 };
 
 const emptyFrame = (): LandmarkFrame => ({
@@ -22,6 +22,7 @@ const emptyFrame = (): LandmarkFrame => ({
   height: 720,
   landmarks: new Float32Array(0),
   faceCount: 0,
+  trackId: null,
 });
 
 const fakeVideoFrame = () => ({ displayWidth: 1280, displayHeight: 720, close: () => {} });
@@ -39,6 +40,14 @@ describe('LandmarkFrame', () => {
     expect(isLandmarkFrame({ ...faceFrame(), landmarks: Array.from(faceFrame().landmarks) })).toBe(
       false,
     );
+  });
+
+  it('requires a track id with a face and none without', () => {
+    expect(isLandmarkFrame({ ...faceFrame(), trackId: null })).toBe(false);
+    expect(isLandmarkFrame({ ...faceFrame(), trackId: -1 })).toBe(false);
+    expect(isLandmarkFrame({ ...faceFrame(), trackId: 1.5 })).toBe(false);
+    expect(isLandmarkFrame({ ...faceFrame(), trackId: undefined })).toBe(false);
+    expect(isLandmarkFrame({ ...emptyFrame(), trackId: 3 })).toBe(false);
   });
 
   it('reads interleaved points by index', () => {

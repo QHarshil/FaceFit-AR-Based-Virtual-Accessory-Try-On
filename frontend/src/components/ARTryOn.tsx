@@ -236,6 +236,7 @@ function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [tracker] = useState(createHeadPoseTracker);
   const [overlayPose] = useState(() => createOverlayPose());
+  const trackIdRef = useRef<number | null>(null);
   // The pose is applied on every render, so the scene lives in a ref and the
   // component does not re-render on every landmark update.
   const stageRef = useRef<Stage | null>(null);
@@ -255,6 +256,12 @@ function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
     ref,
     (): ARTryOnHandle => ({
       updateModel: (frame: LandmarkFrame) => {
+        // Filter state carried to another face would swing the overlay across
+        // from the last one.
+        if (frame.trackId !== trackIdRef.current) {
+          trackIdRef.current = frame.trackId;
+          overlayPose.lose();
+        }
         const estimate = tracker.update(frame);
         // A gated frame keeps the filter: a short gap continues the track and
         // a long one restarts it on the next pose. A lost face ends it.

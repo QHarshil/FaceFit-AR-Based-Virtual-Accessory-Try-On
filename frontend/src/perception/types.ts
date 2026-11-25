@@ -30,6 +30,12 @@ export interface LandmarkFrame {
   landmarks: Float32Array;
   /** Faces detected in the frame. */
   faceCount: number;
+  /**
+   * Identity of the tracked face, null when the frame has none. It changes
+   * when the selection moves to another face, so state kept for one face (the
+   * pose filter, the solver's warm start) is not carried to the next.
+   */
+  trackId: number | null;
 }
 
 export const hasFace = (frame: LandmarkFrame): boolean =>

@@ -6,7 +6,7 @@ import type {
   FaceLandmarkerOptions,
   FaceLandmarkerResult,
 } from '@mediapipe/tasks-vision';
-import { createTrackedFaceSelector } from './faceSelection';
+import { createTrackedFaceSelector, type TrackedFace } from './faceSelection';
 import type {
   ErrorResponse,
   FrameRequest,
@@ -120,17 +120,24 @@ export const isZipArchive = (bytes: Uint8Array): boolean => {
 const contentTypeOf = (response: Response): string =>
   response.headers.get('content-type') ?? 'no content type';
 
-/** The face at `faceIndex` of `result` as a landmark frame, with the count of faces seen. */
+/** The tracked face of `result` as a landmark frame, with the count of faces seen. */
 export const toLandmarkFrame = (
   result: FaceLandmarkerResult,
   timestampMs: number,
   width: number,
   height: number,
-  faceIndex = 0,
+  tracked: TrackedFace | null,
 ): LandmarkFrame => {
-  const face = result.faceLandmarks[faceIndex];
-  if (!face) {
-    return { timestampMs, width, height, landmarks: new Float32Array(0), faceCount: 0 };
+  const face = tracked && result.faceLandmarks[tracked.index];
+  if (!tracked || !face) {
+    return {
+      timestampMs,
+      width,
+      height,
+      landmarks: new Float32Array(0),
+      faceCount: 0,
+      trackId: null,
+    };
   }
   if (face.length < LANDMARK_COUNT) {
     throw new RangeError(`Expected ${LANDMARK_COUNT} landmarks, got ${face.length}`);
@@ -142,7 +149,14 @@ export const toLandmarkFrame = (
     landmarks[i * LANDMARK_STRIDE + 1] = point.y;
     landmarks[i * LANDMARK_STRIDE + 2] = point.z;
   }
-  return { timestampMs, width, height, landmarks, faceCount: result.faceLandmarks.length };
+  return {
+    timestampMs,
+    width,
+    height,
+    landmarks,
+    faceCount: result.faceLandmarks.length,
+    trackId: tracked.trackId,
+  };
 };
 
 export interface LandmarkerService {
@@ -243,13 +257,13 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
       const result = landmarker.detectForVideo(frame, graphTimestamp);
       const inferenceMs = deps.now() - start;
       const { displayWidth: width, displayHeight: height } = frame;
-      const faceIndex = faceSelector.select(result.faceLandmarks, width, height) ?? 0;
+      const tracked = faceSelector.select(result.faceLandmarks, width, height);
       deps.post({
         type: 'result',
         frameId,
         inferenceStartMs: start,
         inferenceMs,
-        landmarkFrame: toLandmarkFrame(result, timestampMs, width, height, faceIndex),
+        landmarkFrame: toLandmarkFrame(result, timestampMs, width, height, tracked),
       });
     } catch (error) {
       fail('inference', describeError(error), frameId);

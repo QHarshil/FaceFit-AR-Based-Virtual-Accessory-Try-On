@@ -60,9 +60,15 @@ const FACE: LandmarkFrame = {
   height: 720,
   landmarks: new Float32Array(LANDMARK_COUNT * 3).map((_, i) => 0.4 + (i % 7) * 0.02),
   faceCount: 1,
+  trackId: 1,
 };
 
-const NO_FACE: LandmarkFrame = { ...FACE, landmarks: new Float32Array(0), faceCount: 0 };
+const NO_FACE: LandmarkFrame = {
+  ...FACE,
+  landmarks: new Float32Array(0),
+  faceCount: 0,
+  trackId: null,
+};
 
 const renderTryOn = () =>
   render(

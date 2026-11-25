@@ -340,6 +340,27 @@ describe('landmarker service frames', () => {
     expect(centers[1]).toBeCloseTo(0.7, 6);
   });
 
+  it('reports one track id while the same face is tracked and none without a face', async () => {
+    const h = harness();
+    h.landmarker.detectForVideo
+      .mockReturnValueOnce(resultWith(1))
+      .mockReturnValueOnce(resultWith(1))
+      .mockReturnValueOnce(resultWith(0));
+    const service = await ready(h);
+    for (const frameId of [1, 2, 3]) {
+      await service.handle({
+        type: 'frame',
+        frameId,
+        timestampMs: 33 * frameId,
+        frame: videoFrame(),
+      });
+    }
+
+    const trackIds = h.posted.map((m) => (m.type === 'result' ? m.landmarkFrame.trackId : m.type));
+    expect(trackIds[0]).toEqual(expect.any(Number));
+    expect(trackIds).toEqual([trackIds[0], trackIds[0], null]);
+  });
+
   it('feeds MediaPipe strictly increasing timestamps and reports the capture time unchanged', async () => {
     const h = harness();
     const service = await ready(h);
@@ -428,6 +449,6 @@ describe('helpers', () => {
 
   it('rejects a face with fewer landmarks than the refined mesh', () => {
     const short = { ...resultWith(1), faceLandmarks: [face(0).slice(0, 468)] };
-    expect(() => toLandmarkFrame(short, 0, 1, 1)).toThrow(RangeError);
+    expect(() => toLandmarkFrame(short, 0, 1, 1, { index: 0, trackId: 1 })).toThrow(RangeError);
   });
 });
