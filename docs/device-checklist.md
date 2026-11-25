@@ -22,7 +22,7 @@ Each row has an expected result. Mark pass or fail and write down what you saw w
 | 5 | Hold still for 10 seconds | The glasses stay on the bridge of the nose with no visible shimmer |
 | 6 | Tilt your head left and right | The glasses roll with your eye line |
 | 7 | Move closer to and further from the camera | The glasses scale with your face |
-| 8 | Turn your head far to one side | The glasses hide rather than slide off the face, and return when you face the camera |
+| 8 | Turn your head far to one side | The glasses hide when the face turns too far, and return when you face the camera |
 | 9 | Move out of view and back | "Face not found", then "Tracking" |
 | 10 | Let a second face into view | "More than one face in view"; the glasses stay on the larger face |
 
