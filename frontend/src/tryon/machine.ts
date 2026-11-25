@@ -3,11 +3,11 @@
 // and the photo fallback. Actors start and stop with the states that invoke
 // them, so a callback from a camera or worker that has been replaced is never
 // delivered. See README.md in this folder for the state list.
-import type { Product, TelemetryEvent } from '@facefit/contracts';
+import type { Product } from '@facefit/contracts';
 import { assign, fromCallback, fromPromise, sendTo, setup, stateIn } from 'xstate';
 import { apiFailureOf } from '../services/apiClient';
 import { sendTelemetry } from '../telemetry/client';
-import { telemetryEvents } from '../telemetry/events';
+import { telemetryEvents, type BuiltTelemetryEvent } from '../telemetry/events';
 import type { CameraFailure, PerceptionFailure } from '../tracking/failures';
 import { faceStateOf, type FaceState, type FaceStatus } from './faceStatus';
 
@@ -82,7 +82,7 @@ const tryOnSetup = setup({
     detectPhoto: fromPromise<PhotoDetection, { photo: Blob | null }>(() => pending()),
   },
   actions: {
-    report: (_, event: TelemetryEvent) => {
+    report: (_, event: BuiltTelemetryEvent) => {
       sendTelemetry(event);
     },
   },
@@ -104,7 +104,7 @@ const tryOnSetup = setup({
   },
 });
 
-const report = (build: (context: TryOnContext) => TelemetryEvent) => ({
+const report = (build: (context: TryOnContext) => BuiltTelemetryEvent) => ({
   type: 'report' as const,
   params: ({ context }: { context: TryOnContext }) => build(context),
 });

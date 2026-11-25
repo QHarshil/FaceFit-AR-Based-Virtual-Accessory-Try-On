@@ -31,50 +31,69 @@ const PERCEPTION_CODES: Record<PerceptionFailure, TelemetryErrorCode> = {
   crashed: 'worker_crash',
 };
 
+declare const builtHere: unique symbol;
+
+/**
+ * An event made by `telemetryEvents`. The brand exists only in types, so
+ * `sendTelemetry` does not compile with a payload built anywhere else.
+ */
+export type BuiltTelemetryEvent = TelemetryEvent & { readonly [builtHere]: true };
+
+const built = (event: TelemetryEvent) => event as BuiltTelemetryEvent;
+
 // Session events leave the product out when the id is unknown.
 const withProduct = (productId: number | null) => (productId === null ? {} : { productId });
 
 export const telemetryEvents = {
-  catalogueLoaded: (count: number): TelemetryEvent => ({
-    eventType: 'catalogue_loaded',
-    payload: { count },
-  }),
-  catalogueFailed: (failure: ApiFailure): TelemetryEvent => ({
-    eventType: 'catalogue_failed',
-    payload: { errorCode: failure },
-  }),
-  productViewed: (productId: number): TelemetryEvent => ({
-    eventType: 'product_viewed',
-    payload: { productId },
-  }),
+  catalogueLoaded: (count: number): BuiltTelemetryEvent =>
+    built({
+      eventType: 'catalogue_loaded',
+      payload: { count },
+    }),
+  catalogueFailed: (failure: ApiFailure): BuiltTelemetryEvent =>
+    built({
+      eventType: 'catalogue_failed',
+      payload: { errorCode: failure },
+    }),
+  productViewed: (productId: number): BuiltTelemetryEvent =>
+    built({
+      eventType: 'product_viewed',
+      payload: { productId },
+    }),
   /** `productId` is null when the route id is not a valid product id. */
-  productLoadFailed: (productId: number | null, failure: ApiFailure): TelemetryEvent => ({
-    eventType: 'product_load_failed',
-    payload: { productId, errorCode: failure },
-  }),
-  cameraStarted: (productId: number | null): TelemetryEvent => ({
-    eventType: 'camera_started',
-    payload: withProduct(productId),
-  }),
-  cameraError: (productId: number | null, failure: CameraFailure | 'ended'): TelemetryEvent => ({
-    eventType: 'camera_error',
-    payload: {
-      ...withProduct(productId),
-      errorCode: failure === 'ended' ? 'camera_ended' : CAMERA_CODES[failure],
-    },
-  }),
-  trackingError: (productId: number | null, failure: PerceptionFailure): TelemetryEvent => ({
-    eventType: 'tracking_error',
-    payload: { ...withProduct(productId), errorCode: PERCEPTION_CODES[failure] },
-  }),
-  renderError: (productId: number | null, failure: RenderFailure): TelemetryEvent => ({
-    eventType: 'render_error',
-    payload: { ...withProduct(productId), errorCode: failure },
-  }),
-  faceDetectedChanged: (productId: number | null, faceDetected: boolean): TelemetryEvent => ({
-    eventType: 'tracking_state_changed',
-    payload: { ...withProduct(productId), faceDetected },
-  }),
+  productLoadFailed: (productId: number | null, failure: ApiFailure): BuiltTelemetryEvent =>
+    built({
+      eventType: 'product_load_failed',
+      payload: { productId, errorCode: failure },
+    }),
+  cameraStarted: (productId: number | null): BuiltTelemetryEvent =>
+    built({
+      eventType: 'camera_started',
+      payload: withProduct(productId),
+    }),
+  cameraError: (productId: number | null, failure: CameraFailure | 'ended'): BuiltTelemetryEvent =>
+    built({
+      eventType: 'camera_error',
+      payload: {
+        ...withProduct(productId),
+        errorCode: failure === 'ended' ? 'camera_ended' : CAMERA_CODES[failure],
+      },
+    }),
+  trackingError: (productId: number | null, failure: PerceptionFailure): BuiltTelemetryEvent =>
+    built({
+      eventType: 'tracking_error',
+      payload: { ...withProduct(productId), errorCode: PERCEPTION_CODES[failure] },
+    }),
+  renderError: (productId: number | null, failure: RenderFailure): BuiltTelemetryEvent =>
+    built({
+      eventType: 'render_error',
+      payload: { ...withProduct(productId), errorCode: failure },
+    }),
+  faceDetectedChanged: (productId: number | null, faceDetected: boolean): BuiltTelemetryEvent =>
+    built({
+      eventType: 'tracking_state_changed',
+      payload: { ...withProduct(productId), faceDetected },
+    }),
 };
 
 export type TelemetryEventName = keyof typeof telemetryEvents;

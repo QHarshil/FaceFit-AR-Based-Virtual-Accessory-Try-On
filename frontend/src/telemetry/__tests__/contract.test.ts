@@ -8,6 +8,7 @@ import { MAX_TELEMETRY_BYTES, telemetryBody, type TelemetryEvent } from '@facefi
 import { describe, expect, it } from 'vitest';
 import type { ApiFailure } from '../../services/apiClient';
 import { CAMERA_FAILURES, PERCEPTION_FAILURES } from '../../tracking/failures';
+import { sendTelemetry } from '../client';
 import { RENDER_FAILURES, telemetryEvents, type TelemetryEventName } from '../events';
 
 const API_FAILURES: readonly ApiFailure[] = [
@@ -74,6 +75,15 @@ describe('telemetry contract', () => {
       /\beventType\s*:/.test(readFileSync(path, 'utf8')),
     );
     expect(builders.map((path) => relative(SRC, path))).toEqual(['telemetry/events.ts']);
+  });
+
+  it('does not compile a hand-built payload into sendTelemetry', () => {
+    // Never called: typecheck verifies the directive, which fails if the call compiles.
+    const handBuilt = () =>
+      // @ts-expect-error sendTelemetry takes only events from telemetryEvents.
+      sendTelemetry({ eventType: 'product_viewed', payload: { productId: 1 } });
+    const built = () => sendTelemetry(telemetryEvents.productViewed(1));
+    expect([handBuilt, built].every((send) => typeof send === 'function')).toBe(true);
   });
 
   it('sends only events from the builders', () => {

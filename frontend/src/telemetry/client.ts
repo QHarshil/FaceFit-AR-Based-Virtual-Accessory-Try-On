@@ -1,4 +1,5 @@
 import { MAX_TELEMETRY_BYTES, telemetryBody, type TelemetryEvent } from '@facefit/contracts';
+import type { BuiltTelemetryEvent } from './events';
 import { createTelemetryLimiter, type TelemetryLimiter } from './limiter';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5055';
@@ -19,7 +20,7 @@ export interface TelemetryClientOptions {
 
 export interface TelemetryClient {
   /** Validates, budgets and sends one event. Returns true when it was handed to the browser. */
-  send(event: TelemetryEvent | null): boolean;
+  send(event: BuiltTelemetryEvent | null): boolean;
 }
 
 /** Same key for events that differ only in the timestamp. */
@@ -70,4 +71,5 @@ const defaultClient = createTelemetryClient({
 });
 
 /** Sends an event built by `telemetryEvents` (events.ts). Null is ignored. */
-export const sendTelemetry = (event: TelemetryEvent | null): boolean => defaultClient.send(event);
+export const sendTelemetry = (event: BuiltTelemetryEvent | null): boolean =>
+  defaultClient.send(event);
