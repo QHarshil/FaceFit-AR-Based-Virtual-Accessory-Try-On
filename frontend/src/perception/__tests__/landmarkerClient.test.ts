@@ -81,7 +81,7 @@ describe('landmarker client', () => {
 
   it('sends init with the asset paths and resolves ready with the delegate', async () => {
     const client = startLandmarker(options);
-    expect(worker.posted[0]?.message).toEqual({ type: 'init', ...ASSETS });
+    expect(worker.posted[0]?.message).toEqual({ type: 'init', ...ASSETS, runningMode: 'VIDEO' });
 
     worker.reply({ type: 'ready', delegate: 'CPU' });
     await expect(client.ready).resolves.toBe('CPU');
@@ -247,6 +247,49 @@ describe('landmarker client', () => {
       throw new DOMException('Refused by worker-src', 'SecurityError');
     };
     expect(() => startLandmarker({ ...options, createWorker: blocked })).toThrow(PerceptionError);
+  });
+
+  it('detects a still image in IMAGE mode and transfers the bitmap', async () => {
+    const client = startLandmarker({ ...options, runningMode: 'IMAGE' });
+    expect(worker.posted[0]?.message).toMatchObject({ type: 'init', runningMode: 'IMAGE' });
+    worker.reply({ type: 'ready', delegate: 'GPU' });
+    await client.ready;
+
+    const image = { width: 640, height: 480, close: vi.fn() } as unknown as ImageBitmap;
+    const detected = client.detectImage(image);
+    expect(worker.posted[1]).toEqual({
+      message: { type: 'image', requestId: 0, image },
+      transfer: [image],
+    });
+    worker.reply({ type: 'imageResult', requestId: 0, landmarkFrame: faceFrame(0) });
+    await expect(detected).resolves.toMatchObject({ faceCount: 1, width: 640 });
+  });
+
+  it('rejects a pending image when the worker fails or stops', async () => {
+    const client = startLandmarker({ ...options, runningMode: 'IMAGE' });
+    worker.reply({ type: 'ready', delegate: 'GPU' });
+    await client.ready;
+    const image = () => ({ width: 1, height: 1, close: vi.fn() }) as unknown as ImageBitmap;
+
+    const failed = client.detectImage(image());
+    worker.reply({ type: 'error', code: 'inference', detail: 'graph failed' });
+    await expect(failed).rejects.toMatchObject({ code: 'inference' });
+
+    const second = startLandmarker({ ...options, runningMode: 'IMAGE' });
+    worker.reply({ type: 'ready', delegate: 'GPU' });
+    await second.ready;
+    const stopped = second.detectImage(image());
+    second.stop();
+    await expect(stopped).rejects.toMatchObject({ code: 'worker' });
+  });
+
+  it('refuses an image before the model is ready and closes it', async () => {
+    const client = startLandmarker({ ...options, runningMode: 'IMAGE' });
+    const close = vi.fn();
+    await expect(client.detectImage({ width: 1, height: 1, close })).rejects.toBeInstanceOf(
+      PerceptionError,
+    );
+    expect(close).toHaveBeenCalled();
   });
 
   it('rejects a pending ready on stop', async () => {

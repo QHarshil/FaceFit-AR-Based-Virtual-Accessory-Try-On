@@ -6,7 +6,7 @@ vi.mock('../services/apiClient', () => ({
   getProducts: vi.fn().mockResolvedValue(PRODUCTS),
   getProductById: vi.fn(),
 }));
-vi.mock('../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
+vi.mock('../telemetry/client', () => ({ sendTelemetry: vi.fn().mockReturnValue(true) }));
 
 const { default: App } = await import('../App');
 
@@ -15,5 +15,15 @@ describe('App', () => {
     render(<App />);
 
     expect(await screen.findByText('Aviator Glasses')).toBeInTheDocument();
+  });
+
+  it('shows a not-found page with a way back for an unknown route', async () => {
+    window.history.pushState({}, '', '/no-such-page');
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to catalogue' })).toHaveAttribute('href', '/');
+    window.history.pushState({}, '', '/');
   });
 });

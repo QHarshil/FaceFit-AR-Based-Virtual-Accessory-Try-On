@@ -387,3 +387,15 @@
     background-position: -200% 0;
   }
 }
+
+.model-credit {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.model-credit a {
+  color: #1d4ed8;
+  text-decoration: underline;
+}

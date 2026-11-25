@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ErrorBoundary from '../components/ErrorBoundary';
+import ProductGrid from '../components/ProductGrid';
 import '../styles/Home.css';
-import { getProducts } from '../services/apiClient';
+import { apiFailureOf, getProducts } from '../services/apiClient';
+import { sendTelemetry } from '../telemetry/client';
+import { telemetryEvents } from '../telemetry/events';
 import type { Product } from '../types';
-import { sendTelemetry } from '../utils/telemetry';
 
 const CAPABILITIES = [
   {
@@ -23,67 +26,12 @@ const CAPABILITIES = [
   },
 ];
 
-const LOADING_PLACEHOLDERS = Array.from({ length: 4 }, (_, index) => index);
-interface IllustrationTheme {
-  frame: string;
-  lens: string;
-  accent: string;
-  background: string;
-}
-
-const ILLUSTRATION_THEMES: [IllustrationTheme, ...IllustrationTheme[]] = [
-  { frame: '#1d4ed8', lens: '#bfdbfe', accent: '#2563eb', background: '#eff6ff' },
-  { frame: '#047857', lens: '#bbf7d0', accent: '#0f766e', background: '#ecfdf5' },
-  { frame: '#7c3aed', lens: '#ddd6fe', accent: '#6d28d9', background: '#f5f3ff' },
-  { frame: '#dc2626', lens: '#fecaca', accent: '#b91c1c', background: '#fef2f2' },
-];
-
-function ProductImage({ product }: { product: Product }) {
-  const [failed, setFailed] = useState(false);
-  const theme =
-    ILLUSTRATION_THEMES[(product.id - 1) % ILLUSTRATION_THEMES.length] ?? ILLUSTRATION_THEMES[0];
-  const hasValidImage = Boolean(product.image) && !failed;
-
-  if (!hasValidImage) {
-    return (
-      <div className="product-illustration" style={{ backgroundColor: theme.background }}>
-        <span
-          className="product-illustration__temple product-illustration__temple--left"
-          style={{ backgroundColor: theme.frame }}
-        />
-        <span
-          className="product-illustration__lens product-illustration__lens--left"
-          style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
-        />
-        <span className="product-illustration__bridge" style={{ backgroundColor: theme.accent }} />
-        <span
-          className="product-illustration__lens product-illustration__lens--right"
-          style={{ borderColor: theme.frame, backgroundColor: theme.lens }}
-        />
-        <span
-          className="product-illustration__temple product-illustration__temple--right"
-          style={{ backgroundColor: theme.frame }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={product.image}
-      alt={product.name}
-      className="product-image"
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
 function Home() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -95,14 +43,12 @@ function Home() {
         const catalogue = await getProducts();
         if (!isMounted) return;
         setProducts(catalogue);
-        void sendTelemetry('catalogue_loaded', { count: catalogue.length });
+        sendTelemetry(telemetryEvents.catalogueLoaded(catalogue.length));
       } catch (err) {
         if (!isMounted) return;
         console.error('Failed to load products:', err);
-        setError('We could not reach the product catalogue. Please retry in a moment.');
-        void sendTelemetry('catalogue_failed', {
-          message: err instanceof Error ? err.message : String(err),
-        });
+        setError('Could not load the catalogue. Check your connection and try again.');
+        sendTelemetry(telemetryEvents.catalogueFailed(apiFailureOf(err)));
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -114,7 +60,7 @@ function Home() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [attempt]);
 
   const [primaryProductId, secondaryProductId] = useMemo((): [
     number | undefined,
@@ -143,6 +89,7 @@ function Home() {
         </p>
         <div className="hero-cta">
           <button
+            type="button"
             className="primary-action"
             onClick={() => handleNavigate(primaryProductId)}
             disabled={loading || !primaryProductId}
@@ -150,6 +97,7 @@ function Home() {
             Launch Try-On
           </button>
           <button
+            type="button"
             className="secondary-action"
             onClick={() => handleNavigate(secondaryProductId)}
             disabled={loading || !secondaryProductId}
@@ -159,79 +107,53 @@ function Home() {
         </div>
       </header>
 
-      <section className="products-section">
-        <h2 className="section-title">Select a Frame</h2>
-        <p className="section-subtitle">
-          Each frame is a normalized model with nominal dimensions in millimetres, seated on the
-          nose bridge by its anchor points.
-        </p>
-        <div className="products-grid">
-          {loading &&
-            LOADING_PLACEHOLDERS.map((placeholder) => (
-              <article
-                key={`placeholder-${placeholder}`}
-                className="product-card product-card--loading"
-              >
-                <div className="product-image-container">
-                  <div className="loading-skeleton image-skeleton" />
-                </div>
-                <div className="product-info">
-                  <div className="loading-skeleton text-skeleton large" />
-                  <div className="loading-skeleton text-skeleton small" />
-                  <div className="loading-skeleton text-skeleton" />
-                </div>
-                <div className="loading-skeleton button-skeleton" />
-              </article>
-            ))}
-
-          {!loading &&
-            !error &&
-            products.map((product) => (
-              <article key={product.id} className="product-card">
-                <div className="product-image-container">
-                  <ProductImage product={product} />
-                </div>
-                <div className="product-info">
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-category">{product.category}</p>
-                  <p className="product-description">{product.description}</p>
-                </div>
-                <button
-                  className="try-on-button"
-                  onClick={() => {
-                    void navigate(`/try-on/${product.id}`);
-                  }}
-                >
-                  Open Try-On
-                </button>
-              </article>
-            ))}
-
-          {!loading && error && (
-            <article className="product-card product-card--error">
-              <div className="product-info">
-                <h3 className="product-name">Catalogue unavailable</h3>
-                <p className="product-description">{error}</p>
+      <main>
+        <section className="products-section" aria-labelledby="catalogue-title">
+          <h2 id="catalogue-title" className="section-title">
+            Select a Frame
+          </h2>
+          <p className="section-subtitle">
+            Each frame is a normalized model with nominal dimensions in millimetres, seated on the
+            nose bridge by its anchor points.
+          </p>
+          <ErrorBoundary
+            surface="Catalogue"
+            fallback={(reset) => (
+              <div className="products-grid">
+                <article className="product-card product-card--error">
+                  <div className="product-info">
+                    <h3 className="product-name">The catalogue could not be shown</h3>
+                  </div>
+                  <button type="button" className="try-on-button" onClick={reset}>
+                    Try again
+                  </button>
+                </article>
               </div>
-              <button className="try-on-button" onClick={() => window.location.reload()}>
-                Retry
-              </button>
-            </article>
-          )}
-        </div>
-      </section>
+            )}
+          >
+            <ProductGrid
+              products={products}
+              loading={loading}
+              error={error}
+              onRetry={() => setAttempt((count) => count + 1)}
+            />
+          </ErrorBoundary>
+        </section>
 
-      <section className="capabilities-section">
-        <h2 className="section-title">System Capabilities</h2>
-        <div className="capabilities-grid">
-          {CAPABILITIES.map((item) => (
-            <div key={item.title} className="capability-card">
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="capabilities-section" aria-labelledby="capabilities-title">
+          <h2 id="capabilities-title" className="section-title">
+            System Capabilities
+          </h2>
+          <div className="capabilities-grid">
+            {CAPABILITIES.map((item) => (
+              <div key={item.title} className="capability-card">
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

@@ -37,6 +37,11 @@ export interface LandmarkFrame {
    * pose filter, the solver's warm start) is not carried to the next.
    */
   trackId: number | null;
+  /**
+   * Mean Rec. 601 luma of the frame, 0 to 255, on the frames the worker
+   * samples (perception/luminance.ts). Absent on the others.
+   */
+  luminance?: number;
 }
 
 export const hasFace = (frame: LandmarkFrame): boolean =>

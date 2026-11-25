@@ -11,6 +11,7 @@ import {
   type VideoLandmarker,
   type WasmFileset,
 } from '../landmarkerService';
+import { LUMINANCE_SAMPLE_INTERVAL } from '../luminance';
 import type { WorkerResponse } from '../protocol';
 import { LANDMARK_COUNT } from '../types';
 
@@ -61,7 +62,10 @@ interface Harness {
   deps: LandmarkerServiceDeps;
   posted: WorkerResponse[];
   options: FaceLandmarkerOptions[];
-  landmarker: VideoLandmarker & { detectForVideo: ReturnType<typeof vi.fn> };
+  landmarker: VideoLandmarker & {
+    detectForVideo: ReturnType<typeof vi.fn>;
+    detect: ReturnType<typeof vi.fn>;
+  };
 }
 
 const harness = (overrides: Partial<LandmarkerServiceDeps> = {}): Harness => {
@@ -69,6 +73,7 @@ const harness = (overrides: Partial<LandmarkerServiceDeps> = {}): Harness => {
   const options: FaceLandmarkerOptions[] = [];
   const landmarker = {
     detectForVideo: vi.fn(() => resultWith(1)),
+    detect: vi.fn(() => resultWith(1)),
     close: vi.fn(),
   };
   let clock = 0;
@@ -408,6 +413,45 @@ describe('landmarker service frames', () => {
     expect(frame.close).toHaveBeenCalledTimes(1);
   });
 
+  it('samples brightness every LUMINANCE_SAMPLE_INTERVAL frames, after posting, on the next result', async () => {
+    const measured: number[] = [];
+    const h = harness({
+      measureLuminance: vi.fn(() => {
+        measured.push(h.posted.length);
+        return 30;
+      }),
+    });
+    const service = await ready(h);
+
+    for (let i = 0; i < LUMINANCE_SAMPLE_INTERVAL + 2; i += 1) {
+      await service.handle({ type: 'frame', frameId: i, timestampMs: i * 33, frame: videoFrame() });
+    }
+
+    // The first frame is sampled after its result is posted, then every interval.
+    expect(measured).toEqual([1, LUMINANCE_SAMPLE_INTERVAL + 1]);
+    const luminance = h.posted.map((m) => (m.type === 'result' ? m.landmarkFrame.luminance : 'x'));
+    const carried = luminance.flatMap((value, i) => (value === undefined ? [] : [[i, value]]));
+    expect(carried).toEqual([
+      [1, 30],
+      [LUMINANCE_SAMPLE_INTERVAL + 1, 30],
+    ]);
+  });
+
+  it('keeps tracking when brightness cannot be measured', async () => {
+    const measureLuminance = vi.fn(() => {
+      throw new Error('cannot draw this frame');
+    });
+    const h = harness({ measureLuminance });
+    const service = await ready(h);
+
+    for (let i = 0; i < LUMINANCE_SAMPLE_INTERVAL * 2; i += 1) {
+      await service.handle({ type: 'frame', frameId: i, timestampMs: i * 33, frame: videoFrame() });
+    }
+
+    expect(h.posted.every((m) => m.type === 'result')).toBe(true);
+    expect(measureLuminance).toHaveBeenCalledTimes(1);
+  });
+
   it('closes and rejects a frame that arrives before the model is ready', async () => {
     const h = harness();
     const frame = videoFrame();
@@ -421,6 +465,58 @@ describe('landmarker service frames', () => {
 
     expect(h.posted[0]).toMatchObject({ type: 'error', code: 'inference', frameId: 0 });
     expect(frame.close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('landmarker service images', () => {
+  const imageBitmap = () => {
+    const close = vi.fn<() => void>();
+    return { image: { width: 800, height: 600, close }, close };
+  };
+
+  it('starts FaceLandmarker in IMAGE mode when asked', async () => {
+    const h = harness();
+    await createLandmarkerService(h.deps).handle({ ...INIT, runningMode: 'IMAGE' });
+    expect(h.options[0]?.runningMode).toBe('IMAGE');
+  });
+
+  it('returns the largest face of a still image and closes the bitmap', async () => {
+    const h = harness();
+    const small = face(0).map((p) => ({ ...p, x: 0.1 + p.x * 1e-5, y: 0.1 + p.y * 1e-5 }));
+    const large = face(0).map((p) => ({ ...p, x: 0.5 + p.x * 1e-4, y: 0.5 + p.y * 1e-4 }));
+    h.landmarker.detect.mockReturnValue({
+      faceLandmarks: [small, large],
+      faceBlendshapes: [],
+      facialTransformationMatrixes: [],
+    });
+    const service = createLandmarkerService(h.deps);
+    await service.handle({ ...INIT, runningMode: 'IMAGE' });
+    h.posted.length = 0;
+    const { image, close } = imageBitmap();
+
+    await service.handle({ type: 'image', requestId: 3, image });
+
+    const message = h.posted[0];
+    expect(message?.type).toBe('imageResult');
+    if (message?.type !== 'imageResult') return;
+    expect(message.requestId).toBe(3);
+    expect(message.landmarkFrame).toMatchObject({ width: 800, height: 600, faceCount: 2 });
+    expect(message.landmarkFrame.landmarks[0]).toBeCloseTo(large[0]?.x ?? 0, 5);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(h.landmarker.detectForVideo.mock.calls).toHaveLength(0);
+  });
+
+  it('refuses an image on a VIDEO landmarker and still closes it', async () => {
+    const h = harness();
+    const service = createLandmarkerService(h.deps);
+    await service.handle(INIT);
+    h.posted.length = 0;
+    const { image, close } = imageBitmap();
+
+    await service.handle({ type: 'image', requestId: 1, image });
+
+    expect(h.posted[0]).toMatchObject({ type: 'error', code: 'inference' });
+    expect(close).toHaveBeenCalledTimes(1);
   });
 });
 

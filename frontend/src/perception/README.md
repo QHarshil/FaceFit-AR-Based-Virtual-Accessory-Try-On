@@ -2,15 +2,18 @@
 
 Camera frames go to a module worker running MediaPipe Tasks Vision `FaceLandmarker`; landmarks come back as a `LandmarkFrame` (`types.ts`). Only `landmarkerService.ts` and `landmarker.worker.ts` import MediaPipe.
 
-| File                   | Role                                                                                           |
-| ---------------------- | ---------------------------------------------------------------------------------------------- |
-| `frameSource.ts`       | `requestVideoFrameCallback` captures one `VideoFrame` per camera frame                         |
-| `frameScheduler.ts`    | One frame in flight; a newer frame replaces the waiting one                                    |
-| `landmarkerClient.ts`  | Starts the worker, sends frames, maps replies to results or `PerceptionError`                  |
-| `protocol.ts`          | Typed `init`, `frame`, `ready`, `result` and `error` messages                                  |
-| `landmarkerService.ts` | `FaceLandmarker` in VIDEO mode, GPU delegate with CPU fallback, strictly increasing timestamps |
-| `sameOriginGuard.ts`   | Keeps the worker's network APIs on the app origin and reports blocked attempts                 |
-| `faceSelection.ts`     | Picks the face the overlay follows when more than one is detected                              |
+| File                   | Role                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| `frameSource.ts`       | `requestVideoFrameCallback` captures one `VideoFrame` per camera frame                                  |
+| `frameScheduler.ts`    | One frame in flight; a newer frame replaces the waiting one                                             |
+| `landmarkerClient.ts`  | Starts the worker, sends frames, maps replies to results or `PerceptionError`                           |
+| `protocol.ts`          | Typed `init`, `frame`, `image`, `ready`, `result`, `imageResult` and `error` messages                   |
+| `landmarkerService.ts` | `FaceLandmarker` in VIDEO or IMAGE mode, GPU delegate with CPU fallback, strictly increasing timestamps |
+| `luminance.ts`         | Mean luma of a 32 by 18 copy of every 15th frame, for the try-on's low-light state                      |
+| `sameOriginGuard.ts`   | Keeps the worker's network APIs on the app origin and reports blocked attempts                          |
+| `faceSelection.ts`     | Picks the face the overlay follows when more than one is detected                                       |
+
+The photo try-on (`tracking/photo.ts`) starts its own worker in IMAGE mode, sends one decoded photo as a transferred `ImageBitmap`, takes the largest face and stops the worker.
 
 Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronously in the frame callback, wraps the decoded camera frame without a copy, and is closed explicitly; `createImageBitmap` is asynchronous and makes a copy. Closing matters: an open frame holds a camera buffer, so at most two exist at once.
 
@@ -30,7 +33,7 @@ Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronous
 
 ## Errors
 
-Failures surface as `PerceptionError` codes; `tracking/errorMessages.ts` maps them to the try-on error screen.
+Failures surface as `PerceptionError` codes. `tracking/failures.ts` maps them to the try-on's perception failures, and `tryon/status.ts` gives each its message and recovery action.
 
 | Code          | Cause                                                                                                      |
 | ------------- | ---------------------------------------------------------------------------------------------------------- |

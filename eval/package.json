@@ -5,10 +5,12 @@
   "scripts": {
     "fixtures": "node fixtures/build.mjs",
     "baseline": "node harness/baseline.mjs",
-    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs scale/*.test.mjs"
+    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs scale/*.test.mjs",
+    "e2e": "node --test e2e/*.e2e.mjs"
   },
   "devDependencies": {
     "@mediapipe/tasks-vision": "1.2.3",
+    "axe-core": "4.14.1",
     "playwright-core": "1.65.1"
   }
 }

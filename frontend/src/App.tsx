@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Home from './pages/Home';
+import NotFound from './pages/NotFound';
 import TryOn from './pages/TryOn';
 import './styles/App.css';
 
@@ -10,6 +11,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/try-on/:id" element={<TryOn />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </BrowserRouter>

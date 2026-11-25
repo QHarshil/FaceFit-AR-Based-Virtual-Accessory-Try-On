@@ -31,6 +31,7 @@ const catalogModel = z.object({
     hingeRight: vec3,
   }),
   attribution: z.object({
+    title: z.string(),
     author: z.string(),
     authorUrl: z.string(),
     sourceUrl: z.string(),
@@ -62,6 +63,7 @@ export const catalogToRows = (raw: unknown): ProductRow[] =>
     bridgeOriginMm: model.bridgeOriginMm,
     anchors: model.anchors,
     attribution: {
+      title: model.attribution.title,
       author: model.attribution.author,
       authorUrl: model.attribution.authorUrl,
       sourceUrl: model.attribution.sourceUrl,

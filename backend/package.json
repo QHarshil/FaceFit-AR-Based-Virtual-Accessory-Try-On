@@ -8,20 +8,27 @@
     "node": ">=22"
   },
   "scripts": {
+    "contracts:build": "tsc -p ../packages/contracts/tsconfig.build.json",
+    "prebuild": "npm run contracts:build",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
+    "predev": "npm run contracts:build",
     "dev": "tsx watch src/server.ts",
     "migrate": "tsx src/cli/migrate.ts",
     "seed": "tsx src/cli/seed.ts",
     "db:generate": "drizzle-kit generate",
+    "prelint": "npm run contracts:build",
     "lint": "eslint .",
+    "pretypecheck": "npm run contracts:build",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run contracts:build",
     "test": "vitest run",
     "format:check": "prettier --check .",
     "format": "prettier --write ."
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.6.0",
+    "@facefit/contracts": "file:../packages/contracts",
     "@hono/node-server": "^2.1.11",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.21",

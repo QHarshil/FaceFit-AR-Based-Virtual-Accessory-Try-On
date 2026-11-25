@@ -8,6 +8,7 @@ import {
   isWorkerResponse,
   transferablesOf,
   type InitRequest,
+  type RunningMode,
   type WorkerRequest,
 } from './protocol';
 import type { LandmarkFrame, PerceptionDelegate } from './types';
@@ -17,11 +18,18 @@ export interface LandmarkerClient {
   ready: Promise<PerceptionDelegate>;
   /** Takes ownership of a captured frame. */
   submit: (captured: CapturedFrame) => void;
+  /**
+   * Landmarks of the largest face in a still image, for a client started in
+   * IMAGE mode. Takes ownership of the bitmap. Rejects if the worker fails or stops.
+   */
+  detectImage: (image: ImageBitmap) => Promise<LandmarkFrame>;
   stop: () => void;
 }
 
 export interface LandmarkerClientOptions {
-  assets: Omit<InitRequest, 'type'>;
+  assets: Omit<InitRequest, 'type' | 'runningMode'>;
+  /** VIDEO when absent. */
+  runningMode?: RunningMode;
   onResult: (frame: LandmarkFrame) => void;
   /** Errors after `ready` resolved. Earlier ones reject `ready`. The client is stopped either way. */
   onError: (error: PerceptionError) => void;
@@ -36,6 +44,7 @@ export const createLandmarkerWorker = (): Worker =>
 
 export const startLandmarker = ({
   assets,
+  runningMode = 'VIDEO',
   onResult,
   onError,
   createWorker = createLandmarkerWorker,
@@ -63,6 +72,11 @@ export const startLandmarker = ({
     worker.postMessage(message, transferablesOf(message));
   };
   const capturedAt = new Map<number, number>();
+  const pendingImages = new Map<
+    number,
+    { resolve: (frame: LandmarkFrame) => void; reject: (error: PerceptionError) => void }
+  >();
+  let nextImageId = 0;
 
   const scheduler = createFrameScheduler<CapturedFrame>({
     send: ({ frameId, timestampMs, frame, capturedAt: at }) => {
@@ -82,6 +96,11 @@ export const startLandmarker = ({
     scheduler.stop();
     worker.terminate();
     capturedAt.clear();
+    const ended = new PerceptionError('worker', 'The landmark worker stopped');
+    pendingImages.forEach(({ reject }) => {
+      reject(ended);
+    });
+    pendingImages.clear();
     if (!readySettled) {
       readySettled = true;
       rejectReady(new PerceptionError('worker', 'Stopped before the model was ready'));
@@ -90,6 +109,10 @@ export const startLandmarker = ({
 
   const fail = (error: PerceptionError) => {
     if (stopped) return;
+    pendingImages.forEach(({ reject }) => {
+      reject(error);
+    });
+    pendingImages.clear();
     if (readySettled) {
       stop();
       onError(error);
@@ -121,6 +144,12 @@ export const startLandmarker = ({
       case 'blocked':
         probe({ stage: 'blockedRequest', api: message.api, url: message.url });
         return;
+      case 'imageResult': {
+        const pending = pendingImages.get(message.requestId);
+        pendingImages.delete(message.requestId);
+        pending?.resolve(message.landmarkFrame);
+        return;
+      }
       case 'result': {
         const start = capturedAt.get(message.frameId);
         capturedAt.delete(message.frameId);
@@ -157,7 +186,7 @@ export const startLandmarker = ({
     fail(new PerceptionError('worker', 'A landmark worker message could not be read'));
   });
 
-  post({ type: 'init', ...assets });
+  post({ type: 'init', ...assets, runningMode });
 
   const submit = (captured: CapturedFrame) => {
     // The worker rejects frames that arrive before the model loads.
@@ -168,5 +197,18 @@ export const startLandmarker = ({
     scheduler.offer(captured);
   };
 
-  return { ready, submit, stop };
+  const detectImage = (image: ImageBitmap) =>
+    new Promise<LandmarkFrame>((resolve, reject) => {
+      if (stopped || delegate === null) {
+        image.close();
+        reject(new PerceptionError('worker', 'The landmark worker is not ready'));
+        return;
+      }
+      const requestId = nextImageId;
+      nextImageId += 1;
+      pendingImages.set(requestId, { resolve, reject });
+      post({ type: 'image', requestId, image });
+    });
+
+  return { ready, submit, detectImage, stop };
 };

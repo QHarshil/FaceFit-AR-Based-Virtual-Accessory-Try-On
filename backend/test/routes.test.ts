@@ -82,7 +82,7 @@ describe('products', () => {
     expect(products[0]?.modelPath).toBe('/models/rectangular-acetate.glb');
     expect(products[0]?.dimensionsMm['lensWidth']).toBe(53);
     expect(products[0]?.attribution['license']).toBe('CC-BY-4.0');
-    expect(products[0]?.attribution).not.toHaveProperty('title');
+    expect(products[0]?.attribution['title']).toBe('Glasses');
   });
 
   it('returns one product by id', async () => {

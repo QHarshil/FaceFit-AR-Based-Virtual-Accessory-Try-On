@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,8 +7,11 @@ import Home from '../Home';
 
 const getProducts = vi.hoisted(() => vi.fn());
 
-vi.mock('../../services/apiClient', () => ({ getProducts }));
-vi.mock('../../utils/telemetry', () => ({ sendTelemetry: vi.fn().mockResolvedValue(true) }));
+vi.mock('../../services/apiClient', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/apiClient')>()),
+  getProducts,
+}));
+vi.mock('../../telemetry/client', () => ({ sendTelemetry: vi.fn().mockReturnValue(true) }));
 
 const renderHome = () =>
   render(
@@ -58,6 +61,42 @@ describe('Home', () => {
     renderHome();
 
     await waitFor(() => expect(screen.getByText('Catalogue unavailable')).toBeInTheDocument());
+    expect(screen.getByRole('alert')).toHaveTextContent('Check your connection');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled();
+  });
+
+  it('retries the catalogue request without reloading the page', async () => {
+    getProducts.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(PRODUCTS);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderHome();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Aviator Glasses')).toBeInTheDocument();
+    expect(getProducts).toHaveBeenCalledTimes(2);
+  });
+
+  it('credits each model with its title, author and license', async () => {
+    getProducts.mockResolvedValue(PRODUCTS);
+    renderHome();
+
+    const card = (await screen.findByText('Aviator Glasses')).closest('article') as HTMLElement;
+    expect(within(card).getByRole('link', { name: 'Glasses' })).toHaveAttribute(
+      'href',
+      PRODUCTS[0]?.attribution.sourceUrl,
+    );
+    expect(within(card).getByRole('link', { name: 'AlbertVictory' })).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: 'CC BY 4.0' })).toBeInTheDocument();
+  });
+
+  it('puts content in landmarks and announces the catalogue', async () => {
+    getProducts.mockResolvedValue(PRODUCTS);
+    renderHome();
+
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Select a Frame' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'System Capabilities' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading frames');
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 frames'));
   });
 });

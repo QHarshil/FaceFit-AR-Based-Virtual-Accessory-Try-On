@@ -10,10 +10,13 @@ import { createTrackedFaceSelector, type TrackedFace } from './faceSelection';
 import type {
   ErrorResponse,
   FrameRequest,
+  ImageRequest,
   InitRequest,
   PerceptionErrorCode,
+  RunningMode,
   WorkerResponse,
 } from './protocol';
+import { LUMINANCE_SAMPLE_INTERVAL } from './luminance';
 import { isWorkerRequest } from './protocol';
 import {
   LANDMARK_COUNT,
@@ -27,6 +30,7 @@ export type WasmFileset = Parameters<typeof FaceLandmarker.createFromOptions>[0]
 /** The part of FaceLandmarker this service calls. */
 export interface VideoLandmarker {
   detectForVideo(frame: TexImageSource, timestampMs: number): FaceLandmarkerResult;
+  detect(image: ImageBitmap): FaceLandmarkerResult;
   close(): void;
 }
 
@@ -44,6 +48,8 @@ export interface LandmarkerServiceDeps {
    */
   now: () => number;
   post: (message: WorkerResponse) => void;
+  /** Mean luma of a frame, 0 to 255, or null when it cannot be measured. */
+  measureLuminance?: (frame: VideoFrame) => number | null;
 }
 
 const DEFAULT_NUM_FACES = 2;
@@ -166,8 +172,27 @@ export interface LandmarkerService {
 export const createLandmarkerService = (deps: LandmarkerServiceDeps): LandmarkerService => {
   let state: 'idle' | 'loading' | 'ready' | 'failed' = 'idle';
   let landmarker: VideoLandmarker | null = null;
+  let runningMode: RunningMode = 'VIDEO';
   let lastGraphTimestamp = -Infinity;
+  let framesSinceLuminance = LUMINANCE_SAMPLE_INTERVAL;
+  let pendingLuminance: number | null = null;
   const faceSelector = createTrackedFaceSelector();
+
+  let measureLuminance = deps.measureLuminance;
+
+  // Measured after a result is posted, so it never delays one, and sent with
+  // the next result. Brightness is advisory: a frame it cannot read turns the
+  // sampling off and leaves tracking running.
+  const sampleLuminance = (frame: VideoFrame) => {
+    framesSinceLuminance += 1;
+    if (!measureLuminance || framesSinceLuminance < LUMINANCE_SAMPLE_INTERVAL) return;
+    framesSinceLuminance = 0;
+    try {
+      pendingLuminance = measureLuminance(frame);
+    } catch {
+      measureLuminance = undefined;
+    }
+  };
 
   const fail = (code: PerceptionErrorCode, detail: string, frameId?: number) => {
     const message: ErrorResponse = { type: 'error', code, detail };
@@ -203,9 +228,10 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
     }
   };
 
-  const init = async ({ wasmBaseUrl, modelUrl }: InitRequest) => {
+  const init = async ({ wasmBaseUrl, modelUrl, runningMode: mode = 'VIDEO' }: InitRequest) => {
     if (state !== 'idle') return;
     state = 'loading';
+    runningMode = mode;
     const fileset = wasmFilesetAt(wasmBaseUrl);
 
     let model: Uint8Array;
@@ -223,7 +249,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
       try {
         landmarker = await deps.createLandmarker(filesetForAttempt(fileset, delegate, attempt), {
           baseOptions: { modelAssetBuffer: model, delegate },
-          runningMode: 'VIDEO',
+          runningMode,
           numFaces: NUM_FACES,
         });
         state = 'ready';
@@ -258,18 +284,40 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
       const inferenceMs = deps.now() - start;
       const { displayWidth: width, displayHeight: height } = frame;
       const tracked = faceSelector.select(result.faceLandmarks, width, height);
-      deps.post({
-        type: 'result',
-        frameId,
-        inferenceStartMs: start,
-        inferenceMs,
-        landmarkFrame: toLandmarkFrame(result, timestampMs, width, height, tracked),
-      });
+      const landmarkFrame = toLandmarkFrame(result, timestampMs, width, height, tracked);
+      if (pendingLuminance !== null) {
+        landmarkFrame.luminance = pendingLuminance;
+        pendingLuminance = null;
+      }
+      deps.post({ type: 'result', frameId, inferenceStartMs: start, inferenceMs, landmarkFrame });
+      sampleLuminance(frame);
     } catch (error) {
       fail('inference', describeError(error), frameId);
     } finally {
       // An unclosed VideoFrame holds a camera buffer and stalls capture.
       frame.close();
+    }
+  };
+
+  // A still photo: no timestamps and no track, so the largest face is the one.
+  const detectImage = ({ requestId, image }: ImageRequest) => {
+    try {
+      if (state !== 'ready' || !landmarker || runningMode !== 'IMAGE') {
+        fail('inference', `Image ${requestId} needs a landmarker started in IMAGE mode`);
+        return;
+      }
+      const result = landmarker.detect(image);
+      const { width, height } = image;
+      const largest = createTrackedFaceSelector().select(result.faceLandmarks, width, height);
+      deps.post({
+        type: 'imageResult',
+        requestId,
+        landmarkFrame: toLandmarkFrame(result, 0, width, height, largest),
+      });
+    } catch (error) {
+      fail('inference', describeError(error));
+    } finally {
+      image.close();
     }
   };
 
@@ -280,6 +328,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
         return;
       }
       if (message.type === 'init') await init(message);
+      else if (message.type === 'image') detectImage(message);
       else detect(message);
     },
   };
