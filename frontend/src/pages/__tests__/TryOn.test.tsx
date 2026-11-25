@@ -28,6 +28,7 @@ const sessions = vi.hoisted(() => ({
     stop: () => void;
   }[],
 }));
+const photos = vi.hoisted(() => ({ detect: vi.fn() }));
 const models = vi.hoisted(() => ({
   loads: [] as { onLoad: (gltf: { scene: unknown }) => void; onError: (e: unknown) => void }[],
 }));
@@ -56,6 +57,12 @@ vi.mock('../../tracking/perceptionSession', () => ({
     sessions.perceptions.push(session);
     return session;
   },
+}));
+
+vi.mock('../../tracking/photo', () => ({
+  detectPhotoFace: photos.detect,
+  // jsdom cannot decode images.
+  decodePhoto: () => Promise.reject(new Error('no decoder')),
 }));
 
 vi.mock('three', async (importOriginal) => {
@@ -304,6 +311,47 @@ describe('TryOn', () => {
     await act(() => vi.advanceTimersByTimeAsync(1_000));
     expect(sessions.perceptions.length).toBeGreaterThan(before);
     vi.useRealTimers();
+  });
+
+  it('tries on with a photo without sending or storing it', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    photos.detect.mockResolvedValue(faceFrame(0));
+    await startTracking();
+    await userEvent.click(screen.getByRole('button', { name: 'Use a photo' }));
+    await heading('photoChoosing');
+    expect(latest(sessions.perceptions).stop).toHaveBeenCalled();
+
+    const photo = new File(['jpeg bytes'], 'me.jpg', { type: 'image/jpeg' });
+    await userEvent.upload(screen.getByLabelText('Photo of your face'), photo);
+    await heading('photoShowing');
+    expect(photos.detect).toHaveBeenCalledWith(photo);
+    expect(screen.getByRole('img', { name: 'Your photo' })).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(localStorage.length + sessionStorage.length).toBe(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Use the camera' }));
+    await heading('cameraRequesting');
+    expect(screen.queryByRole('img', { name: 'Your photo' })).toBeNull();
+  });
+
+  it('asks for another photo when none has a face', async () => {
+    photos.detect.mockResolvedValue({
+      timestampMs: 0,
+      width: 640,
+      height: 480,
+      landmarks: new Float32Array(0),
+      faceCount: 0,
+      trackId: null,
+    });
+    await startTracking();
+    await userEvent.click(screen.getByRole('button', { name: 'Use a photo' }));
+    await userEvent.upload(
+      screen.getByLabelText('Photo of your face'),
+      new File(['x'], 'a.png', { type: 'image/png' }),
+    );
+    await heading('photoNoFace');
+    expect(screen.getByRole('button', { name: 'Choose a photo' })).toBeInTheDocument();
   });
 
   it('stops the camera and the worker on unmount', async () => {

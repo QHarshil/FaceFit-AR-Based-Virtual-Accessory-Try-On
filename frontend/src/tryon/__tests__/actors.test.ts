@@ -3,7 +3,17 @@ import { createActor, createMachine, type AnyActorLogic } from 'xstate';
 import { ApiError } from '../../services/apiClient';
 import { PRODUCTS } from '../../test/fixtures';
 import { createPoseStream } from '../../tracking/poseStream';
+import type { LandmarkFrame } from '../../perception/types';
 import { createTryOnActors } from '../actors';
+
+const NO_FACE_FRAME: LandmarkFrame = {
+  timestampMs: 0,
+  width: 640,
+  height: 480,
+  landmarks: new Float32Array(0),
+  faceCount: 0,
+  trackId: null,
+};
 
 const actors = (getProduct = vi.fn()) =>
   createTryOnActors({ video: { current: null }, poseStream: createPoseStream(), getProduct });
@@ -74,6 +84,36 @@ describe('try-on actors', () => {
     devices.dispatchEvent(new Event('devicechange'));
     expect(received).toEqual(['DEVICE_CHANGE']);
     Reflect.deleteProperty(navigator, 'mediaDevices');
+  });
+
+  it('shows a detected photo on the pose stream, unless the user left photo mode first', async () => {
+    const poseStream = createPoseStream();
+    const showStill = vi.spyOn(poseStream, 'showStill');
+    let finish: (frame: LandmarkFrame) => void = () => {};
+    const set = createTryOnActors({
+      video: { current: null },
+      poseStream,
+      detectPhoto: () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    });
+    const left = createActor(set.detectPhoto, { input: { photo: new Blob(['x']) } });
+    left.start();
+    left.stop();
+    finish(NO_FACE_FRAME);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(showStill).not.toHaveBeenCalled();
+
+    const stayed = createActor(set.detectPhoto, { input: { photo: new Blob(['x']) } });
+    const done = new Promise((resolve) =>
+      stayed.subscribe((snapshot) => snapshot.output && resolve(snapshot.output)),
+    );
+    stayed.start();
+    finish(NO_FACE_FRAME);
+    expect(await done).toEqual({ faceFound: false });
+    expect(showStill).toHaveBeenCalledWith(NO_FACE_FRAME);
   });
 
   it('fails the camera and perception without a video element', () => {

@@ -35,6 +35,11 @@ export interface PoseStream {
   push: (frame: LandmarkFrame) => void;
   /** A camera frame captured at `timestampMs` is on screen. */
   present: (timestampMs: number) => void;
+  /**
+   * A still photo: solves its pose once and draws it unfiltered until the
+   * next push or reset. Returns whether the pose is trusted.
+   */
+  showStill: (frame: LandmarkFrame) => boolean;
   /** Starts over: no pose, no face. Used when the camera or the worker restarts. */
   reset: () => void;
   /** The pose the current render should draw. Read by the render loop each frame. */
@@ -57,6 +62,7 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
   let trackId: number | null = null;
   let snapshot = INITIAL;
   let untrustedRun = 0;
+  let still: RenderPose | null = null;
 
   const publish = (next: PoseSnapshot) => {
     if (next.face === snapshot.face && next.poseShown === snapshot.poseShown) return;
@@ -66,9 +72,20 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
     });
   };
 
+  const reset = () => {
+    still = null;
+    trackId = null;
+    untrustedRun = 0;
+    tracker.reset();
+    overlayPose.lose();
+    faces.reset();
+    publish(INITIAL);
+  };
+
   return {
     setting: overlayPose.setting,
     push(frame) {
+      still = null;
       // Filter state carried to another face would swing the overlay across
       // from the last one.
       if (frame.trackId !== trackId) {
@@ -98,15 +115,18 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
     present(timestampMs) {
       overlayPose.present(timestampMs);
     },
-    reset() {
-      trackId = null;
-      untrustedRun = 0;
-      tracker.reset();
-      overlayPose.lose();
-      faces.reset();
-      publish(INITIAL);
+    showStill(frame) {
+      reset();
+      const estimate = tracker.update(frame);
+      // Nothing to smooth in one frame, and no newer frame to go stale against.
+      still = estimate.trusted ? { pose: estimate.fit.pose, timestampMs: frame.timestampMs } : null;
+      updateListeners.forEach((listener) => {
+        listener({ frame, estimate, filtered: still?.pose ?? null });
+      });
+      return still !== null;
     },
-    poseForRender: () => overlayPose.poseForRender(),
+    reset,
+    poseForRender: () => still ?? overlayPose.poseForRender(),
     onUpdate(listener) {
       updateListeners.add(listener);
       return () => {

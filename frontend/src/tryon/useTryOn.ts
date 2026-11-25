@@ -34,5 +34,6 @@ export const useTryOn = (
     product: useSelector(actor, (snapshot) => snapshot.context.product),
     overlayAttempt: useSelector(actor, (snapshot) => snapshot.context.overlayAttempt),
     source: useSelector(actor, sourceOf),
+    photo: useSelector(actor, (snapshot) => snapshot.context.photo),
   };
 };

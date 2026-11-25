@@ -20,8 +20,23 @@
   transform: scaleX(-1);
 }
 
-.video-feed {
+.video-feed,
+.photo-feed {
   z-index: 1;
+}
+
+/* A photo shows whole and unmirrored, and the overlay follows it. */
+.photo-feed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.try-on-container--photo .overlay-canvas {
+  object-fit: contain;
+  transform: none;
 }
 
 .video-feed--hidden {

@@ -10,8 +10,10 @@ import { createTrackedFaceSelector, type TrackedFace } from './faceSelection';
 import type {
   ErrorResponse,
   FrameRequest,
+  ImageRequest,
   InitRequest,
   PerceptionErrorCode,
+  RunningMode,
   WorkerResponse,
 } from './protocol';
 import { LUMINANCE_SAMPLE_INTERVAL } from './luminance';
@@ -28,6 +30,7 @@ export type WasmFileset = Parameters<typeof FaceLandmarker.createFromOptions>[0]
 /** The part of FaceLandmarker this service calls. */
 export interface VideoLandmarker {
   detectForVideo(frame: TexImageSource, timestampMs: number): FaceLandmarkerResult;
+  detect(image: ImageBitmap): FaceLandmarkerResult;
   close(): void;
 }
 
@@ -169,6 +172,7 @@ export interface LandmarkerService {
 export const createLandmarkerService = (deps: LandmarkerServiceDeps): LandmarkerService => {
   let state: 'idle' | 'loading' | 'ready' | 'failed' = 'idle';
   let landmarker: VideoLandmarker | null = null;
+  let runningMode: RunningMode = 'VIDEO';
   let lastGraphTimestamp = -Infinity;
   let framesSinceLuminance = LUMINANCE_SAMPLE_INTERVAL;
   let pendingLuminance: number | null = null;
@@ -224,9 +228,10 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
     }
   };
 
-  const init = async ({ wasmBaseUrl, modelUrl }: InitRequest) => {
+  const init = async ({ wasmBaseUrl, modelUrl, runningMode: mode = 'VIDEO' }: InitRequest) => {
     if (state !== 'idle') return;
     state = 'loading';
+    runningMode = mode;
     const fileset = wasmFilesetAt(wasmBaseUrl);
 
     let model: Uint8Array;
@@ -244,7 +249,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
       try {
         landmarker = await deps.createLandmarker(filesetForAttempt(fileset, delegate, attempt), {
           baseOptions: { modelAssetBuffer: model, delegate },
-          runningMode: 'VIDEO',
+          runningMode,
           numFaces: NUM_FACES,
         });
         state = 'ready';
@@ -294,6 +299,28 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
     }
   };
 
+  // A still photo: no timestamps and no track, so the largest face is the one.
+  const detectImage = ({ requestId, image }: ImageRequest) => {
+    try {
+      if (state !== 'ready' || !landmarker || runningMode !== 'IMAGE') {
+        fail('inference', `Image ${requestId} needs a landmarker started in IMAGE mode`);
+        return;
+      }
+      const result = landmarker.detect(image);
+      const { width, height } = image;
+      const largest = createTrackedFaceSelector().select(result.faceLandmarks, width, height);
+      deps.post({
+        type: 'imageResult',
+        requestId,
+        landmarkFrame: toLandmarkFrame(result, 0, width, height, largest),
+      });
+    } catch (error) {
+      fail('inference', describeError(error));
+    } finally {
+      image.close();
+    }
+  };
+
   return {
     handle: async (message) => {
       if (!isWorkerRequest(message)) {
@@ -301,6 +328,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
         return;
       }
       if (message.type === 'init') await init(message);
+      else if (message.type === 'image') detectImage(message);
       else detect(message);
     },
   };

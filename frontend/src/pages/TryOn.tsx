@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ARTryOn from '../components/ARTryOn';
 import ErrorBoundary from '../components/ErrorBoundary';
+import PhotoView from '../components/PhotoView';
 import StatusPanel from '../components/StatusPanel';
 import { sendTelemetry } from '../telemetry/client';
 import { telemetryEvents } from '../telemetry/events';
@@ -11,13 +12,17 @@ import '../styles/TryOn.css';
 
 function TryOnView({ productId }: { productId: number | null }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { actor, poseStream, status, product, overlayAttempt, source } = useTryOn(
+  const { actor, poseStream, status, product, overlayAttempt, source, photo } = useTryOn(
     productId,
     videoRef,
   );
 
   return (
-    <main className="try-on-container">
+    <main
+      className={
+        source === 'photo' ? 'try-on-container try-on-container--photo' : 'try-on-container'
+      }
+    >
       <video
         ref={videoRef}
         className={source === 'photo' ? 'video-feed video-feed--hidden' : 'video-feed'}
@@ -26,6 +31,7 @@ function TryOnView({ productId }: { productId: number | null }) {
         muted
         aria-hidden="true"
       />
+      {source === 'photo' && photo && <PhotoView photo={photo} />}
 
       {product && (
         // Keyed by the attempt, so a retry also clears a caught crash.

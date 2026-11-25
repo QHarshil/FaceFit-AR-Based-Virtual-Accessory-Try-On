@@ -11,11 +11,16 @@ import {
 export type PerceptionErrorCode =
   'model-fetch' | 'wasm-fetch' | 'worker' | 'unsupported' | 'inference';
 
+/** VIDEO for the camera, with timestamps; IMAGE for a still photo. */
+export type RunningMode = 'VIDEO' | 'IMAGE';
+
 export interface InitRequest {
   type: 'init';
   /** Directory holding the pinned module WASM pair, same origin as the app. */
   wasmBaseUrl: string;
   modelUrl: string;
+  /** VIDEO when absent. */
+  runningMode?: RunningMode;
 }
 
 export interface FrameRequest {
@@ -25,7 +30,14 @@ export interface FrameRequest {
   frame: VideoFrame;
 }
 
-export type WorkerRequest = InitRequest | FrameRequest;
+export interface ImageRequest {
+  type: 'image';
+  requestId: number;
+  /** Transferred; the worker closes it. */
+  image: ImageBitmap;
+}
+
+export type WorkerRequest = InitRequest | FrameRequest | ImageRequest;
 
 export interface ReadyResponse {
   type: 'ready';
@@ -65,7 +77,15 @@ export interface BlockedResponse {
   url: string;
 }
 
-export type WorkerResponse = ReadyResponse | ResultResponse | ErrorResponse | BlockedResponse;
+/** Landmarks of the largest face in a still image. */
+export interface ImageResultResponse {
+  type: 'imageResult';
+  requestId: number;
+  landmarkFrame: LandmarkFrame;
+}
+
+export type WorkerResponse =
+  ReadyResponse | ResultResponse | ImageResultResponse | ErrorResponse | BlockedResponse;
 
 const ERROR_CODES: readonly PerceptionErrorCode[] = [
   'model-fetch',
@@ -91,6 +111,12 @@ const isVideoFrame = (value: unknown): value is VideoFrame =>
   typeof value.close === 'function' &&
   isFiniteNumber(value.displayWidth) &&
   isFiniteNumber(value.displayHeight);
+
+const isImageBitmap = (value: unknown): value is ImageBitmap =>
+  isRecord(value) &&
+  typeof value.close === 'function' &&
+  isFiniteNumber(value.width) &&
+  isFiniteNumber(value.height);
 
 export const isLandmarkFrame = (value: unknown): value is LandmarkFrame => {
   if (!isRecord(value)) return false;
@@ -118,11 +144,19 @@ export const isWorkerRequest = (value: unknown): value is WorkerRequest => {
   if (!isRecord(value)) return false;
   switch (value.type) {
     case 'init':
-      return typeof value.wasmBaseUrl === 'string' && typeof value.modelUrl === 'string';
+      return (
+        typeof value.wasmBaseUrl === 'string' &&
+        typeof value.modelUrl === 'string' &&
+        (value.runningMode === undefined ||
+          value.runningMode === 'VIDEO' ||
+          value.runningMode === 'IMAGE')
+      );
     case 'frame':
       return (
         isIndex(value.frameId) && isFiniteNumber(value.timestampMs) && isVideoFrame(value.frame)
       );
+    case 'image':
+      return isIndex(value.requestId) && isImageBitmap(value.image);
     default:
       return false;
   }
@@ -140,6 +174,8 @@ export const isWorkerResponse = (value: unknown): value is WorkerResponse => {
         isFiniteNumber(value.inferenceMs) &&
         isLandmarkFrame(value.landmarkFrame)
       );
+    case 'imageResult':
+      return isIndex(value.requestId) && isLandmarkFrame(value.landmarkFrame);
     case 'error':
       return (
         ERROR_CODES.includes(value.code as PerceptionErrorCode) &&
@@ -158,7 +194,10 @@ export const transferablesOf = (message: WorkerRequest | WorkerResponse): Transf
   switch (message.type) {
     case 'frame':
       return [message.frame];
+    case 'image':
+      return [message.image];
     case 'result':
+    case 'imageResult':
       return [message.landmarkFrame.landmarks.buffer];
     default:
       return [];

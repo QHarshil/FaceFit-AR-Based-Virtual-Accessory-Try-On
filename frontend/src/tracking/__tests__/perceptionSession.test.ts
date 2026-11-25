@@ -52,7 +52,7 @@ const setup = (captureSupported = true) => {
       });
       ready.catch(() => {});
       landmarkers.push(entry);
-      return { ready, submit: entry.submit, stop: entry.stop };
+      return { ready, submit: entry.submit, detectImage: vi.fn(), stop: entry.stop };
     },
   };
   const callbacks: PerceptionCallbacks = {

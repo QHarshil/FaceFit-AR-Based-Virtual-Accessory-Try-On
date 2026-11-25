@@ -114,6 +114,8 @@ export const startPerception = (
       stopFaceStatus();
       video.removeEventListener('playing', startFrames);
       landmarker?.stop();
+      // The last live pose must not linger over a photo or a stopped camera.
+      poseStream.reset();
     },
   };
 

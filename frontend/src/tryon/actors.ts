@@ -5,14 +5,17 @@ import { fromCallback, fromPromise } from 'xstate';
 import { ApiError, getProductById } from '../services/apiClient';
 import { startCameraSession } from '../tracking/cameraSession';
 import { startPerception } from '../tracking/perceptionSession';
+import { detectPhotoFace } from '../tracking/photo';
+import type { LandmarkFrame } from '../perception/types';
 import type { PoseStream } from '../tracking/poseStream';
-import type { PauseCommand, TryOnEvent } from './machine';
+import type { PauseCommand, PhotoDetection, TryOnEvent } from './machine';
 
 export interface TryOnDeps {
   /** The page's video element; the camera and the frame capture share it. */
   video: { readonly current: HTMLVideoElement | null };
   poseStream: PoseStream;
   getProduct?: (id: number, signal: AbortSignal) => Promise<Product>;
+  detectPhoto?: (photo: Blob) => Promise<LandmarkFrame>;
 }
 
 type SendBack = (event: TryOnEvent) => void;
@@ -21,6 +24,7 @@ export const createTryOnActors = ({
   video,
   poseStream,
   getProduct = getProductById,
+  detectPhoto = detectPhotoFace,
 }: TryOnDeps) => ({
   loadProduct: fromPromise<Product, { productId: number | null }>(({ input, signal }) =>
     input.productId === null
@@ -85,5 +89,13 @@ export const createTryOnActors = ({
     return () => {
       devices.removeEventListener('devicechange', onChange);
     };
+  }),
+
+  detectPhoto: fromPromise<PhotoDetection, { photo: Blob | null }>(async ({ input, signal }) => {
+    if (!input.photo) throw new Error('No photo chosen');
+    const frame = await detectPhoto(input.photo);
+    // The user may have gone back to the camera while the photo was read.
+    signal.throwIfAborted();
+    return { faceFound: poseStream.showStill(frame) };
   }),
 });

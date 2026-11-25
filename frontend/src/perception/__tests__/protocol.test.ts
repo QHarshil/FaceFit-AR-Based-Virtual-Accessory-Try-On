@@ -79,6 +79,29 @@ describe('worker requests', () => {
     ).toBe(true);
   });
 
+  it('accepts an IMAGE init and an image request, and rejects a bad mode or bitmap', () => {
+    const bitmap = { width: 640, height: 480, close: () => {} };
+    expect(
+      isWorkerRequest({ type: 'init', wasmBaseUrl: '/w', modelUrl: '/m', runningMode: 'IMAGE' }),
+    ).toBe(true);
+    expect(
+      isWorkerRequest({ type: 'init', wasmBaseUrl: '/w', modelUrl: '/m', runningMode: 'LIVE' }),
+    ).toBe(false);
+    expect(isWorkerRequest({ type: 'image', requestId: 0, image: bitmap })).toBe(true);
+    expect(isWorkerRequest({ type: 'image', requestId: -1, image: bitmap })).toBe(false);
+    expect(isWorkerRequest({ type: 'image', requestId: 0, image: { width: 1 } })).toBe(false);
+    expect(
+      transferablesOf({ type: 'image', requestId: 0, image: bitmap as unknown as ImageBitmap }),
+    ).toEqual([bitmap]);
+  });
+
+  it('accepts an image result with a landmark frame and transfers its buffer', () => {
+    const message = { type: 'imageResult', requestId: 2, landmarkFrame: faceFrame() } as const;
+    expect(isWorkerResponse(message)).toBe(true);
+    expect(isWorkerResponse({ ...message, requestId: 1.5 })).toBe(false);
+    expect(transferablesOf(message)).toEqual([message.landmarkFrame.landmarks.buffer]);
+  });
+
   it('rejects frames without a closable image or with a bad id', () => {
     expect(isWorkerRequest({ type: 'frame', frameId: 3, timestampMs: 100, frame: {} })).toBe(false);
     expect(
