@@ -17679,6 +17679,97 @@
         "delegate": "CPU forced in every condition",
         "problems": []
       }
+    },
+    "bundle-size": {
+      "measuredAt": "2026-11-25T21:41:18.659Z",
+      "commit": "10c47ec8e8a043bb7f994fc2e09d2047c0882bba",
+      "dirty": false,
+      "command": "node eval/perf/bundleBudget.mjs --write --label bundle-size",
+      "input": "frontend production build (npm run build) with VITE_API_URL unset; sizes of the files in dist, brotli quality 11 and gzip level 9",
+      "node": "v25.1.0",
+      "sizes": {
+        "mainJs": {
+          "files": [
+            "assets/index-BkspGann.js"
+          ],
+          "rawBytes": 1111774,
+          "gzipBytes": 304588,
+          "brotliBytes": 254680
+        },
+        "workerJs": {
+          "files": [
+            "assets/landmarker.worker-CYxCvvJs.js"
+          ],
+          "rawBytes": 159709,
+          "gzipBytes": 47332,
+          "brotliBytes": 40247
+        },
+        "css": {
+          "files": [
+            "assets/index-Cif3f7n-.css"
+          ],
+          "rawBytes": 9841,
+          "gzipBytes": 2697,
+          "brotliBytes": 2327
+        },
+        "wasm": {
+          "files": [
+            "mediapipe/tasks-vision/1.2.3/vision_wasm_module_internal.wasm"
+          ],
+          "rawBytes": 14665738,
+          "gzipBytes": 4143214,
+          "brotliBytes": 2891319
+        },
+        "wasmLoaderJs": {
+          "files": [
+            "mediapipe/tasks-vision/1.2.3/vision_wasm_module_internal.js"
+          ],
+          "rawBytes": 336662,
+          "gzipBytes": 81039,
+          "brotliBytes": 67153
+        },
+        "model": {
+          "files": [
+            "mediapipe/face_landmarker/float16/1/face_landmarker.task"
+          ],
+          "rawBytes": 3758596,
+          "gzipBytes": 3331700,
+          "brotliBytes": 3147397
+        },
+        "otherJs": {
+          "files": [],
+          "rawBytes": 0,
+          "gzipBytes": 0,
+          "brotliBytes": 0
+        }
+      },
+      "budgets": {
+        "mainJs": {
+          "maxRawBytes": 1223000,
+          "maxBrotliBytes": 280300
+        },
+        "workerJs": {
+          "maxRawBytes": 175700,
+          "maxBrotliBytes": 44300
+        },
+        "css": {
+          "maxRawBytes": 10900,
+          "maxBrotliBytes": 2600
+        },
+        "wasm": {
+          "maxRawBytes": 14665738
+        },
+        "wasmLoaderJs": {
+          "maxRawBytes": 336662
+        },
+        "model": {
+          "maxRawBytes": 3758596
+        },
+        "otherJs": {
+          "maxRawBytes": 0
+        }
+      },
+      "overBudget": []
     }
   }
 }
