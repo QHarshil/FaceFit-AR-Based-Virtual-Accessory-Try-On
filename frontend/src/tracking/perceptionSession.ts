@@ -96,6 +96,10 @@ export const startPerception = (
       paused = true;
       stopFrames?.();
       stopFrames = null;
+      // The camera is released while hidden, so no frame is left under the
+      // last pose. The machine is paused, so the reset is not reported.
+      lastFace = NO_FACE;
+      poseStream.reset();
     },
     resume() {
       if (!paused) return;
@@ -130,7 +134,8 @@ export const startPerception = (
     landmarker = deps.startLandmarker({
       assets: deps.assets,
       onResult: (frame) => {
-        if (!active) return;
+        // A result for a frame sent before a pause would draw over no video.
+        if (!active || paused) return;
         const poseStart = performance.now();
         poseStream.push(frame);
         probe({ stage: 'pose', start: poseStart, end: performance.now() });

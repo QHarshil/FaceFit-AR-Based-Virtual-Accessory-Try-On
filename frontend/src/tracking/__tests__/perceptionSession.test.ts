@@ -152,6 +152,13 @@ describe('startPerception', () => {
     expect(run.frameSources[0]?.stop).toHaveBeenCalled();
     run.video.dispatchEvent(new Event('playing'));
     expect(run.frameSources).toHaveLength(1);
+    // The camera is off while paused: no pose is drawn, and a late result is dropped.
+    expect(run.poseStream.poseForRender()).toBeNull();
+    run
+      .landmarker()
+      .options.onResult({ ...syntheticLandmarkFrame(POSE, intrinsics), timestampMs: 33 });
+    expect(run.poseStream.poseForRender()).toBeNull();
+    expect(run.callbacks.onFaceStatus).toHaveBeenCalledTimes(1);
 
     run.session.resume();
     expect(run.frameSources).toHaveLength(2);
