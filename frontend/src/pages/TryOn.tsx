@@ -55,7 +55,7 @@ function TryOnView({ productId }: { productId: number | null }) {
           <Link to="/" className="back-button">
             Back
           </Link>
-          <div className="product-info">
+          <div className="try-on-product">
             <h1>{product?.name ?? 'Virtual try-on'}</h1>
             <p>{product?.type ?? 'Glasses'}</p>
           </div>

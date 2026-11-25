@@ -93,7 +93,7 @@
   transform: translateY(-1px);
 }
 
-.product-info {
+.try-on-product {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -104,14 +104,14 @@
   pointer-events: auto;
 }
 
-.product-info h1 {
+.try-on-product h1 {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
   color: #f8fafc;
 }
 
-.product-info p {
+.try-on-product p {
   margin: 0;
   font-size: 12px;
   letter-spacing: 0.14em;
@@ -257,7 +257,7 @@
     align-items: flex-start;
   }
 
-  .product-info {
+  .try-on-product {
     padding: 12px 16px;
   }
 

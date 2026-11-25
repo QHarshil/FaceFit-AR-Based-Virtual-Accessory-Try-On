@@ -58,6 +58,7 @@ function ProductCard({ product }: ProductCardProps) {
         <p className="product-description">{product.description}</p>
       </div>
       <button
+        type="button"
         className="try-on-button"
         onClick={() => {
           void navigate(`/try-on/${product.id}`);

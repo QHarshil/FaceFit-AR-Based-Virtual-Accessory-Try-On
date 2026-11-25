@@ -12,12 +12,16 @@ interface ProductGridProps {
 
 function ProductGrid({ products, loading, error, onRetry }: ProductGridProps) {
   return (
-    <div className="products-grid">
+    <div className="products-grid" aria-busy={loading}>
+      <p className="visually-hidden" role="status">
+        {loading ? 'Loading frames' : error ? '' : `${products.length} frames`}
+      </p>
       {loading &&
         LOADING_PLACEHOLDERS.map((placeholder) => (
           <article
             key={`placeholder-${placeholder}`}
             className="product-card product-card--loading"
+            aria-hidden="true"
           >
             <div className="product-image-container">
               <div className="loading-skeleton image-skeleton" />
@@ -36,12 +40,12 @@ function ProductGrid({ products, loading, error, onRetry }: ProductGridProps) {
         products.map((product) => <ProductCard key={product.id} product={product} />)}
 
       {!loading && error && (
-        <article className="product-card product-card--error">
+        <article className="product-card product-card--error" role="alert">
           <div className="product-info">
             <h3 className="product-name">Catalogue unavailable</h3>
             <p className="product-description">{error}</p>
           </div>
-          <button className="try-on-button" onClick={onRetry}>
+          <button type="button" className="try-on-button" onClick={onRetry}>
             Retry
           </button>
         </article>

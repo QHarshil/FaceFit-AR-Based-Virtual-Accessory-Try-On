@@ -61,6 +61,29 @@ describe('Home', () => {
     renderHome();
 
     await waitFor(() => expect(screen.getByText('Catalogue unavailable')).toBeInTheDocument());
+    expect(screen.getByRole('alert')).toHaveTextContent('Check your connection');
     expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled();
+  });
+
+  it('retries the catalogue request without reloading the page', async () => {
+    getProducts.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(PRODUCTS);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderHome();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Aviator Glasses')).toBeInTheDocument();
+    expect(getProducts).toHaveBeenCalledTimes(2);
+  });
+
+  it('puts content in landmarks and announces the catalogue', async () => {
+    getProducts.mockResolvedValue(PRODUCTS);
+    renderHome();
+
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Select a Frame' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'System Capabilities' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading frames');
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('2 frames'));
   });
 });

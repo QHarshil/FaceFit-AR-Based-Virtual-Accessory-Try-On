@@ -47,7 +47,7 @@ function Home() {
       } catch (err) {
         if (!isMounted) return;
         console.error('Failed to load products:', err);
-        setError('We could not reach the product catalogue. Please retry in a moment.');
+        setError('Could not load the catalogue. Check your connection and try again.');
         sendTelemetry(telemetryEvents.catalogueFailed(apiFailureOf(err)));
       } finally {
         if (isMounted) {
@@ -89,6 +89,7 @@ function Home() {
         </p>
         <div className="hero-cta">
           <button
+            type="button"
             className="primary-action"
             onClick={() => handleNavigate(primaryProductId)}
             disabled={loading || !primaryProductId}
@@ -96,6 +97,7 @@ function Home() {
             Launch Try-On
           </button>
           <button
+            type="button"
             className="secondary-action"
             onClick={() => handleNavigate(secondaryProductId)}
             disabled={loading || !secondaryProductId}
@@ -105,47 +107,53 @@ function Home() {
         </div>
       </header>
 
-      <section className="products-section">
-        <h2 className="section-title">Select a Frame</h2>
-        <p className="section-subtitle">
-          Each frame is a normalized model with nominal dimensions in millimetres, seated on the
-          nose bridge by its anchor points.
-        </p>
-        <ErrorBoundary
-          surface="Catalogue"
-          fallback={(reset) => (
-            <div className="products-grid">
-              <article className="product-card product-card--error">
-                <div className="product-info">
-                  <h3 className="product-name">The catalogue could not be shown</h3>
-                </div>
-                <button className="try-on-button" onClick={reset}>
-                  Try again
-                </button>
-              </article>
-            </div>
-          )}
-        >
-          <ProductGrid
-            products={products}
-            loading={loading}
-            error={error}
-            onRetry={() => setAttempt((count) => count + 1)}
-          />
-        </ErrorBoundary>
-      </section>
+      <main>
+        <section className="products-section" aria-labelledby="catalogue-title">
+          <h2 id="catalogue-title" className="section-title">
+            Select a Frame
+          </h2>
+          <p className="section-subtitle">
+            Each frame is a normalized model with nominal dimensions in millimetres, seated on the
+            nose bridge by its anchor points.
+          </p>
+          <ErrorBoundary
+            surface="Catalogue"
+            fallback={(reset) => (
+              <div className="products-grid">
+                <article className="product-card product-card--error">
+                  <div className="product-info">
+                    <h3 className="product-name">The catalogue could not be shown</h3>
+                  </div>
+                  <button type="button" className="try-on-button" onClick={reset}>
+                    Try again
+                  </button>
+                </article>
+              </div>
+            )}
+          >
+            <ProductGrid
+              products={products}
+              loading={loading}
+              error={error}
+              onRetry={() => setAttempt((count) => count + 1)}
+            />
+          </ErrorBoundary>
+        </section>
 
-      <section className="capabilities-section">
-        <h2 className="section-title">System Capabilities</h2>
-        <div className="capabilities-grid">
-          {CAPABILITIES.map((item) => (
-            <div key={item.title} className="capability-card">
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+        <section className="capabilities-section" aria-labelledby="capabilities-title">
+          <h2 id="capabilities-title" className="section-title">
+            System Capabilities
+          </h2>
+          <div className="capabilities-grid">
+            {CAPABILITIES.map((item) => (
+              <div key={item.title} className="capability-card">
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
