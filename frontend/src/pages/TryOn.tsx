@@ -1,253 +1,98 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import ARTryOn from '../components/ARTryOn';
-import { PerceptionError } from '../perception/errors';
-import { hasFace } from '../perception/types';
 import { parseProductId } from '@facefit/contracts';
-import { ApiError, apiFailureOf, getProductById } from '../services/apiClient';
+import { useRef } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import ARTryOn from '../components/ARTryOn';
+import ErrorBoundary from '../components/ErrorBoundary';
+import StatusPanel from '../components/StatusPanel';
 import { sendTelemetry } from '../telemetry/client';
 import { telemetryEvents } from '../telemetry/events';
-import { RENDER_ERROR_MESSAGE, trackingErrorMessage } from '../tracking/errorMessages';
-import { cameraFailureOf, perceptionFailureOf } from '../tracking/failures';
-import { startFaceTracking } from '../tracking/faceTracking';
-import type { ARTryOnHandle, Product } from '../types';
-import { probe } from '../utils/probe';
+import { useTryOn } from '../tryon/useTryOn';
 import '../styles/TryOn.css';
 
-function TryOn() {
-  const { id } = useParams();
-  const navigate = useNavigate();
+function TryOnView({ productId }: { productId: number | null }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const arRef = useRef<ARTryOnHandle | null>(null);
-  const [faceDetected, setFaceDetected] = useState(false);
-  const [cameraReady, setCameraReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [productLoading, setProductLoading] = useState(true);
-  const faceStateRef = useRef<boolean | null>(null);
-
-  // Reset while rendering when the route id changes, so the effect below only
-  // starts the request.
-  const [requestedId, setRequestedId] = useState(id);
-  if (id !== requestedId) {
-    setRequestedId(id);
-    setProductLoading(true);
-    setError(null);
-  }
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const productId = parseProductId(id);
-    const fetchProduct = async () => {
-      try {
-        if (productId === null) throw new ApiError('not_found', 'Invalid product id');
-        const item = await getProductById(productId);
-        if (!isMounted) return;
-        setProduct(item);
-        sendTelemetry(telemetryEvents.productViewed(item.id));
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('Product load error:', err);
-        setProduct(null);
-        setError('Product not found. Please choose another frame.');
-        sendTelemetry(telemetryEvents.productLoadFailed(productId, apiFailureOf(err)));
-      } finally {
-        if (isMounted) {
-          setProductLoading(false);
-        }
-      }
-    };
-
-    void fetchProduct();
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
-
-  // Depends on `error` so the camera and worker stop once the error screen,
-  // which has no video element, replaces the try-on.
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!product || !video || error) {
-      return;
-    }
-
-    let isActive = true;
-    const productId = product.id;
-
-    const reportTrackingError = (err: unknown) => {
-      if (!isActive) return;
-      console.error('Tracking error:', err);
-      setError(trackingErrorMessage(err));
-      sendTelemetry(
-        err instanceof PerceptionError
-          ? telemetryEvents.trackingError(productId, perceptionFailureOf(err))
-          : telemetryEvents.cameraError(productId, cameraFailureOf(err)),
-      );
-    };
-
-    let tracking: ReturnType<typeof startFaceTracking>;
-    try {
-      tracking = startFaceTracking(video, {
-        onLandmarks: (frame) => {
-          setFaceDetected(hasFace(frame));
-          // Frames without a face go to the overlay too, so it hides.
-          if (arRef.current) {
-            const poseStart = performance.now();
-            arRef.current.updateModel(frame);
-            probe({ stage: 'pose', start: poseStart, end: performance.now() });
-          }
-        },
-        onFramePresented: (timestampMs) => {
-          arRef.current?.presentFrame(timestampMs);
-        },
-        onError: reportTrackingError,
-      });
-    } catch (err) {
-      reportTrackingError(err);
-      return;
-    }
-
-    tracking.started.then(() => {
-      if (!isActive) return;
-      setCameraReady(true);
-      sendTelemetry(telemetryEvents.cameraStarted(productId));
-    }, reportTrackingError);
-
-    return () => {
-      isActive = false;
-      tracking.stop();
-      setCameraReady(false);
-    };
-  }, [product, error]);
-
-  const reportRenderError = useCallback(
-    (err: unknown) => {
-      console.error('Render error:', err);
-      setError(RENDER_ERROR_MESSAGE);
-      if (product) sendTelemetry(telemetryEvents.renderError(product.id, 'webgl_unavailable'));
-    },
-    [product],
+  const { actor, poseStream, status, product, overlayAttempt, source } = useTryOn(
+    productId,
+    videoRef,
   );
 
-  useEffect(() => {
-    if (!cameraReady) return;
-    if (faceStateRef.current === faceDetected) return;
-    faceStateRef.current = faceDetected;
-    if (product) sendTelemetry(telemetryEvents.faceDetectedChanged(product.id, faceDetected));
-  }, [cameraReady, faceDetected, product]);
-
-  if (error) {
-    return (
-      <div className="try-on-container">
-        <div className="error-message">
-          <h2>{error}</h2>
-          <button
-            onClick={() => {
-              void navigate('/');
-            }}
-            className="back-button"
-          >
-            Back to catalogue
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product && !productLoading) {
-    return (
-      <div className="try-on-container">
-        <div className="error-message">
-          <h2>Product not found</h2>
-          <button
-            onClick={() => {
-              void navigate('/');
-            }}
-            className="back-button"
-          >
-            Back to catalogue
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="try-on-container">
-      <video ref={videoRef} className="video-feed" autoPlay playsInline muted />
+    <main className="try-on-container">
+      <video
+        ref={videoRef}
+        className={source === 'photo' ? 'video-feed video-feed--hidden' : 'video-feed'}
+        autoPlay
+        playsInline
+        muted
+        aria-hidden="true"
+      />
 
       {product && (
-        <ARTryOn
-          ref={arRef}
-          modelPath={product.modelPath}
-          anchors={product.anchors}
-          onError={reportRenderError}
-        />
+        // Keyed by the attempt, so a retry also clears a caught crash.
+        <ErrorBoundary
+          key={overlayAttempt}
+          surface="Overlay"
+          fallback={() => null}
+          onError={() => actor.send({ type: 'RENDER_CRASHED' })}
+        >
+          <ARTryOn
+            modelPath={product.modelPath}
+            anchors={product.anchors}
+            poseStream={poseStream}
+            onEvent={(event) => actor.send(event)}
+          />
+        </ErrorBoundary>
       )}
 
       <div className="ui-overlay">
-        <div className="top-bar">
-          <button
-            onClick={() => {
-              void navigate('/');
-            }}
-            className="back-button"
-          >
+        <header className="top-bar">
+          <Link to="/" className="back-button">
             Back
-          </button>
+          </Link>
           <div className="product-info">
-            {product ? (
-              <>
-                <h2>{product.name}</h2>
-                <p>{product.type}</p>
-              </>
-            ) : (
-              <>
-                <h2>Loading selection…</h2>
-                <p>Preparing frame</p>
-              </>
-            )}
+            <h1>{product?.name ?? 'Virtual try-on'}</h1>
+            <p>{product?.type ?? 'Glasses'}</p>
           </div>
           <div className="spacer" />
-        </div>
+        </header>
 
-        <div className="status-indicator">
-          {productLoading && (
-            <div className="status-message loading">
-              <div className="spinner" />
-              <span>Preparing product...</span>
-            </div>
-          )}
-
-          {!cameraReady && !productLoading && (
-            <div className="status-message loading">
-              <div className="spinner" />
-              <span>Initializing camera...</span>
-            </div>
-          )}
-
-          {cameraReady && !faceDetected && !error && !productLoading && (
-            <div className="status-message warning">
-              <span>Align your face with the camera.</span>
-            </div>
-          )}
-
-          {cameraReady && faceDetected && !productLoading && (
-            <div className="status-message success">
-              <span>Tracking active.</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="status-message error">
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
+        <StatusPanel
+          status={status}
+          onSend={(type) => actor.send({ type })}
+          onPhoto={(photo) => actor.send({ type: 'PHOTO_SELECTED', photo })}
+        />
       </div>
-    </div>
+    </main>
+  );
+}
+
+function TryOn() {
+  const { id } = useParams();
+  const productId = parseProductId(id);
+  return (
+    <ErrorBoundary
+      key={id}
+      surface="Try-on view"
+      onError={() => sendTelemetry(telemetryEvents.renderError(productId, 'render_crash'))}
+      fallback={(reset) => (
+        <main className="try-on-container">
+          <div className="error-message" role="alert">
+            <h1>The try-on stopped working</h1>
+            <div className="error-actions">
+              <button type="button" className="back-button" onClick={reset}>
+                Try again
+              </button>
+              <Link to="/" className="back-button">
+                Back to catalogue
+              </Link>
+            </div>
+          </div>
+        </main>
+      )}
+    >
+      {/* A new product starts a new statechart, camera and worker. */}
+      <TryOnView key={id} productId={productId} />
+    </ErrorBoundary>
   );
 }
 

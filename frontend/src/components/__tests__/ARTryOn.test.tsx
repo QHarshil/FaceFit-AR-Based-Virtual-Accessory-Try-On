@@ -7,7 +7,7 @@ import {
   type HeadPose,
 } from '@facefit/cv';
 import { act, render } from '@testing-library/react';
-import { createRef, StrictMode } from 'react';
+import { StrictMode } from 'react';
 import * as THREE from 'three';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { glassesTransform, transformPoint } from '../../geometry/glassesPlacement';
@@ -20,17 +20,22 @@ import {
   seededGaussian,
   syntheticLandmarkFrame,
 } from '../../test/syntheticFace';
-import type { ARTryOnHandle } from '../../types';
+import { createPoseStream } from '../../tracking/poseStream';
 
 const renderedScenes: THREE.Scene[] = [];
 const renderedCameras: THREE.Camera[] = [];
 const canvasSizes: [number, number, boolean | undefined][] = [];
 const drawingBuffers: [number, number][] = [];
 const loadCallbacks: ((gltf: { scene: THREE.Object3D }) => void)[] = [];
+const errorCallbacks: ((error: unknown) => void)[] = [];
+const gpu = vi.hoisted(() => ({ webgl: true, renderThrows: false }));
 
 vi.mock('three', async (importOriginal) => {
   const actual = await importOriginal<typeof import('three')>();
   class FakeRenderer {
+    constructor() {
+      if (!gpu.webgl) throw new Error('Error creating WebGL context.');
+    }
     domElement = document.createElement('canvas');
     pixelRatio = 1;
     setPixelRatio(ratio: number) {
@@ -42,6 +47,7 @@ vi.mock('three', async (importOriginal) => {
     }
     setClearColor() {}
     render(scene: THREE.Scene, camera: THREE.Camera) {
+      if (gpu.renderThrows) throw new Error('GL_INVALID_OPERATION');
       renderedScenes.push(scene);
       renderedCameras.push(camera);
     }
@@ -54,13 +60,20 @@ vi.mock('three', async (importOriginal) => {
 vi.mock('three/addons/loaders/GLTFLoader.js', () => ({
   GLTFLoader: class {
     setMeshoptDecoder() {}
-    load(_path: string, onLoad: (gltf: { scene: THREE.Object3D }) => void) {
+    load(
+      _path: string,
+      onLoad: (gltf: { scene: THREE.Object3D }) => void,
+      _onProgress: unknown,
+      onError: (error: unknown) => void,
+    ) {
       loadCallbacks.push(onLoad);
+      errorCallbacks.push(onError);
     }
   },
 }));
 
 const { default: ARTryOn } = await import('../ARTryOn');
+type OverlayEvent = import('../ARTryOn').OverlayEvent;
 
 const lightsIn = (scene: THREE.Scene) =>
   scene.children.filter((child) => child instanceof THREE.Light);
@@ -80,19 +93,19 @@ const NO_FACE: LandmarkFrame = {
   trackId: null,
 };
 
-/** Mounts the overlay, loads a model, and returns the handle and the glasses group. */
+/** Mounts the overlay, loads a model, and returns its pose stream and the glasses group. */
 const mountWithModel = () => {
-  const handle = createRef<ARTryOnHandle>();
+  const stream = createPoseStream();
   const view = render(
     <StrictMode>
-      <ARTryOn ref={handle} modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} />
+      <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} poseStream={stream} />
     </StrictMode>,
   );
   const model = new THREE.Group();
   act(() => loadCallbacks[loadCallbacks.length - 1]?.({ scene: model }));
   const glasses = model.parent;
-  if (!glasses || !handle.current) throw new Error('model did not load');
-  return { view, handle: handle.current, glasses };
+  if (!glasses) throw new Error('model did not load');
+  return { view, stream, glasses };
 };
 
 describe('ARTryOn under StrictMode', () => {
@@ -109,7 +122,11 @@ describe('ARTryOn under StrictMode', () => {
   it('keeps one ambient and one directional light in the scene that renders', () => {
     const { unmount } = render(
       <StrictMode>
-        <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} />
+        <ARTryOn
+          modelPath="/models/rectangular-acetate.glb"
+          anchors={ANCHORS}
+          poseStream={createPoseStream()}
+        />
       </StrictMode>,
     );
 
@@ -124,7 +141,11 @@ describe('ARTryOn under StrictMode', () => {
   it('mounts one canvas and removes it on unmount', () => {
     const { container, unmount } = render(
       <StrictMode>
-        <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} />
+        <ARTryOn
+          modelPath="/models/rectangular-acetate.glb"
+          anchors={ANCHORS}
+          poseStream={createPoseStream()}
+        />
       </StrictMode>,
     );
     expect(container.querySelectorAll('canvas')).toHaveLength(1);
@@ -135,7 +156,11 @@ describe('ARTryOn under StrictMode', () => {
   it('ignores a model that finishes loading after cleanup', () => {
     render(
       <StrictMode>
-        <ARTryOn modelPath="/models/rectangular-acetate.glb" anchors={ANCHORS} />
+        <ARTryOn
+          modelPath="/models/rectangular-acetate.glb"
+          anchors={ANCHORS}
+          poseStream={createPoseStream()}
+        />
       </StrictMode>,
     );
     expect(loadCallbacks).toHaveLength(2);
@@ -166,8 +191,8 @@ describe('ARTryOn overlay gate', () => {
   });
 
   it('shows the glasses for a trusted pose and renders at the video size with its intrinsics', () => {
-    const { handle, glasses, view } = mountWithModel();
-    handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
+    const { stream, glasses, view } = mountWithModel();
+    stream.push(syntheticLandmarkFrame(POSE, intrinsics));
 
     expect(glasses.visible).toBe(true);
     expect(canvasSizes[canvasSizes.length - 1]).toEqual([1280, 720, false]);
@@ -180,27 +205,27 @@ describe('ARTryOn overlay gate', () => {
   });
 
   it('hides the glasses when the face is lost', () => {
-    const { handle, glasses, view } = mountWithModel();
-    handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
+    const { stream, glasses, view } = mountWithModel();
+    stream.push(syntheticLandmarkFrame(POSE, intrinsics));
     expect(glasses.visible).toBe(true);
 
-    handle.updateModel(NO_FACE);
+    stream.push(NO_FACE);
     expect(glasses.visible).toBe(false);
     view.unmount();
   });
 
   it('hides the glasses when the reprojection gate closes and shows them when it reopens', () => {
-    const { handle, glasses, view } = mountWithModel();
-    handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
+    const { stream, glasses, view } = mountWithModel();
+    stream.push(syntheticLandmarkFrame(POSE, intrinsics));
     expect(glasses.visible).toBe(true);
 
     // 20 px of landmark noise puts the reprojection RMS far past the gate.
-    handle.updateModel(
+    stream.push(
       syntheticLandmarkFrame(POSE, intrinsics, { sigmaPx: 20, gaussian: seededGaussian(3) }),
     );
     expect(glasses.visible).toBe(false);
 
-    handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
+    stream.push(syntheticLandmarkFrame(POSE, intrinsics));
     expect(glasses.visible).toBe(true);
     view.unmount();
   });
@@ -243,12 +268,12 @@ describe('ARTryOn render loop', () => {
   });
 
   it('draws the filtered pose, predicted forward once a newer frame is on screen', () => {
-    const { handle, glasses, view } = mountWithModel();
-    for (let k = 0; k < 30; k++) handle.updateModel(frameAt(k));
+    const { stream, glasses, view } = mountWithModel();
+    for (let k = 0; k < 30; k++) stream.push(frameAt(k));
     renderFrame();
     const atLastPose = glasses.position.x;
 
-    handle.presentFrame(30 * FRAME_MS);
+    stream.present(30 * FRAME_MS);
     renderFrame();
 
     expect(glasses.visible).toBe(true);
@@ -277,24 +302,24 @@ describe('ARTryOn render loop', () => {
   };
 
   it('draws a new tracked face at its own pose on the first render after the change', () => {
-    const { handle, glasses, view } = mountWithModel();
+    const { stream, glasses, view } = mountWithModel();
     // The user turned 48 degrees; a bystander faces the camera 260 mm to the side.
     const user: HeadPose = { rotation: rotationFromDegrees(0, 48, 0), translationMm: [0, 0, 600] };
     const bystander: HeadPose = { rotation: IDENTITY3, translationMm: [260, 0, 700] };
     for (let k = 0; k < 30; k++) {
-      handle.updateModel({
+      stream.push({
         ...syntheticLandmarkFrame(user, intrinsics),
         timestampMs: k * FRAME_MS,
       });
     }
     renderFrame();
 
-    handle.updateModel({
+    stream.push({
       ...syntheticLandmarkFrame(bystander, intrinsics),
       timestampMs: 30 * FRAME_MS,
       trackId: 2,
     });
-    handle.presentFrame(31 * FRAME_MS);
+    stream.present(31 * FRAME_MS);
     renderFrame();
 
     const expected = anchorPixelsAt(bystander);
@@ -306,10 +331,10 @@ describe('ARTryOn render loop', () => {
   });
 
   it('places the glasses for a worker slower than the gap the filter survives', () => {
-    const { handle, glasses, view } = mountWithModel();
-    handle.updateModel(frameAt(0));
+    const { stream, glasses, view } = mountWithModel();
+    stream.push(frameAt(0));
     // The next frame's pose arrives after it, so the frame on screen is always older than the gap.
-    handle.presentFrame(DEFAULT_MAX_GAP_MS + 100);
+    stream.present(DEFAULT_MAX_GAP_MS + 100);
     renderFrame();
 
     const expected = anchorPixelsAt({ rotation: POSE.rotation, translationMm: [20, -10, 600] });
@@ -322,30 +347,30 @@ describe('ARTryOn render loop', () => {
   });
 
   it('hides the glasses once the last pose is past the staleness limit', () => {
-    const { handle, glasses, view } = mountWithModel();
-    handle.updateModel(frameAt(0));
-    handle.presentFrame(DEFAULT_MAX_STALE_MS);
+    const { stream, glasses, view } = mountWithModel();
+    stream.push(frameAt(0));
+    stream.present(DEFAULT_MAX_STALE_MS);
     renderFrame();
     expect(glasses.visible).toBe(true);
 
-    handle.presentFrame(DEFAULT_MAX_STALE_MS + 1);
+    stream.present(DEFAULT_MAX_STALE_MS + 1);
     renderFrame();
     expect(glasses.visible).toBe(false);
     // The next trusted pose shows them again.
-    handle.updateModel(frameAt(40));
+    stream.push(frameAt(40));
     renderFrame();
     expect(glasses.visible).toBe(true);
     view.unmount();
   });
 
   it('does not move hidden glasses', () => {
-    const { handle, glasses, view } = mountWithModel();
-    for (let k = 0; k < 30; k++) handle.updateModel(frameAt(k));
+    const { stream, glasses, view } = mountWithModel();
+    for (let k = 0; k < 30; k++) stream.push(frameAt(k));
     renderFrame();
     const shownAt = glasses.position.x;
 
-    handle.updateModel(NO_FACE);
-    handle.presentFrame(30 * FRAME_MS);
+    stream.push(NO_FACE);
+    stream.present(30 * FRAME_MS);
     renderFrame();
 
     expect(glasses.visible).toBe(false);
@@ -373,8 +398,8 @@ describe('ARTryOn drawing buffer', () => {
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(displayWidth);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(displayHeight);
     vi.stubGlobal('devicePixelRatio', devicePixelRatio);
-    const { handle, view } = mountWithModel();
-    handle.updateModel(syntheticLandmarkFrame(POSE, intrinsics));
+    const { stream, view } = mountWithModel();
+    stream.push(syntheticLandmarkFrame(POSE, intrinsics));
     const camera = renderedCameras[renderedCameras.length - 1] as THREE.Camera;
     const anchorPixel = eyeToVideoPixel(
       camera,
@@ -406,5 +431,74 @@ describe('ARTryOn drawing buffer', () => {
       expect(other.projection).toEqual(small.projection);
       expect(other.anchorPixel).toEqual(small.anchorPixel);
     }
+  });
+});
+
+describe('ARTryOn events for the try-on statechart', () => {
+  const mount = () => {
+    const onEvent = vi.fn<(event: OverlayEvent) => void>();
+    const view = render(
+      <ARTryOn
+        modelPath="/models/rectangular-acetate.glb"
+        anchors={ANCHORS}
+        poseStream={createPoseStream()}
+        onEvent={onEvent}
+      />,
+    );
+    return { view, onEvent };
+  };
+
+  beforeEach(() => {
+    loadCallbacks.length = 0;
+    errorCallbacks.length = 0;
+    gpu.webgl = true;
+    gpu.renderThrows = false;
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('reports a loaded model and a failed one', () => {
+    const { onEvent } = mount();
+    act(() => loadCallbacks.at(-1)?.({ scene: new THREE.Group() }));
+    expect(onEvent).toHaveBeenLastCalledWith({ type: 'MODEL_LOADED' });
+
+    const second = mount();
+    act(() => errorCallbacks.at(-1)?.(new Error('404')));
+    expect(second.onEvent).toHaveBeenLastCalledWith({ type: 'MODEL_FAILED' });
+  });
+
+  it('reports WebGL as unavailable when no context can be created', () => {
+    gpu.webgl = false;
+    const { onEvent, view } = mount();
+    expect(onEvent).toHaveBeenCalledWith({ type: 'WEBGL_UNAVAILABLE' });
+    expect(view.container.querySelector('canvas')).toBeNull();
+  });
+
+  it('reports a lost and a restored WebGL context', () => {
+    const { onEvent, view } = mount();
+    const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
+    canvas.dispatchEvent(new Event('webglcontextlost'));
+    expect(onEvent).toHaveBeenLastCalledWith({ type: 'CONTEXT_LOST' });
+    canvas.dispatchEvent(new Event('webglcontextrestored'));
+    expect(onEvent).toHaveBeenLastCalledWith({ type: 'CONTEXT_RESTORED' });
+  });
+
+  it('stops the render loop and reports a render that throws', () => {
+    gpu.renderThrows = true;
+    const { onEvent } = mount();
+    expect(onEvent).toHaveBeenCalledWith({ type: 'RENDER_CRASHED' });
+  });
+
+  it('ignores context events after unmount', () => {
+    const { onEvent, view } = mount();
+    const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
+    view.unmount();
+    canvas.dispatchEvent(new Event('webglcontextlost'));
+    expect(onEvent).not.toHaveBeenCalledWith({ type: 'CONTEXT_LOST' });
   });
 });

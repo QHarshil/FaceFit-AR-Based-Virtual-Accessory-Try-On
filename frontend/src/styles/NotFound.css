@@ -1,0 +1,31 @@
+.not-found {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #0f172a;
+}
+
+.not-found h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.not-found p {
+  margin: 0;
+  color: #334155;
+}
+
+.not-found__link {
+  margin-top: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}

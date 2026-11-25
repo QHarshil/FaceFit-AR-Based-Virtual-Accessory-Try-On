@@ -16,4 +16,14 @@ describe('App', () => {
 
     expect(await screen.findByText('Aviator Glasses')).toBeInTheDocument();
   });
+
+  it('shows a not-found page with a way back for an unknown route', async () => {
+    window.history.pushState({}, '', '/no-such-page');
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    expect(screen.getByRole('main')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to catalogue' })).toHaveAttribute('href', '/');
+    window.history.pushState({}, '', '/');
+  });
 });

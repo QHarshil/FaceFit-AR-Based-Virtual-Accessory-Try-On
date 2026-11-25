@@ -5,8 +5,14 @@ const CONSTRAINTS: MediaStreamConstraints = {
   video: { facingMode: 'user', width: 1280, height: 720 },
 };
 
-/** Attaches the user camera to `video` and resolves with a function that releases it. */
-export const startCamera = async (video: HTMLVideoElement): Promise<() => void> => {
+export interface CameraHandle {
+  /** The video track, for pausing and for noticing when the device goes away. */
+  track: MediaStreamTrack | null;
+  release: () => void;
+}
+
+/** Attaches the user camera to `video` and resolves once it plays. */
+export const startCamera = async (video: HTMLVideoElement): Promise<CameraHandle> => {
   if (typeof navigator.mediaDevices?.getUserMedia !== 'function') {
     throw new DOMException('Camera access is not available on this page', 'NotSupportedError');
   }
@@ -24,5 +30,5 @@ export const startCamera = async (video: HTMLVideoElement): Promise<() => void> 
     release();
     throw error;
   }
-  return release;
+  return { track: stream.getVideoTracks()[0] ?? null, release };
 };
