@@ -1,4 +1,6 @@
 import {
+  DEFAULT_MAX_GAP_MS,
+  DEFAULT_MAX_STALE_MS,
   estimateIntrinsics,
   IDENTITY3,
   projectionMatrixFromIntrinsics,
@@ -300,6 +302,39 @@ describe('ARTryOn render loop', () => {
       const [eu, ev] = expected[i]!;
       expect(Math.hypot(u - eu, v - ev)).toBeLessThan(1);
     });
+    view.unmount();
+  });
+
+  it('places the glasses for a worker slower than the gap the filter survives', () => {
+    const { handle, glasses, view } = mountWithModel();
+    handle.updateModel(frameAt(0));
+    // The next frame's pose arrives after it, so the frame on screen is always older than the gap.
+    handle.presentFrame(DEFAULT_MAX_GAP_MS + 100);
+    renderFrame();
+
+    const expected = anchorPixelsAt({ rotation: POSE.rotation, translationMm: [20, -10, 600] });
+    expect(glasses.visible).toBe(true);
+    drawnAnchorPixels(glasses).forEach(([u, v], i) => {
+      const [eu, ev] = expected[i]!;
+      expect(Math.hypot(u - eu, v - ev)).toBeLessThan(1);
+    });
+    view.unmount();
+  });
+
+  it('hides the glasses once the last pose is past the staleness limit', () => {
+    const { handle, glasses, view } = mountWithModel();
+    handle.updateModel(frameAt(0));
+    handle.presentFrame(DEFAULT_MAX_STALE_MS);
+    renderFrame();
+    expect(glasses.visible).toBe(true);
+
+    handle.presentFrame(DEFAULT_MAX_STALE_MS + 1);
+    renderFrame();
+    expect(glasses.visible).toBe(false);
+    // The next trusted pose shows them again.
+    handle.updateModel(frameAt(40));
+    renderFrame();
+    expect(glasses.visible).toBe(true);
     view.unmount();
   });
 

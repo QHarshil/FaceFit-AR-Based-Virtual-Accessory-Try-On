@@ -3,11 +3,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   DEFAULT_MAX_GAP_MS,
+  DEFAULT_MAX_PREDICTION_MS,
+  DEFAULT_MAX_STALE_MS,
   mat3Multiply,
   rotationMatrixFromVector,
   type HeadPose,
 } from '@facefit/cv';
 import { describe, expect, it } from 'vitest';
+import { createFrameScheduler } from '../../perception/frameScheduler';
 import { NUM_FACES } from '../../perception/landmarkerService';
 import { rotationFromDegrees, seededGaussian } from '../../test/syntheticFace';
 import {
@@ -63,16 +66,85 @@ describe('createOverlayPose', () => {
   );
 
   it.each(['one-euro', 'kalman'] as const)(
-    '%s: draws nothing once the newest frame is past the gap the filter survives',
+    '%s: holds the pose a stalled worker left, then draws nothing past the staleness limit',
     (setting) => {
       const overlay = createOverlayPose(setting);
       for (let k = 0; k < 30; k++) overlay.update(at(3 * k), k * FRAME_MS);
       const last = 29 * FRAME_MS;
-      overlay.present(last + DEFAULT_MAX_GAP_MS);
-      expect(overlay.poseForRender()).not.toBeNull();
+      overlay.present(last + DEFAULT_MAX_PREDICTION_MS);
+      const held = overlay.poseForRender()!.pose;
+      overlay.present(last + DEFAULT_MAX_STALE_MS);
+      expect(overlay.poseForRender()?.pose).toEqual(held);
       // A tab back from hidden: the frame on screen is far past the last pose.
-      overlay.present(last + DEFAULT_MAX_GAP_MS + 1);
+      overlay.present(last + DEFAULT_MAX_STALE_MS + 1);
       expect(overlay.poseForRender()).toBeNull();
+    },
+  );
+
+  /**
+   * Camera frames every FRAME_MS, renders at 60 Hz, and a worker taking
+   * `inferenceMs` per frame behind the app's frame scheduler. Returns what
+   * each render after the first result drew, the last filtered pose then and
+   * its age.
+   */
+  const withWorker = (setting: 'one-euro' | 'kalman', inferenceMs: number) => {
+    const overlay = createOverlayPose(setting);
+    let inFlight: number | null = null;
+    let doneAt = Number.POSITIVE_INFINITY;
+    let now = 0;
+    const scheduler = createFrameScheduler<number>({
+      send: (captureMs) => {
+        inFlight = captureMs;
+        doneAt = now + inferenceMs;
+      },
+      release: () => {},
+    });
+    let last: { pose: HeadPose; captureMs: number } | null = null;
+    const renders: { drawn: HeadPose | null; last: HeadPose; ageMs: number }[] = [];
+    let nextCapture = 0;
+    let nextRender = 0.5;
+    while (now < 10_000) {
+      now = Math.min(nextCapture, nextRender, doneAt);
+      if (now === doneAt && inFlight !== null) {
+        last = { pose: overlay.update(at(inFlight / 10), inFlight), captureMs: inFlight };
+        inFlight = null;
+        doneAt = Number.POSITIVE_INFINITY;
+        scheduler.complete();
+      } else if (now === nextCapture) {
+        overlay.present(now);
+        scheduler.offer(now);
+        nextCapture += FRAME_MS;
+      } else {
+        if (last) {
+          const drawn = overlay.poseForRender()?.pose ?? null;
+          renders.push({ drawn, last: last.pose, ageMs: now - last.captureMs });
+        }
+        nextRender += 1000 / 60;
+      }
+    }
+    return renders;
+  };
+
+  it.each(['one-euro', 'kalman'] as const)(
+    '%s: keeps a worker slower than the gap the filter survives on screen at its last pose',
+    (setting) => {
+      const renders = withWorker(setting, DEFAULT_MAX_GAP_MS + 100);
+      expect(renders.length).toBeGreaterThan(500);
+      for (const { drawn, last } of renders) expect(drawn).toEqual(last);
+    },
+  );
+
+  // A render sees the last pose up to about two inference times old: the
+  // waiting frame was captured up to one inference time before its turn.
+  it.each(['one-euro', 'kalman'] as const)(
+    '%s: shows a 450 ms worker on every render and a 600 ms worker only part of the time',
+    (setting) => {
+      const at450 = withWorker(setting, 450);
+      expect(Math.max(...at450.map((r) => r.ageMs))).toBeLessThan(2 * 450 + FRAME_MS);
+      expect(at450.every((r) => r.drawn !== null)).toBe(true);
+      const at600 = withWorker(setting, 600);
+      expect(at600.some((r) => r.drawn === null)).toBe(true);
+      expect(at600.some((r) => r.drawn !== null)).toBe(true);
     },
   );
 

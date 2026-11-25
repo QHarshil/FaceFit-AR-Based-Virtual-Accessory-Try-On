@@ -13,9 +13,9 @@ export interface PoseFilter {
   update(pose: HeadPose, timestampMs: number): HeadPose;
   /**
    * The filtered pose extrapolated at constant velocity to `timestampMs`,
-   * clamped to the range from the last update to `maxPredictionMs` after it.
-   * Null before the first update, after a reset, and more than `maxGapMs`
-   * after the last update, where the next update restarts the filter.
+   * clamped to the range from the last update to `maxPredictionMs` after it,
+   * so past that horizon the pose holds. Null before the first update, after
+   * a reset, and more than `maxStaleMs` after the last update.
    */
   predict(timestampMs: number): HeadPose | null;
   /** Forgets the state, for example when the face is lost. */
@@ -30,6 +30,8 @@ export interface PoseFilterTiming {
   readonly maxGapMs?: number;
   /** Furthest `predict` extrapolates past the last update. */
   readonly maxPredictionMs?: number;
+  /** Longest time after the last update that `predict` returns a pose. */
+  readonly maxStaleMs?: number;
 }
 
 /**
@@ -46,18 +48,30 @@ export const DEFAULT_MAX_GAP_MS = 200;
  */
 export const DEFAULT_MAX_PREDICTION_MS = 100;
 
+/**
+ * One second. A worker slower than `maxGapMs` restarts the filter on every
+ * pose, so the held pose is the last one solved, and with one frame waiting
+ * behind the one in flight a render can see it up to about two inference
+ * times old. This keeps a worker of up to about 450 ms per frame on screen and
+ * hides a pose old enough that the head has likely moved away from it, as
+ * after a hidden tab or a stalled worker.
+ */
+export const DEFAULT_MAX_STALE_MS = 1000;
+
 export interface ResolvedTiming {
   readonly maxGapMs: number;
   readonly maxPredictionMs: number;
+  readonly maxStaleMs: number;
 }
 
 export function resolveTiming(timing: PoseFilterTiming): ResolvedTiming {
   const maxGapMs = timing.maxGapMs ?? DEFAULT_MAX_GAP_MS;
   const maxPredictionMs = timing.maxPredictionMs ?? DEFAULT_MAX_PREDICTION_MS;
-  if (!(maxGapMs > 0) || !(maxPredictionMs >= 0)) {
-    throw new RangeError('maxGapMs must be positive and maxPredictionMs non-negative');
+  const maxStaleMs = timing.maxStaleMs ?? DEFAULT_MAX_STALE_MS;
+  if (!(maxGapMs > 0) || !(maxPredictionMs >= 0) || !(maxStaleMs >= 0)) {
+    throw new RangeError('maxGapMs must be positive, maxPredictionMs and maxStaleMs non-negative');
   }
-  return { maxGapMs, maxPredictionMs };
+  return { maxGapMs, maxPredictionMs, maxStaleMs };
 }
 
 /** Whether an update at `timestampMs` continues the sequence that last updated at `lastMs`. */
@@ -67,14 +81,16 @@ export function continuesSequence(lastMs: number | null, timestampMs: number, ma
 
 /**
  * Prediction horizon in seconds, clamped to [0, maxPredictionMs]; 0 for a NaN
- * time. Null more than maxGapMs after the last update: the velocity is stale
- * there, and extrapolating it would move the overlay after a hidden tab or a
- * stalled worker.
+ * time. The clamp holds the pose a render drew at the cap, so a stalled
+ * worker does not send the overlay along the last velocity, and a worker
+ * slower than maxGapMs, whose updates each restart the filter at zero
+ * velocity, keeps its last pose on screen. Null more than maxStaleMs after
+ * the last update.
  */
 export function horizonSeconds(lastMs: number, timestampMs: number, timing: ResolvedTiming): number | null {
   const aheadMs = timestampMs - lastMs;
   if (Number.isNaN(aheadMs)) return 0;
-  if (aheadMs > timing.maxGapMs) return null;
+  if (aheadMs > timing.maxStaleMs) return null;
   return Math.min(Math.max(aheadMs, 0), timing.maxPredictionMs) / 1000;
 }
 

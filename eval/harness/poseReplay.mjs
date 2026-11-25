@@ -84,7 +84,7 @@ export const replayRun = (run, createFilter) => {
       if (measured) frames.push({ t: e.t, frameTimestampMs: e.frameTimestampMs, ...draw(pose) });
     } else if (e.stage === 'renderedPose' && latest && measured) {
       const pose = filter ? filter.predict(Math.max(presentedMs, latest.timestampMs)) : latest.pose;
-      // Past the filter's gap the app places nothing and records no render.
+      // Past the filter's staleness limit the app hides the overlay and records no render.
       if (pose) renders.push({ t: e.t, ...draw(pose) });
     }
   }

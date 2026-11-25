@@ -216,7 +216,8 @@ interface PlacedGlasses {
 
 /**
  * Places the glasses at the pose this render should draw. Returns null when
- * the glasses are hidden or there is no pose.
+ * the glasses are hidden or there is no pose, which hides them until the next
+ * trusted pose.
  */
 const placeGlasses = (
   stage: Stage,
@@ -226,7 +227,10 @@ const placeGlasses = (
   const glasses = stage.glasses;
   if (!glasses?.visible) return null;
   const renderPose = overlayPose.poseForRender();
-  if (!renderPose) return null;
+  if (!renderPose) {
+    glasses.visible = false;
+    return null;
+  }
   const transform = glassesTransform(renderPose.pose, anchors.bridgeCenter);
   applyTransform(glasses, transform);
   return { transform, timestampMs: renderPose.timestampMs };

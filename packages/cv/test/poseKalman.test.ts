@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateIntrinsics } from '../src/camera.ts';
 import { RIGID_FACE_LANDMARKS } from '../src/faceModel.ts';
-import { DEFAULT_MAX_GAP_MS } from '../src/filter/poseFilter.ts';
+import { DEFAULT_MAX_GAP_MS, DEFAULT_MAX_PREDICTION_MS, DEFAULT_MAX_STALE_MS } from '../src/filter/poseFilter.ts';
 import { leftJacobian, poseKalman, rotationErrorTransition, type PoseKalmanOptions } from '../src/filter/poseKalman.ts';
 import { mat3MulVec3, type Vec3 } from '../src/linalg.ts';
 import type { HeadPose } from '../src/pnp.ts';
@@ -304,14 +304,29 @@ describe('poseKalman state handling', () => {
     expect(filter.predict(last + 50)!.translationMm[0]).toBeCloseTo(posterior + 90 * 0.05, 6);
   });
 
-  it('stops predicting past maxGapMs after the last update', () => {
+  it('holds the pose at the horizon cap past maxGapMs and stops past maxStaleMs', () => {
     const filter = poseKalman(OPTIONS);
     for (let k = 0; k < 30; k++) filter.update(at(k * 3), k * DT_MS);
     const last = 29 * DT_MS;
-    expect(filter.predict(last + DEFAULT_MAX_GAP_MS)).not.toBeNull();
-    expect(filter.predict(last + DEFAULT_MAX_GAP_MS + 1)).toBeNull();
-    expect(filter.predict(last + 300_000)).toBeNull();
+    const capped = filter.predict(last + DEFAULT_MAX_PREDICTION_MS)!;
+    for (const aheadMs of [DEFAULT_MAX_GAP_MS + 1, 500, DEFAULT_MAX_STALE_MS]) {
+      expect(filter.predict(last + aheadMs)).toEqual(capped);
+    }
+    expect(filter.predict(last + DEFAULT_MAX_STALE_MS + 1)).toBeNull();
     expect(filter.predict(Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
+  // Updates further apart than maxGapMs each restart the filter at zero
+  // velocity, so a worker that slow keeps its last pose on screen.
+  it('keeps the last pose for updates further apart than maxGapMs', () => {
+    const filter = poseKalman(OPTIONS);
+    const gapMs = DEFAULT_MAX_GAP_MS + 100;
+    let filtered = filter.update(at(0), 0);
+    for (let k = 1; k < 5; k++) {
+      filtered = filter.update(at(30 * k), k * gapMs);
+      expect(filtered.translationMm[0]).toBe(30 * k);
+      expect(filter.predict((k + 1) * gapMs)).toEqual(filtered);
+    }
   });
 
   it('rejects non-finite input and invalid parameters', () => {

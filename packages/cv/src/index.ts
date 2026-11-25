@@ -9,6 +9,7 @@ export {
 export {
   DEFAULT_MAX_GAP_MS,
   DEFAULT_MAX_PREDICTION_MS,
+  DEFAULT_MAX_STALE_MS,
   type PoseFilter,
   type PoseFilterTiming,
 } from './filter/poseFilter.ts';
