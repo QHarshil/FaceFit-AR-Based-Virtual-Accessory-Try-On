@@ -35,12 +35,16 @@ Raw runs, warmup events included, go to `.cache/runs/<label>/`. The pose filter 
 
 ## Browser tests
 
-`e2e/tryOn.e2e.mjs` runs the try-on's failure modes in headless Chrome with the stand-in portrait as the camera: tracking with axe on the catalogue and try-on, a product request that fails on the network, an unknown product, a missing face model, a lost WebGL context, a hidden tab, and a blocked camera with the photo fallback. The API is answered by route handlers; the production build runs under `vite preview` with its CSP. Headless Chrome reports every tab as visible, so the hidden-tab test sets `document.visibilityState` and fires `visibilitychange`.
+`e2e/chromium.spec.mjs` runs the try-on's failure modes in Chromium with the stand-in portrait as the camera: tracking with axe on the catalogue and try-on, a product request that fails on the network, an unknown product, a missing face model, a lost WebGL context, a hidden tab, and a blocked camera with the photo fallback. The API is answered by route handlers; the production build runs under `vite preview` with its CSP. Headless Chromium reports every tab as visible, so the hidden-tab test sets `document.visibilityState` and fires `visibilitychange`. Every test checks that no request left localhost and the CSP reported nothing.
+
+It runs on `@playwright/test` (`playwright.config.mjs`); CI uploads the HTML report with traces and screenshots when a test fails.
 
 ```sh
 node fixtures/build.mjs --source standin     # still.y4m and portrait.jpg in .cache/clips/standin
-npm run e2e                                  # FACEFIT_STANDIN_DIR=<dir> reads them from another checkout
+npm run e2e -- --project chromium            # FACEFIT_STANDIN_DIR=<dir> reads the clips from another checkout
 ```
+
+`FACEFIT_CHROME=chrome` runs an installed Chrome instead of Playwright's Chromium.
 
 ## Conditions
 
