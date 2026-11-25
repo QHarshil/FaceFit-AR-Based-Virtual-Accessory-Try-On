@@ -5,7 +5,7 @@ import { startCamera, type CameraHandle } from './camera';
 import { cameraFailureOf, type CameraFailure } from './failures';
 
 export interface CameraSessionCallbacks {
-  /** The camera is streaming: first start, or again after a resume. */
+  /** The camera is streaming: on the first start, and each time the page is shown again. */
   onReady: () => void;
   onFailed: (failure: CameraFailure) => void;
   /** The track ended: unplugged, revoked, or stopped by the OS. */
