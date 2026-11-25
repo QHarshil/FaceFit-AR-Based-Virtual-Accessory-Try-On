@@ -18,6 +18,26 @@ const STANDIN = resolve(process.env.FACEFIT_STANDIN_DIR ?? join(EVAL, '.cache', 
 const WEB_PORT = 4199;
 // Specs every engine runs; the rest need the stand-in camera and run on Chromium only.
 const CROSS_BROWSER = ['cross-browser.spec.mjs'];
+const DENIED = ['denied.spec.mjs'];
+
+// Firefox's generated stream, granted without a prompt.
+const FIREFOX_FAKE_CAMERA = {
+  'media.navigator.streams.fake': true,
+  'media.navigator.permission.disabled': true,
+};
+
+// New headless mode, unlike the headless shell, honours camera grants and denials.
+const chromium = ({ granted }) => ({
+  channel: process.env.FACEFIT_CHROME || 'chromium',
+  permissions: granted ? ['camera'] : [],
+  launchOptions: {
+    args: [
+      '--use-fake-device-for-media-stream',
+      `--use-file-for-fake-video-capture=${join(STANDIN, 'still.y4m')}`,
+      '--autoplay-policy=no-user-gesture-required',
+    ],
+  },
+});
 
 export default defineConfig({
   testDir: join(EVAL, 'e2e'),
@@ -47,31 +67,20 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: {
-        // New headless mode: unlike the headless shell it honours camera permission grants and denials.
-        channel: process.env.FACEFIT_CHROME || 'chromium',
-        permissions: ['camera'],
-        launchOptions: {
-          args: [
-            '--use-fake-device-for-media-stream',
-            `--use-file-for-fake-video-capture=${join(STANDIN, 'still.y4m')}`,
-            '--autoplay-policy=no-user-gesture-required',
-          ],
-        },
-      },
+      testIgnore: DENIED,
+      use: chromium({ granted: true }),
     },
+    { name: 'chromium-denied', testMatch: DENIED, use: chromium({ granted: false }) },
     {
       name: 'firefox',
       testMatch: CROSS_BROWSER,
-      use: {
-        launchOptions: {
-          firefoxUserPrefs: {
-            'media.navigator.streams.fake': true,
-            'media.navigator.permission.disabled': true,
-          },
-        },
-      },
+      use: { browserName: 'firefox', launchOptions: { firefoxUserPrefs: FIREFOX_FAKE_CAMERA } },
     },
-    { name: 'webkit', testMatch: CROSS_BROWSER },
+    {
+      name: 'firefox-denied',
+      testMatch: DENIED,
+      use: { browserName: 'firefox', launchOptions: { firefoxUserPrefs: { 'permissions.default.camera': 2 } } },
+    },
+    { name: 'webkit', testMatch: [...CROSS_BROWSER, ...DENIED], use: { browserName: 'webkit' } },
   ],
 });

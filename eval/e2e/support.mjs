@@ -42,7 +42,7 @@ export const PRODUCTS = JSON.parse(readFileSync(join(REPO, 'assets', 'catalog.js
 const json = (body, status = 200) => ({
   status,
   contentType: 'application/json',
-  headers: { 'access-control-allow-origin': APP },
+  headers: { 'access-control-allow-origin': APP, 'access-control-allow-credentials': 'true' },
   body: JSON.stringify(body),
 });
 

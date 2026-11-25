@@ -3,7 +3,6 @@
 // preview` with its CSP; the API is answered by route handlers, so a request
 // can be failed on demand.
 import {
-  PORTRAIT,
   PRODUCTS,
   assertStayedOnDevice,
   axeViolations,
@@ -137,29 +136,5 @@ test.describe('try-on with the stand-in face', () => {
     expect(await camera()).toEqual({ before: 'ended', now: 'live', sameTrack: false });
     expect(await countEvents(page, 'inference')).toBeGreaterThan(inferred);
     await assertStayedOnDevice(app);
-  });
-});
-
-test.describe('try-on without camera access', () => {
-  // The camera permission is not granted, so the browser blocks getUserMedia.
-  test.use({ permissions: [] });
-
-  test('explains the blocked camera and tries on the stand-in portrait instead', async ({ app }) => {
-    const { page } = app;
-    await page.goto('/try-on/1');
-    await status(page, 'cameraDenied');
-    await expect(page.getByRole('alert')).toContainText('Camera access is blocked');
-    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
-    await assertStayedOnDevice(app);
-    expect(await axeViolations(page)).toEqual([]);
-
-    await page.getByRole('button', { name: 'Use a photo' }).click();
-    await status(page, 'photoChoosing');
-    await page.getByLabel('Photo of your face').setInputFiles(PORTRAIT);
-    await status(page, 'photoShowing');
-    await page.waitForTimeout(500);
-    expect(await countEvents(page, 'renderedPose')).toBeGreaterThan(0);
-    await assertStayedOnDevice(app);
-    expect(await axeViolations(page)).toEqual([]);
   });
 });

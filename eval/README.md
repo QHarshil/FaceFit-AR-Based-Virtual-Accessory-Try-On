@@ -35,16 +35,32 @@ Raw runs, warmup events included, go to `.cache/runs/<label>/`. The pose filter 
 
 ## Browser tests
 
-`e2e/chromium.spec.mjs` runs the try-on's failure modes in Chromium with the stand-in portrait as the camera: tracking with axe on the catalogue and try-on, a product request that fails on the network, an unknown product, a missing face model, a lost WebGL context, a hidden tab, and a blocked camera with the photo fallback. The API is answered by route handlers; the production build runs under `vite preview` with its CSP. Headless Chromium reports every tab as visible, so the hidden-tab test sets `document.visibilityState` and fires `visibilitychange`. Every test checks that no request left localhost and the CSP reported nothing.
+Playwright Test (`playwright.config.mjs`) runs the production build under `vite preview` with its CSP. The API is answered by route handlers. Every test checks that no request left localhost and the CSP reported nothing. CI runs one job per engine and uploads the HTML report, with traces and screenshots, when a test fails.
 
-It runs on `@playwright/test` (`playwright.config.mjs`); CI uploads the HTML report with traces and screenshots when a test fails.
+| Spec | What it covers | Engines |
+|------|----------------|---------|
+| `chromium.spec.mjs` | tracking with axe on the catalogue and try-on, a product request that fails on the network, a missing face model, a lost WebGL context, a hidden tab | Chromium |
+| `cross-browser.spec.mjs` | catalogue, credits, the 404 page, an unknown product, keyboard entry to a frame, axe, the camera starting | all three |
+| `denied.spec.mjs` | a blocked camera, the photo fallback, axe | all three |
+
+The camera differs by engine, and the specs run what each one supports:
+
+| Engine | Camera | Skipped, and why |
+|--------|--------|------------------|
+| Chromium | the stand-in portrait as a fake camera, so the face is tracked | nothing |
+| Firefox | its generated stream (`media.navigator.streams.fake`), which holds no face, so the try-on stops at `searching` | axe on the photo view: it crashes Playwright's Firefox 159 page with axe-core 4.14.1 (the blocked-camera view is fine). Recorded as an annotation in the report. |
+| WebKit | none: Playwright WebKit has no fake camera and cannot grant the permission, so `getUserMedia` is denied | the camera-granted test, and keyboard entry to a frame, because WebKit leaves buttons out of the Tab order unless a system setting is on |
+
+A blocked camera is real in each engine: Chromium with no permission granted (`chromium-denied`), Firefox with `permissions.default.camera` set to block (`firefox-denied`), WebKit by default. The photo fallback runs through the same FaceLandmarker in every engine. The hidden-tab test sets `document.visibilityState` and fires `visibilitychange`, since headless browsers report every tab as visible.
 
 ```sh
 node fixtures/build.mjs --source standin     # still.y4m and portrait.jpg in .cache/clips/standin
-npm run e2e -- --project chromium            # FACEFIT_STANDIN_DIR=<dir> reads the clips from another checkout
+npx playwright install chromium firefox webkit
+npm run e2e -- --project chromium --project chromium-denied
+npm run e2e -- --project firefox --project firefox-denied --project webkit
 ```
 
-`FACEFIT_CHROME=chrome` runs an installed Chrome instead of Playwright's Chromium.
+`FACEFIT_STANDIN_DIR=<dir>` reads the clips from another checkout. `FACEFIT_CHROME=chrome` runs an installed Chrome instead of Playwright's Chromium.
 
 ## Conditions
 
