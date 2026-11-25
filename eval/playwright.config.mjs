@@ -19,6 +19,7 @@ const WEB_PORT = 4199;
 // Specs every engine runs; the rest need the stand-in camera and run on Chromium only.
 const CROSS_BROWSER = ['cross-browser.spec.mjs'];
 const DENIED = ['denied.spec.mjs'];
+const LAYOUT = ['layout.spec.mjs'];
 
 // Firefox's generated stream, granted without a prompt.
 const FIREFOX_FAKE_CAMERA = {
@@ -27,13 +28,13 @@ const FIREFOX_FAKE_CAMERA = {
 };
 
 // New headless mode, unlike the headless shell, honours camera grants and denials.
-const chromium = ({ granted }) => ({
+const chromium = ({ granted, clip = 'still' }) => ({
   channel: process.env.FACEFIT_CHROME || 'chromium',
   permissions: granted ? ['camera'] : [],
   launchOptions: {
     args: [
       '--use-fake-device-for-media-stream',
-      `--use-file-for-fake-video-capture=${join(STANDIN, 'still.y4m')}`,
+      `--use-file-for-fake-video-capture=${join(STANDIN, `${clip}.y4m`)}`,
       '--autoplay-policy=no-user-gesture-required',
     ],
   },
@@ -67,10 +68,24 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: DENIED,
+      testIgnore: [...DENIED, ...LAYOUT],
       use: chromium({ granted: true }),
     },
     { name: 'chromium-denied', testMatch: DENIED, use: chromium({ granted: false }) },
+    // The harness's viewport, where the cover crop is the identity: the control for the other two.
+    { name: 'chromium-desktop', testMatch: LAYOUT, use: chromium({ granted: true }) },
+    // The stand-in face at the centre of the frame, in a portrait phone.
+    {
+      name: 'chromium-phone',
+      testMatch: LAYOUT,
+      use: { ...chromium({ granted: true }), viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+    },
+    // The face 160 px right of centre in a landscape phone, so the mirror moves it off the middle.
+    {
+      name: 'chromium-landscape',
+      testMatch: LAYOUT,
+      use: { ...chromium({ granted: true, clip: 'dx160' }), viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+    },
     {
       name: 'firefox',
       testMatch: CROSS_BROWSER,

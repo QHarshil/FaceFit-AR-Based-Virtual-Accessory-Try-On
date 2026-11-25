@@ -96,7 +96,7 @@ jobs:
       matrix:
         include:
           - engine: chromium
-            projects: --project chromium --project chromium-denied
+            projects: --project chromium --project chromium-denied --project chromium-desktop --project chromium-phone --project chromium-landscape
           - engine: firefox
             projects: --project firefox --project firefox-denied
           - engine: webkit

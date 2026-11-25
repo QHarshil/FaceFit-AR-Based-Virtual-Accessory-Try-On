@@ -43,6 +43,7 @@ Playwright Test (`playwright.config.mjs`) runs the production build under `vite 
 | `cross-browser.spec.mjs` | catalogue, credits, the 404 page, an unknown product, keyboard entry to a frame, axe, the camera starting | all three |
 | `denied.spec.mjs` | a blocked camera, the photo fallback, axe | all three |
 | `accessibility.spec.mjs` | axe on the catalogue, the 404 page and the try-on while tracking, searching (a grey canvas as the camera), model failed, product not found, camera denied and photo showing; serious and critical violations fail | Chromium |
+| `layout.spec.mjs` | the rendered glasses against the face's bridge landmark, mapped through the `object-fit: cover` crop and the mirror, at 1280x720 DPR 1 (the control, `chromium-desktop`), 390x844 DPR 3 (`chromium-phone`) and 844x390 DPR 2 with the face 160 px right of centre (`chromium-landscape`). Checks the CSS the projection assumes, the point the app reports drawing, and the pixels the overlay adds to a screenshot. The tolerance is 0.1 of the interocular distance on screen, from the 0.053 to 0.061 the runs measure; the justification is in the spec's header | Chromium |
 | `keyboard.spec.mjs` | Tab from the catalogue into a frame, to every recovery action of a blocked camera, into photo mode and back, and out to the catalogue; each stop shows a focus ring and Tab never sticks | Chromium |
 
 The camera differs by engine, and the specs run what each one supports:
@@ -58,7 +59,7 @@ A blocked camera is real in each engine: Chromium with no permission granted (`c
 ```sh
 node fixtures/build.mjs --source standin     # still.y4m and portrait.jpg in .cache/clips/standin
 npx playwright install chromium firefox webkit
-npm run e2e -- --project chromium --project chromium-denied
+npm run e2e -- --project chromium --project chromium-denied --project chromium-desktop --project chromium-phone --project chromium-landscape
 npm run e2e -- --project firefox --project firefox-denied --project webkit
 ```
 
