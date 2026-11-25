@@ -14751,8 +14751,8 @@
       }
     },
     "state-machine": {
-      "measuredAt": "2026-11-25T05:33:39.426Z",
-      "commit": "d6b839c59ae3d827495b57dd1393aa83cd4e9fcb",
+      "measuredAt": "2026-11-25T20:37:36.324Z",
+      "commit": "7668a0dda91eedf0919dd7a8c85a5693fa32df19",
       "dirty": false,
       "command": "node eval/harness/baseline.mjs --source recordings --clips <dir> --label state-machine",
       "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, GPU delegate, module worker at camera rate, self-hosted; solveHeadPose on the 33 rigid landmarks, 60.0 deg horizontal FOV assumed, overlay hidden above 6 mm reprojection RMS, one-euro pose filter, renders predict to the newest presented frame",
@@ -14770,7 +14770,7 @@
           1280,
           720
         ],
-        "cameraFps": 30.684,
+        "cameraFps": 30.557,
         "perceptionDelegate": "GPU"
       },
       "input": "webcam recordings (eval/fixtures/recordings); sweeps and motion clips from the first frame of static.mp4 with synthetic transforms and noise",
@@ -14778,7 +14778,7 @@
         "still": {
           "group": "still",
           "measureSeconds": 10,
-          "samples": 302,
+          "samples": 303,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14787,7 +14787,7 @@
         "roll-15": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 91,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14796,7 +14796,7 @@
         "roll-10": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 92,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14805,7 +14805,7 @@
         "roll-5": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 91,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14832,7 +14832,7 @@
         "roll15": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 91,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14868,7 +14868,7 @@
         "dx320": {
           "group": "translate",
           "measureSeconds": 3,
-          "samples": 90,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14877,7 +14877,7 @@
         "dy-120": {
           "group": "translate",
           "measureSeconds": 3,
-          "samples": 91,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -14967,7 +14967,7 @@
         "product3-zoom1.33": {
           "group": "productZoom",
           "measureSeconds": 3,
-          "samples": 92,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 14,
@@ -14976,7 +14976,7 @@
         "product4-zoom0.75": {
           "group": "productZoom",
           "measureSeconds": 3,
-          "samples": 91,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -15030,7 +15030,7 @@
         "ramp-x-60": {
           "group": "motion",
           "measureSeconds": 8,
-          "samples": 241,
+          "samples": 242,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -15048,7 +15048,7 @@
         "sine-roll": {
           "group": "motion",
           "measureSeconds": 8,
-          "samples": 241,
+          "samples": 242,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -15057,7 +15057,7 @@
         "sine-roll-slow": {
           "group": "motion",
           "measureSeconds": 8,
-          "samples": 241,
+          "samples": 242,
           "gated": 0,
           "pageErrors": 1,
           "requests": 13,
@@ -15074,7 +15074,7 @@
         "workerGuardSelfTest": {
           "fetch": "blocked",
           "xhr": "blocked",
-          "usageLogBlockedAfterSeconds": 60.337,
+          "usageLogBlockedAfterSeconds": 60.265,
           "blocked": [
             "fetch https://guard-selftest.invalid/fetch",
             "xhr https://guard-selftest.invalid/xhr",
@@ -15089,96 +15089,96 @@
         "delegate": "CPU",
         "latency": {
           "captureMs": {
-            "n": 303,
+            "n": 302,
             "p50": 0,
             "p95": 0.1
           },
           "resultMs": {
-            "n": 303,
+            "n": 301,
             "p50": 0.3,
             "p95": 0.4
           },
           "mainThreadPerFrameMs": {
-            "n": 302,
-            "p50": 0.3,
-            "p95": 0.5
-          },
-          "inferenceMs": {
-            "n": 303,
-            "p50": 12.1,
-            "p95": 13.7
-          },
-          "frameToLandmarksMs": {
-            "n": 303,
-            "p50": 12.3,
-            "p95": 13.9
-          },
-          "poseMs": {
-            "n": 303,
+            "n": 301,
             "p50": 0.3,
             "p95": 0.4
           },
+          "inferenceMs": {
+            "n": 301,
+            "p50": 13.6,
+            "p95": 14.2
+          },
+          "frameToLandmarksMs": {
+            "n": 301,
+            "p50": 13.7,
+            "p95": 14.2
+          },
+          "poseMs": {
+            "n": 301,
+            "p50": 0.3,
+            "p95": 0.3
+          },
           "renderCpuMs": {
-            "n": 606,
+            "n": 603,
             "p50": 0.1,
             "p95": 0.2
           },
           "captureIntervalMs": {
-            "n": 302,
+            "n": 301,
             "p50": 33.3,
-            "p95": 33.8
+            "p95": 50.2
           },
           "inferenceIntervalMs": {
-            "n": 302,
+            "n": 300,
             "p50": 33.3,
-            "p95": 34.7
+            "p95": 51.4
           },
           "renderIntervalMs": {
-            "n": 605,
+            "n": 602,
             "p50": 16.7,
-            "p95": 17.2
+            "p95": 18.2
           },
           "pipelineMs": {
-            "n": 303,
-            "p50": 16.8,
-            "p95": 17.3
+            "n": 301,
+            "p50": 16.7,
+            "p95": 18.4
           },
           "pipelineStepsMs": {
             "frameToPost": {
-              "n": 302,
+              "n": 301,
               "p50": 0,
               "p95": 0.1,
-              "mean": 0.042
+              "mean": 0.03
             },
             "queue": {
-              "n": 302,
-              "p50": 0.1,
-              "p95": 0.2,
-              "mean": 0.146
-            },
-            "inference": {
-              "n": 302,
-              "p50": 12.1,
-              "p95": 13.7,
-              "mean": 12.26
-            },
-            "delivery": {
-              "n": 302,
+              "n": 301,
               "p50": 0,
               "p95": 0.1,
-              "mean": -0.016
+              "mean": 0.039
+            },
+            "inference": {
+              "n": 301,
+              "p50": 13.6,
+              "p95": 14.2,
+              "mean": 13.482
+            },
+            "delivery": {
+              "n": 301,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.051
             },
             "resultToRender": {
-              "n": 302,
-              "p50": 4.5,
-              "p95": 5,
-              "mean": 4.359
+              "n": 301,
+              "p50": 2.9,
+              "p95": 5.3,
+              "mean": 3.044
             }
           },
           "ratesHz": {
-            "capture": 30.3,
-            "inference": 30.3,
-            "render": 60.6
+            "capture": 30.2,
+            "inference": 30.1,
+            "render": 60.3
           },
           "framesDropped": 0
         }
@@ -15192,29 +15192,29 @@
               "p95": 0.1
             },
             "resultMs": {
-              "n": 302,
-              "p50": 0.3,
-              "p95": 0.4
-            },
-            "mainThreadPerFrameMs": {
-              "n": 302,
-              "p50": 0.3,
+              "n": 303,
+              "p50": 0.4,
               "p95": 0.5
             },
+            "mainThreadPerFrameMs": {
+              "n": 303,
+              "p50": 0.4,
+              "p95": 0.6
+            },
             "inferenceMs": {
-              "n": 302,
-              "p50": 13.3,
-              "p95": 14.5
+              "n": 303,
+              "p50": 13.2,
+              "p95": 17.89
             },
             "frameToLandmarksMs": {
-              "n": 302,
-              "p50": 13.4,
-              "p95": 14.695
+              "n": 303,
+              "p50": 13.3,
+              "p95": 18.19
             },
             "poseMs": {
-              "n": 302,
+              "n": 303,
               "p50": 0.3,
-              "p95": 0.4
+              "p95": 0.5
             },
             "renderCpuMs": {
               "n": 605,
@@ -15224,58 +15224,58 @@
             "captureIntervalMs": {
               "n": 302,
               "p50": 33.3,
-              "p95": 50.195
+              "p95": 34.3
             },
             "inferenceIntervalMs": {
-              "n": 301,
-              "p50": 33.4,
-              "p95": 51.6
+              "n": 302,
+              "p50": 33.9,
+              "p95": 37.595
             },
             "renderIntervalMs": {
               "n": 604,
               "p50": 16.7,
-              "p95": 17.385
+              "p95": 17.7
             },
             "pipelineMs": {
-              "n": 302,
-              "p50": 16.8,
-              "p95": 17.5
+              "n": 303,
+              "p50": 17.4,
+              "p95": 33.5
             },
             "pipelineStepsMs": {
               "frameToPost": {
-                "n": 302,
+                "n": 303,
                 "p50": 0,
                 "p95": 0.1,
-                "mean": 0.046
+                "mean": 0.089
               },
               "queue": {
-                "n": 302,
+                "n": 303,
                 "p50": 0,
                 "p95": 0.1,
-                "mean": 0.037
+                "mean": 0.038
               },
               "inference": {
-                "n": 302,
-                "p50": 13.3,
-                "p95": 14.5,
-                "mean": 12.766
+                "n": 303,
+                "p50": 13.2,
+                "p95": 17.89,
+                "mean": 13.16
               },
               "delivery": {
-                "n": 302,
+                "n": 303,
                 "p50": 0.1,
                 "p95": 0.2,
-                "mean": 0.069
+                "mean": 0.081
               },
               "resultToRender": {
-                "n": 302,
-                "p50": 3.3,
-                "p95": 8.295,
-                "mean": 3.858
+                "n": 303,
+                "p50": 5.6,
+                "p95": 15.89,
+                "mean": 6.233
               }
             },
             "ratesHz": {
               "capture": 30.3,
-              "inference": 30.2,
+              "inference": 30.3,
               "render": 60.5
             },
             "framesDropped": 0
@@ -15288,28 +15288,28 @@
             },
             "resultMs": {
               "n": 301,
-              "p50": 0.3,
-              "p95": 0.4
+              "p50": 0.4,
+              "p95": 0.5
             },
             "mainThreadPerFrameMs": {
               "n": 301,
-              "p50": 0.3,
-              "p95": 0.5
+              "p50": 0.4,
+              "p95": 0.6
             },
             "inferenceMs": {
               "n": 301,
-              "p50": 12.2,
-              "p95": 15.8
+              "p50": 16.1,
+              "p95": 18.1
             },
             "frameToLandmarksMs": {
               "n": 301,
-              "p50": 12.3,
-              "p95": 15.9
+              "p50": 16.3,
+              "p95": 18.2
             },
             "poseMs": {
               "n": 301,
-              "p50": 0.3,
-              "p95": 0.4
+              "p50": 0.4,
+              "p95": 0.5
             },
             "renderCpuMs": {
               "n": 603,
@@ -15319,53 +15319,53 @@
             "captureIntervalMs": {
               "n": 301,
               "p50": 33.3,
-              "p95": 50
+              "p95": 33.9
             },
             "inferenceIntervalMs": {
               "n": 300,
-              "p50": 33.8,
-              "p95": 51.2
+              "p50": 33.45,
+              "p95": 36.005
             },
             "renderIntervalMs": {
               "n": 602,
               "p50": 16.7,
-              "p95": 16.8
+              "p95": 17.3
             },
             "pipelineMs": {
               "n": 301,
-              "p50": 16.8,
-              "p95": 17
+              "p50": 16.9,
+              "p95": 33.6
             },
             "pipelineStepsMs": {
               "frameToPost": {
                 "n": 301,
                 "p50": 0,
                 "p95": 0.1,
-                "mean": 0.038
+                "mean": 0.037
               },
               "queue": {
                 "n": 301,
                 "p50": 0,
                 "p95": 0.1,
-                "mean": 0.044
+                "mean": 0.035
               },
               "inference": {
                 "n": 301,
-                "p50": 12.2,
-                "p95": 15.8,
-                "mean": 11.799
+                "p50": 16.1,
+                "p95": 18.1,
+                "mean": 15.146
               },
               "delivery": {
                 "n": 301,
                 "p50": 0.1,
-                "p95": 0.1,
-                "mean": 0.058
+                "p95": 0.2,
+                "mean": 0.073
               },
               "resultToRender": {
                 "n": 301,
-                "p50": 4.6,
-                "p95": 9.3,
-                "mean": 5.128
+                "p50": 3.8,
+                "p95": 16.9,
+                "mean": 6.609
               }
             },
             "ratesHz": {
@@ -15378,47 +15378,47 @@
         },
         "jitter": {
           "still": {
-            "samples": 302,
+            "samples": 303,
             "blinksMasked": 0,
             "windowSamples": 5,
-            "interocularPx": 179.622,
+            "interocularPx": 179.625,
             "landmarkNoseBridgePx": {
               "rmsFromMean": 0.311,
               "rmsHighPass": 0.288,
               "rmsStep": 0.453
             },
             "rawCenterPx": {
-              "rmsFromMean": 0.531,
-              "rmsHighPass": 0.478,
-              "rmsStep": 0.753
+              "rmsFromMean": 0.53,
+              "rmsHighPass": 0.48,
+              "rmsStep": 0.754
             },
             "smoothedCenterPx": {
-              "rmsFromMean": 0.358,
+              "rmsFromMean": 0.356,
               "rmsHighPass": 0.152,
               "rmsStep": 0.235
             },
             "rawRotationDeg": {
               "rmsFromMean": 0.864,
-              "rmsHighPass": 0.779,
-              "rmsStep": 1.226
+              "rmsHighPass": 0.784,
+              "rmsStep": 1.23
             },
             "smoothedRotationDeg": {
-              "rmsFromMean": 0.478,
+              "rmsFromMean": 0.477,
               "rmsHighPass": 0.254,
-              "rmsStep": 0.384
+              "rmsStep": 0.383
             },
             "rendered": {
               "samples": 603,
               "windowSamples": 9,
               "centerPx": {
-                "rmsFromMean": 0.435,
-                "rmsHighPass": 0.272,
-                "rmsStep": 0.369
+                "rmsFromMean": 0.442,
+                "rmsHighPass": 0.288,
+                "rmsStep": 0.382
               },
               "rotationDeg": {
-                "rmsFromMean": 0.491,
-                "rmsHighPass": 0.258,
-                "rmsStep": 0.287
+                "rmsFromMean": 0.506,
+                "rmsHighPass": 0.261,
+                "rmsStep": 0.288
               }
             }
           },
@@ -15428,42 +15428,42 @@
             "windowSamples": 5,
             "interocularPx": 197.092,
             "landmarkNoseBridgePx": {
-              "rmsFromMean": 12.483,
-              "rmsHighPass": 1.582,
-              "rmsStep": 2.551
+              "rmsFromMean": 12.066,
+              "rmsHighPass": 1.585,
+              "rmsStep": 2.546
             },
             "rawCenterPx": {
-              "rmsFromMean": 12.402,
-              "rmsHighPass": 1.678,
-              "rmsStep": 2.71
+              "rmsFromMean": 11.964,
+              "rmsHighPass": 1.684,
+              "rmsStep": 2.706
             },
             "smoothedCenterPx": {
-              "rmsFromMean": 11.863,
-              "rmsHighPass": 0.951,
-              "rmsStep": 1.693
+              "rmsFromMean": 11.452,
+              "rmsHighPass": 0.96,
+              "rmsStep": 1.685
             },
             "rawRotationDeg": {
-              "rmsFromMean": 1.326,
-              "rmsHighPass": 0.789,
-              "rmsStep": 1.266
+              "rmsFromMean": 1.322,
+              "rmsHighPass": 0.79,
+              "rmsStep": 1.268
             },
             "smoothedRotationDeg": {
-              "rmsFromMean": 1.146,
-              "rmsHighPass": 0.331,
-              "rmsStep": 0.521
+              "rmsFromMean": 1.141,
+              "rmsHighPass": 0.33,
+              "rmsStep": 0.519
             },
             "rendered": {
-              "samples": 554,
+              "samples": 553,
               "windowSamples": 9,
               "centerPx": {
-                "rmsFromMean": 12.199,
-                "rmsHighPass": 1.167,
-                "rmsStep": 1.436
+                "rmsFromMean": 11.774,
+                "rmsHighPass": 1.175,
+                "rmsStep": 1.407
               },
               "rotationDeg": {
-                "rmsFromMean": 1.164,
-                "rmsHighPass": 0.333,
-                "rmsStep": 0.382
+                "rmsFromMean": 1.176,
+                "rmsHighPass": 0.338,
+                "rmsStep": 0.383
               }
             }
           }
@@ -15472,60 +15472,33 @@
           "gatedShare": 0,
           "byCondition": {
             "still": {
-              "samples": 302,
+              "samples": 303,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 302,
-                "p50": 6.079,
+                "n": 303,
+                "p50": 6.08,
                 "p95": 6.508,
-                "p99": 6.959,
+                "p99": 6.957,
                 "max": 7.114
               },
               "rmsReprojectionMm": {
-                "n": 302,
-                "p50": 3.261,
+                "n": 303,
+                "p50": 3.262,
                 "p95": 3.49,
-                "p99": 3.745,
+                "p99": 3.744,
                 "max": 3.818
               },
               "inliers": {
-                "n": 302,
+                "n": 303,
                 "p50": 32,
                 "p95": 32,
                 "min": 31
               }
             },
             "roll-15": {
-              "samples": 91,
-              "gated": 0,
-              "gatedShare": 0,
-              "gateReasons": {},
-              "maxFaceCount": 1,
-              "rmsReprojectionPx": {
-                "n": 91,
-                "p50": 6.311,
-                "p95": 6.905,
-                "p99": 7.261,
-                "max": 7.261
-              },
-              "rmsReprojectionMm": {
-                "n": 91,
-                "p50": 3.384,
-                "p95": 3.721,
-                "p99": 3.913,
-                "max": 3.913
-              },
-              "inliers": {
-                "n": 91,
-                "p50": 32,
-                "p95": 33,
-                "min": 31
-              }
-            },
-            "roll-10": {
               "samples": 92,
               "gated": 0,
               "gatedShare": 0,
@@ -15533,26 +15506,26 @@
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
                 "n": 92,
-                "p50": 6.315,
-                "p95": 6.674,
-                "p99": 6.688,
-                "max": 6.688
+                "p50": 6.311,
+                "p95": 6.997,
+                "p99": 7.261,
+                "max": 7.261
               },
               "rmsReprojectionMm": {
                 "n": 92,
-                "p50": 3.356,
-                "p95": 3.572,
-                "p99": 3.581,
-                "max": 3.581
+                "p50": 3.384,
+                "p95": 3.764,
+                "p99": 3.913,
+                "max": 3.913
               },
               "inliers": {
                 "n": 92,
                 "p50": 32,
-                "p95": 32,
+                "p95": 33,
                 "min": 31
               }
             },
-            "roll-5": {
+            "roll-10": {
               "samples": 91,
               "gated": 0,
               "gatedShare": 0,
@@ -15560,20 +15533,47 @@
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
                 "n": 91,
+                "p50": 6.315,
+                "p95": 6.674,
+                "p99": 6.688,
+                "max": 6.688
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.356,
+                "p95": 3.572,
+                "p99": 3.581,
+                "max": 3.581
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 32,
+                "min": 31
+              }
+            },
+            "roll-5": {
+              "samples": 92,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 92,
                 "p50": 6.225,
                 "p95": 7.384,
                 "p99": 7.458,
                 "max": 7.458
               },
               "rmsReprojectionMm": {
-                "n": 91,
+                "n": 92,
                 "p50": 3.324,
                 "p95": 3.97,
                 "p99": 4.01,
                 "max": 4.01
               },
               "inliers": {
-                "n": 91,
+                "n": 92,
                 "p50": 32,
                 "p95": 33,
                 "min": 31
@@ -15615,14 +15615,14 @@
               "rmsReprojectionPx": {
                 "n": 91,
                 "p50": 6.42,
-                "p95": 7.231,
+                "p95": 7.2,
                 "p99": 7.264,
                 "max": 7.264
               },
               "rmsReprojectionMm": {
                 "n": 91,
                 "p50": 3.438,
-                "p95": 3.873,
+                "p95": 3.856,
                 "p99": 3.89,
                 "max": 3.89
               },
@@ -15634,27 +15634,27 @@
               }
             },
             "roll15": {
-              "samples": 91,
+              "samples": 92,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 91,
+                "n": 92,
                 "p50": 7.058,
                 "p95": 7.872,
                 "p99": 8.027,
                 "max": 8.027
               },
               "rmsReprojectionMm": {
-                "n": 91,
+                "n": 92,
                 "p50": 3.779,
                 "p95": 4.223,
                 "p99": 4.298,
                 "max": 4.298
               },
               "inliers": {
-                "n": 91,
+                "n": 92,
                 "p50": 32,
                 "p95": 33,
                 "min": 31
@@ -15742,54 +15742,54 @@
               }
             },
             "dx320": {
-              "samples": 90,
+              "samples": 92,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 90,
+                "n": 92,
                 "p50": 4.51,
                 "p95": 4.789,
                 "p99": 4.852,
                 "max": 4.852
               },
               "rmsReprojectionMm": {
-                "n": 90,
+                "n": 92,
                 "p50": 2.478,
                 "p95": 2.643,
                 "p99": 2.668,
                 "max": 2.668
               },
               "inliers": {
-                "n": 90,
+                "n": 92,
                 "p50": 32,
                 "p95": 32,
                 "min": 30
               }
             },
             "dy-120": {
-              "samples": 91,
+              "samples": 92,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 91,
+                "n": 92,
                 "p50": 8.549,
                 "p95": 8.989,
                 "p99": 9,
                 "max": 9
               },
               "rmsReprojectionMm": {
-                "n": 91,
+                "n": 92,
                 "p50": 4.566,
                 "p95": 4.776,
                 "p99": 4.796,
                 "max": 4.796
               },
               "inliers": {
-                "n": 91,
+                "n": 92,
                 "p50": 33,
                 "p95": 33,
                 "min": 33
@@ -15858,14 +15858,14 @@
               "rmsReprojectionPx": {
                 "n": 91,
                 "p50": 9.542,
-                "p95": 10.618,
+                "p95": 10.558,
                 "p99": 10.676,
                 "max": 10.676
               },
               "rmsReprojectionMm": {
                 "n": 91,
                 "p50": 3.884,
-                "p95": 4.339,
+                "p95": 4.315,
                 "p99": 4.349,
                 "max": 4.349
               },
@@ -15885,15 +15885,15 @@
               "rmsReprojectionPx": {
                 "n": 91,
                 "p50": 6.148,
-                "p95": 6.447,
+                "p95": 6.44,
                 "p99": 6.535,
                 "max": 6.598
               },
               "rmsReprojectionMm": {
                 "n": 91,
                 "p50": 3.298,
-                "p95": 3.458,
-                "p99": 3.502,
+                "p95": 3.454,
+                "p99": 3.497,
                 "max": 3.536
               },
               "inliers": {
@@ -15938,14 +15938,14 @@
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
                 "n": 92,
-                "p50": 6.146,
+                "p50": 6.15,
                 "p95": 6.447,
                 "p99": 6.535,
                 "max": 6.598
               },
               "rmsReprojectionMm": {
                 "n": 92,
-                "p50": 3.294,
+                "p50": 3.298,
                 "p95": 3.458,
                 "p99": 3.501,
                 "max": 3.536
@@ -16039,33 +16039,6 @@
               }
             },
             "product3-zoom1.33": {
-              "samples": 92,
-              "gated": 0,
-              "gatedShare": 0,
-              "gateReasons": {},
-              "maxFaceCount": 1,
-              "rmsReprojectionPx": {
-                "n": 92,
-                "p50": 9.542,
-                "p95": 10.552,
-                "p99": 10.676,
-                "max": 10.676
-              },
-              "rmsReprojectionMm": {
-                "n": 92,
-                "p50": 3.884,
-                "p95": 4.313,
-                "p99": 4.349,
-                "max": 4.349
-              },
-              "inliers": {
-                "n": 92,
-                "p50": 32,
-                "p95": 33,
-                "min": 31
-              }
-            },
-            "product4-zoom0.75": {
               "samples": 91,
               "gated": 0,
               "gatedShare": 0,
@@ -16073,20 +16046,47 @@
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
                 "n": 91,
+                "p50": 9.542,
+                "p95": 10.558,
+                "p99": 10.676,
+                "max": 10.676
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.884,
+                "p95": 4.315,
+                "p99": 4.349,
+                "max": 4.349
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 31
+              }
+            },
+            "product4-zoom0.75": {
+              "samples": 92,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 92,
                 "p50": 5.652,
                 "p95": 5.969,
                 "p99": 6.056,
                 "max": 6.056
               },
               "rmsReprojectionMm": {
-                "n": 91,
+                "n": 92,
                 "p50": 4.024,
                 "p95": 4.233,
                 "p99": 4.303,
                 "max": 4.303
               },
               "inliers": {
-                "n": 91,
+                "n": 92,
                 "p50": 33,
                 "p95": 33,
                 "min": 32
@@ -16127,17 +16127,17 @@
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
                 "n": 301,
-                "p50": 6.106,
-                "p95": 7.119,
-                "p99": 7.46,
-                "max": 8.576
+                "p50": 6.097,
+                "p95": 7.064,
+                "p99": 7.444,
+                "max": 8.526
               },
               "rmsReprojectionMm": {
                 "n": 301,
-                "p50": 3.029,
-                "p95": 3.545,
-                "p99": 3.767,
-                "max": 4.452
+                "p50": 3.027,
+                "p95": 3.533,
+                "p99": 3.715,
+                "max": 4.434
               },
               "inliers": {
                 "n": 301,
@@ -16228,27 +16228,27 @@
               }
             },
             "ramp-x-60": {
-              "samples": 241,
+              "samples": 242,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 241,
+                "n": 242,
                 "p50": 6.202,
                 "p95": 7.679,
                 "p99": 8.181,
                 "max": 8.313
               },
               "rmsReprojectionMm": {
-                "n": 241,
+                "n": 242,
                 "p50": 3.33,
                 "p95": 4.129,
                 "p99": 4.418,
                 "max": 4.496
               },
               "inliers": {
-                "n": 241,
+                "n": 242,
                 "p50": 31,
                 "p95": 33,
                 "min": 31
@@ -16282,54 +16282,54 @@
               }
             },
             "sine-roll": {
-              "samples": 241,
+              "samples": 242,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 241,
+                "n": 242,
                 "p50": 6.164,
                 "p95": 6.966,
-                "p99": 7.095,
+                "p99": 7.136,
                 "max": 7.442
               },
               "rmsReprojectionMm": {
-                "n": 241,
+                "n": 242,
                 "p50": 3.287,
                 "p95": 3.737,
-                "p99": 3.803,
+                "p99": 3.822,
                 "max": 3.974
               },
               "inliers": {
-                "n": 241,
+                "n": 242,
                 "p50": 32,
                 "p95": 33,
                 "min": 31
               }
             },
             "sine-roll-slow": {
-              "samples": 241,
+              "samples": 242,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 241,
+                "n": 242,
                 "p50": 6.056,
                 "p95": 6.741,
                 "p99": 6.966,
                 "max": 7.203
               },
               "rmsReprojectionMm": {
-                "n": 241,
+                "n": 242,
                 "p50": 3.246,
                 "p95": 3.619,
                 "p99": 3.749,
                 "max": 3.862
               },
               "inliers": {
-                "n": 241,
+                "n": 242,
                 "p50": 32,
                 "p95": 33,
                 "min": 31
@@ -16357,16 +16357,16 @@
             15.494
           ],
           "renderedAngleDeg": [
-            1.243,
-            -14.172,
-            -8.991,
-            -4.008,
-            6.167,
-            11.056,
-            15.794
+            1.248,
+            -14.177,
+            -8.981,
+            -4.013,
+            6.144,
+            11.061,
+            15.789
           ],
           "renderedPerFaceDeg": 0.993,
-          "eulerPitchPerFaceRollDeg": 0.051,
+          "eulerPitchPerFaceRollDeg": 0.053,
           "eulerYawPerFaceRollDeg": 0.126,
           "eulerRollPerFaceRollDeg": -0.987
         },
@@ -16375,40 +16375,40 @@
           "gainY": 0.995,
           "offsetPxByCondition": {
             "still": [
-              -0.346,
-              -7.722
+              -0.348,
+              -7.715
             ],
             "dx-320": [
-              0.574,
-              -4.771
+              0.579,
+              -4.765
             ],
             "dx-160": [
-              -0.141,
-              -7.079
+              -0.145,
+              -7.074
             ],
             "dx160": [
-              -1.199,
-              -6.991
+              -1.2,
+              -6.985
             ],
             "dx320": [
-              -1.919,
-              -5.083
+              -1.91,
+              -5.092
             ],
             "dy-120": [
-              -0.611,
-              -8.226
+              -0.608,
+              -8.232
             ],
             "dy120": [
-              -1.313,
-              -9.42
+              -1.315,
+              -9.423
             ]
           },
-          "interocularPx": 179.622
+          "interocularPx": 179.625
         },
         "scale": {
           "still": {
-            "faceWidthPx": 274.876,
-            "renderedWidthPx": 277.743,
+            "faceWidthPx": 274.874,
+            "renderedWidthPx": 277.74,
             "renderedOverFace": 1.01
           },
           "zoom0.75": {
@@ -16429,7 +16429,7 @@
               "still": 1.01,
               "zoom1.33": 1.026
             },
-            "maxChangeFromStillPercent": 1.528
+            "maxChangeFromStillPercent": 1.529
           },
           "product2": {
             "renderedOverFace": {
@@ -16437,7 +16437,7 @@
               "still": 0.961,
               "zoom1.33": 0.977
             },
-            "maxChangeFromStillPercent": 1.619
+            "maxChangeFromStillPercent": 1.617
           },
           "product3": {
             "renderedOverFace": {
@@ -16445,7 +16445,7 @@
               "still": 1.018,
               "zoom1.33": 1.039
             },
-            "maxChangeFromStillPercent": 2.002
+            "maxChangeFromStillPercent": 2.009
           },
           "product4": {
             "renderedOverFace": {
@@ -16453,36 +16453,36 @@
               "still": 0.923,
               "zoom1.33": 0.935
             },
-            "maxChangeFromStillPercent": 1.387
+            "maxChangeFromStillPercent": 1.391
           }
         },
         "products": {
           "product1": {
             "renderedOverFace": 1.01,
             "centerMinusNoseBridgePx": [
-              -0.346,
-              -7.722
+              -0.348,
+              -7.715
             ]
           },
           "product2": {
             "renderedOverFace": 0.961,
             "centerMinusNoseBridgePx": [
-              -0.313,
-              -7.762
+              -0.3,
+              -7.767
             ]
           },
           "product3": {
             "renderedOverFace": 1.018,
             "centerMinusNoseBridgePx": [
-              -0.305,
-              -7.765
+              -0.302,
+              -7.775
             ]
           },
           "product4": {
             "renderedOverFace": 0.923,
             "centerMinusNoseBridgePx": [
-              -0.304,
-              -7.758
+              -0.311,
+              -7.764
             ]
           }
         },
@@ -16495,8 +16495,8 @@
             "max": 5.598
           },
           "smoothedCenterShiftPx": {
-            "median": 4.918,
-            "max": 5.369
+            "median": 4.902,
+            "max": 5.367
           },
           "noseBridgeLandmarkShiftPx": {
             "median": 4.998,
@@ -16510,7 +16510,7 @@
             "median": 7.41,
             "max": 7.886
           },
-          "smoothedShiftPercentOfInterocular": 2.444
+          "smoothedShiftPercentOfInterocular": 2.435
         },
         "motion": {
           "step-x": {
@@ -16518,77 +16518,6 @@
               "kind": "step",
               "axis": "dx",
               "amplitude": 80,
-              "halfPeriodFrames": 30
-            },
-            "unit": "px",
-            "presentedFrames": 241,
-            "framesPerSecond": 29.725,
-            "periodFrames": 60,
-            "mediaTimeMismatchShare": 0.498,
-            "gatedShare": 0,
-            "rendered": {
-              "samples": 482,
-              "error": {
-                "offset": 652.338,
-                "rms": 11.278,
-                "p95": 7.147,
-                "max": 80.171
-              },
-              "steps": 8,
-              "stepLagMs": {
-                "median": 34.8,
-                "max": 35.3,
-                "missed": 0
-              },
-              "overshootPercent": {
-                "median": 7.999,
-                "max": 8.763
-              }
-            },
-            "smoothed": {
-              "samples": 241,
-              "error": {
-                "offset": 652.348,
-                "rms": 6.127,
-                "p95": 12.64,
-                "max": 32.177
-              },
-              "steps": 8,
-              "stepLagMs": {
-                "median": 66.7,
-                "max": 66.8,
-                "missed": 0
-              },
-              "overshootPercent": {
-                "median": 0.065,
-                "max": 0.328
-              }
-            },
-            "face": {
-              "samples": 241,
-              "error": {
-                "offset": 652.739,
-                "rms": 0.256,
-                "p95": 0.494,
-                "max": 0.612
-              },
-              "steps": 8,
-              "stepLagMs": {
-                "median": 0,
-                "max": 0,
-                "missed": 0
-              },
-              "overshootPercent": {
-                "median": 0.711,
-                "max": 0.757
-              }
-            }
-          },
-          "ramp-x": {
-            "motion": {
-              "kind": "triangle",
-              "axis": "dx",
-              "amplitude": 120,
               "halfPeriodFrames": 30
             },
             "unit": "px",
@@ -16600,36 +16529,107 @@
             "rendered": {
               "samples": 483,
               "error": {
-                "offset": 653.192,
-                "rms": 7.651,
-                "p95": 11.056,
-                "max": 13.135
+                "offset": 652.341,
+                "rms": 12.681,
+                "p95": 7.036,
+                "max": 80.181
               },
-              "delayMs": 30.709,
-              "gain": 1.002,
-              "constantVelocityLagMs": 30.743
+              "steps": 8,
+              "stepLagMs": {
+                "median": 35.55,
+                "max": 68.3,
+                "missed": 0
+              },
+              "overshootPercent": {
+                "median": 8.113,
+                "max": 8.801
+              }
             },
             "smoothed": {
               "samples": 241,
               "error": {
-                "offset": 653.281,
-                "rms": 7.232,
-                "p95": 8.788,
-                "max": 9.567
+                "offset": 652.341,
+                "rms": 6.199,
+                "p95": 12.856,
+                "max": 32.321
               },
-              "delayMs": 30.606,
-              "gain": 0.99,
-              "constantVelocityLagMs": 31.57
+              "steps": 8,
+              "stepLagMs": {
+                "median": 66.7,
+                "max": 66.8,
+                "missed": 0
+              },
+              "overshootPercent": {
+                "median": 0.054,
+                "max": 0.299
+              }
             },
             "face": {
               "samples": 241,
               "error": {
+                "offset": 652.739,
+                "rms": 0.254,
+                "p95": 0.494,
+                "max": 0.612
+              },
+              "steps": 8,
+              "stepLagMs": {
+                "median": 0,
+                "max": 0,
+                "missed": 0
+              },
+              "overshootPercent": {
+                "median": 0.715,
+                "max": 0.758
+              }
+            }
+          },
+          "ramp-x": {
+            "motion": {
+              "kind": "triangle",
+              "axis": "dx",
+              "amplitude": 120,
+              "halfPeriodFrames": 30
+            },
+            "unit": "px",
+            "presentedFrames": 241,
+            "framesPerSecond": 29.725,
+            "periodFrames": 60,
+            "mediaTimeMismatchShare": 0.498,
+            "gatedShare": 0,
+            "rendered": {
+              "samples": 481,
+              "error": {
+                "offset": 653.121,
+                "rms": 7.976,
+                "p95": 11.615,
+                "max": 12.789
+              },
+              "delayMs": 31.062,
+              "gain": 1.011,
+              "constantVelocityLagMs": 30.183
+            },
+            "smoothed": {
+              "samples": 240,
+              "error": {
+                "offset": 653.257,
+                "rms": 7.231,
+                "p95": 8.851,
+                "max": 9.642
+              },
+              "delayMs": 30.571,
+              "gain": 0.99,
+              "constantVelocityLagMs": 31.551
+            },
+            "face": {
+              "samples": 240,
+              "error": {
                 "offset": 652.783,
-                "rms": 0.387,
+                "rms": 0.388,
                 "p95": 0.753,
                 "max": 0.88
               },
-              "delayMs": -0.067,
+              "delayMs": -0.034,
               "gain": 1,
               "constantVelocityLagMs": -0.087
             }
@@ -16643,33 +16643,33 @@
             },
             "unit": "px",
             "presentedFrames": 241,
-            "framesPerSecond": 29.711,
+            "framesPerSecond": 29.725,
             "periodFrames": 120,
             "mediaTimeMismatchShare": 0.498,
             "gatedShare": 0,
             "rendered": {
-              "samples": 483,
+              "samples": 482,
               "error": {
-                "offset": 652.465,
-                "rms": 2.168,
-                "p95": 2.814,
-                "max": 3.316
+                "offset": 652.62,
+                "rms": 2.197,
+                "p95": 2.92,
+                "max": 3.193
               },
-              "delayMs": 35.355,
-              "gain": 0.997,
-              "constantVelocityLagMs": 36.303
+              "delayMs": 35.12,
+              "gain": 1,
+              "constantVelocityLagMs": 36.21
             },
             "smoothed": {
               "samples": 241,
               "error": {
-                "offset": 652.465,
-                "rms": 2.151,
-                "p95": 2.816,
-                "max": 3.058
+                "offset": 652.451,
+                "rms": 2.152,
+                "p95": 2.804,
+                "max": 3.069
               },
-              "delayMs": 35.925,
+              "delayMs": 35.928,
               "gain": 0.995,
-              "constantVelocityLagMs": 36.771
+              "constantVelocityLagMs": 36.854
             },
             "face": {
               "samples": 241,
@@ -16679,9 +16679,9 @@
                 "p95": 0.749,
                 "max": 1.165
               },
-              "delayMs": -0.555,
+              "delayMs": -0.545,
               "gain": 1,
-              "constantVelocityLagMs": -1.071
+              "constantVelocityLagMs": -1.07
             }
           },
           "ramp-x-30": {
@@ -16693,43 +16693,43 @@
             },
             "unit": "px",
             "presentedFrames": 242,
-            "framesPerSecond": 29.722,
+            "framesPerSecond": 29.726,
             "periodFrames": 120,
             "mediaTimeMismatchShare": 0.5,
             "gatedShare": 0,
             "rendered": {
               "samples": 484,
               "error": {
-                "offset": 652.77,
-                "rms": 1.235,
-                "p95": 1.974,
-                "max": 2.303
+                "offset": 652.717,
+                "rms": 1.227,
+                "p95": 1.956,
+                "max": 2.329
               },
-              "delayMs": 36.842,
-              "gain": 1.001,
-              "constantVelocityLagMs": 36.916
+              "delayMs": 36.555,
+              "gain": 1.003,
+              "constantVelocityLagMs": 36.449
             },
             "smoothed": {
-              "samples": 241,
+              "samples": 242,
               "error": {
-                "offset": 652.904,
-                "rms": 1.254,
-                "p95": 1.994,
-                "max": 2.339
+                "offset": 652.907,
+                "rms": 1.256,
+                "p95": 1.989,
+                "max": 2.324
               },
-              "delayMs": 37.25,
+              "delayMs": 37.37,
               "gain": 0.999,
-              "constantVelocityLagMs": 37.228
+              "constantVelocityLagMs": 37.342
             },
             "face": {
-              "samples": 241,
+              "samples": 242,
               "error": {
                 "offset": 652.758,
-                "rms": 0.379,
+                "rms": 0.38,
                 "p95": 0.786,
                 "max": 1.06
               },
-              "delayMs": -1.732,
+              "delayMs": -1.673,
               "gain": 1.005,
               "constantVelocityLagMs": -2.981
             }
@@ -16743,42 +16743,42 @@
             },
             "unit": "deg",
             "presentedFrames": 241,
-            "framesPerSecond": 29.724,
+            "framesPerSecond": 29.722,
             "periodFrames": 60,
             "mediaTimeMismatchShare": 0.498,
             "gatedShare": 0,
             "rendered": {
-              "samples": 481,
+              "samples": 482,
               "error": {
-                "offset": 1.157,
-                "rms": 0.969,
-                "p95": 1.903,
-                "max": 2.937
+                "offset": 1.203,
+                "rms": 1.209,
+                "p95": 2.281,
+                "max": 3.765
               },
-              "delayMs": 32.738,
-              "gain": 1.044
+              "delayMs": 43.869,
+              "gain": 1.06
             },
             "smoothed": {
-              "samples": 240,
+              "samples": 241,
               "error": {
-                "offset": 1.185,
-                "rms": 0.615,
-                "p95": 1.241,
-                "max": 1.951
+                "offset": 1.184,
+                "rms": 0.614,
+                "p95": 1.251,
+                "max": 1.904
               },
-              "delayMs": 18.781,
+              "delayMs": 18.804,
               "gain": 1.023
             },
             "face": {
-              "samples": 240,
+              "samples": 241,
               "error": {
                 "offset": 0.555,
                 "rms": 0.134,
-                "p95": 0.243,
+                "p95": 0.242,
                 "max": 0.415
               },
-              "delayMs": 0.622,
-              "gain": 1.002
+              "delayMs": 0.641,
+              "gain": 1.001
             }
           },
           "sine-roll-slow": {
@@ -16789,42 +16789,42 @@
               "periodFrames": 120
             },
             "unit": "deg",
-            "presentedFrames": 241,
-            "framesPerSecond": 29.709,
+            "presentedFrames": 242,
+            "framesPerSecond": 29.718,
             "periodFrames": 120,
-            "mediaTimeMismatchShare": 0.498,
+            "mediaTimeMismatchShare": 0.5,
             "gatedShare": 0,
             "rendered": {
-              "samples": 481,
+              "samples": 483,
               "error": {
-                "offset": 1.302,
-                "rms": 0.273,
-                "p95": 0.495,
-                "max": 0.713
+                "offset": 1.303,
+                "rms": 0.284,
+                "p95": 0.532,
+                "max": 0.709
               },
-              "delayMs": 44.412,
-              "gain": 1.011
+              "delayMs": 49.132,
+              "gain": 1.013
             },
             "smoothed": {
-              "samples": 240,
+              "samples": 241,
               "error": {
-                "offset": 1.308,
-                "rms": 0.25,
-                "p95": 0.469,
-                "max": 0.681
+                "offset": 1.316,
+                "rms": 0.249,
+                "p95": 0.465,
+                "max": 0.693
               },
-              "delayMs": 36.321,
+              "delayMs": 35.239,
               "gain": 0.995
             },
             "face": {
-              "samples": 240,
+              "samples": 241,
               "error": {
-                "offset": 0.675,
+                "offset": 0.674,
                 "rms": 0.121,
-                "p95": 0.248,
-                "max": 0.326
+                "p95": 0.246,
+                "max": 0.325
               },
-              "delayMs": -3.807,
+              "delayMs": -3.969,
               "gain": 1.007
             }
           }
