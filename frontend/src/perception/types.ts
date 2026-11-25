@@ -22,11 +22,13 @@ export interface LandmarkFrame {
   width: number;
   height: number;
   /**
-   * First detected face as interleaved x, y, z. x and y are normalized to the
-   * frame width and height; z uses roughly the same scale as x, smaller is
-   * closer to the camera. Empty when `faceCount` is 0.
+   * The tracked face (perception/faceSelection.ts) as interleaved x, y, z. x
+   * and y are normalized to the frame width and height; z uses roughly the
+   * same scale as x, smaller is closer to the camera. Empty when `faceCount`
+   * is 0.
    */
   landmarks: Float32Array;
+  /** Faces detected in the frame. */
   faceCount: number;
 }
 

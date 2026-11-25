@@ -197,6 +197,8 @@ test('solverSummary counts gated samples by reason and spreads the reprojection 
   assert.equal(summary.rmsReprojectionPx.max, 12);
   assert.equal(summary.rmsReprojectionMm.max, 6);
   assert.equal(summary.inliers.min, 20);
+  assert.equal(summary.maxFaceCount, null);
+  assert.equal(solverSummary([{ ...pose(false, null, 2, 33), faceCount: 1 }, { ...pose(false, null, 2, 33), faceCount: 2 }]).maxFaceCount, 2);
 });
 
 test('maxChangeFromStillPercent takes the largest change from the unzoomed ratio', () => {

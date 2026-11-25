@@ -108,7 +108,7 @@ describe('landmarker service init', () => {
     );
     expect(h.options[0]).toMatchObject({
       runningMode: 'VIDEO',
-      numFaces: 1,
+      numFaces: 2,
       baseOptions: { delegate: 'GPU' },
     });
     expect(h.options[0]?.baseOptions?.modelAssetBuffer).toEqual(MODEL_BYTES);
@@ -312,6 +312,34 @@ describe('landmarker service frames', () => {
     expect(frame.close).toHaveBeenCalledTimes(1);
   });
 
+  it('returns the tracked face, the largest, and keeps it when MediaPipe reorders the faces', async () => {
+    // Faces whose outer eye corners (landmarks 33 and 263) are `spread` apart, centred at x.
+    const sized = (x: number, spread: number) =>
+      face(0).map((point, i) => ({
+        ...point,
+        x: x + (i === 33 ? -spread / 2 : i === 263 ? spread / 2 : 0),
+        y: 0.5,
+      }));
+    const small = sized(0.3, 0.1);
+    const large = sized(0.7, 0.11);
+    const h = harness();
+    h.landmarker.detectForVideo
+      .mockReturnValueOnce({ ...resultWith(0), faceLandmarks: [small, large] })
+      .mockReturnValueOnce({ ...resultWith(0), faceLandmarks: [large, small] });
+    const service = await ready(h);
+    await service.handle({ type: 'frame', frameId: 1, timestampMs: 100, frame: videoFrame() });
+    await service.handle({ type: 'frame', frameId: 2, timestampMs: 133, frame: videoFrame() });
+
+    const centers = h.posted.map((m) => {
+      if (m.type !== 'result') throw new Error(m.type);
+      expect(m.landmarkFrame.faceCount).toBe(2);
+      const x = (i: number) => m.landmarkFrame.landmarks[i * 3]!;
+      return (x(33) + x(263)) / 2;
+    });
+    expect(centers[0]).toBeCloseTo(0.7, 6);
+    expect(centers[1]).toBeCloseTo(0.7, 6);
+  });
+
   it('feeds MediaPipe strictly increasing timestamps and reports the capture time unchanged', async () => {
     const h = harness();
     const service = await ready(h);
@@ -376,11 +404,12 @@ describe('landmarker service frames', () => {
 });
 
 describe('helpers', () => {
-  it('tracks one face unless the build sets a positive integer', () => {
-    expect(NUM_FACES).toBe(1);
-    expect(numFacesFrom(undefined)).toBe(1);
-    expect(numFacesFrom('2')).toBe(2);
-    for (const invalid of ['', '0', '-1', '1.5', 'two']) expect(numFacesFrom(invalid)).toBe(1);
+  it('tracks two faces unless the build sets a positive integer', () => {
+    expect(NUM_FACES).toBe(2);
+    expect(numFacesFrom(undefined)).toBe(2);
+    expect(numFacesFrom('1')).toBe(1);
+    expect(numFacesFrom('3')).toBe(3);
+    for (const invalid of ['', '0', '-1', '1.5', 'two']) expect(numFacesFrom(invalid)).toBe(2);
   });
 
   it('builds the module WASM paths without doubling slashes', () => {

@@ -4,13 +4,13 @@
 //   node eval/harness/baseline.mjs --source recordings
 //   node eval/harness/baseline.mjs --source recordings --allow-dirty   (writes to eval/.cache only)
 //   node eval/harness/baseline.mjs --source recordings --clips <dir> --label <name>
-//   node eval/harness/baseline.mjs --source recordings --num-faces 2 --label <name>
+//   node eval/harness/baseline.mjs --source recordings --num-faces 1 --label <name>
 //   node eval/harness/baseline.mjs --source recordings --pose-filter off --label <name>
 //
 // --clips reads the Y4M clips from another checkout. --label is the key under
 // `runs` in results.json (default: baseline-<source>) and names the folder of
 // raw runs in eval/.cache/runs. --num-faces sets VITE_NUM_FACES for the build
-// (default 1, the app's default). --pose-filter sets VITE_POSE_FILTER (off,
+// (default 2, the app's default). --pose-filter sets VITE_POSE_FILTER (off,
 // one-euro or kalman; default: the app's).
 //
 // Builds the production bundle, serves it with `vite preview` (which sends the
@@ -47,7 +47,7 @@ const arg = (name, fallback) => {
 const source = arg('source', 'recordings');
 const label = arg('label', `baseline-${source}`);
 const allowDirty = process.argv.includes('--allow-dirty');
-const numFaces = Number(arg('num-faces', '1'));
+const numFaces = Number(arg('num-faces', '2'));
 if (!Number.isInteger(numFaces) || numFaces < 1) {
   console.error('--num-faces takes a positive integer');
   process.exit(1);

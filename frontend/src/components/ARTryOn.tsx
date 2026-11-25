@@ -134,6 +134,7 @@ const probeGlassesPose = (
   const rawPose = estimate.fit?.pose ?? null;
   const poseStats = {
     frameTimestampMs: frame.timestampMs,
+    faceCount: frame.faceCount,
     poseFilter: filterSetting,
     focalPx: intrinsics?.fx ?? null,
     principalPx: intrinsics ? [intrinsics.cx, intrinsics.cy] : null,

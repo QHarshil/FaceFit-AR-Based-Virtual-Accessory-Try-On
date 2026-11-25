@@ -230,6 +230,8 @@ export const solverSummary = (events) => {
     gated: gated.length,
     gatedShare: poses.length ? gated.length / poses.length : null,
     gateReasons: reasons,
+    // Most faces the landmarker reported in one frame; runs before it was probed have none.
+    maxFaceCount: poses.some((e) => e.faceCount != null) ? Math.max(...poses.map((e) => e.faceCount ?? 0)) : null,
     rmsReprojectionPx: spread(solved.map((e) => e.rmsReprojectionPx)),
     rmsReprojectionMm: spread(solved.map((e) => e.rmsReprojectionMm)),
     inliers: { ...summarize(inliers), min: inliers.length ? Math.min(...inliers) : null },
