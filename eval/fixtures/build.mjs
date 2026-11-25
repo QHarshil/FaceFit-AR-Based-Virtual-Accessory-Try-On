@@ -2,7 +2,8 @@
 // Builds Y4M clips for Chrome's fake camera from a still frame and from
 // recordings. Output: eval/.cache/clips/<source>/<condition>.y4m
 //
-//   node eval/fixtures/build.mjs --source standin
+//   node eval/fixtures/build.mjs --source standin                 (adds the two-face clip)
+//   node eval/fixtures/build.mjs --source standin --only two-face
 //   node eval/fixtures/build.mjs --source recordings              (adds the motion clips)
 //   node eval/fixtures/build.mjs --source recordings --only motion --recordings <dir>
 import { execFileSync } from 'node:child_process';
@@ -10,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONDITIONS, FRAME, FRAME_CODE, MOTION, RECORDED, motionExpression } from '../harness/conditions.mjs';
+import { CONDITIONS, FRAME, FRAME_CODE, MOTION, RECORDED, TWO_FACE, motionExpression } from '../harness/conditions.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -35,7 +36,7 @@ const arg = (name, fallback) => {
 // Recordings from another checkout can be read in place with --recordings.
 const RECORDINGS = arg('recordings') ? resolve(arg('recordings')) : join(EVAL, 'fixtures', 'recordings');
 const only = arg('only', 'all');
-if (!['all', 'motion'].includes(only)) throw new Error(`unknown --only ${only}; use motion`);
+if (!['all', 'motion', 'two-face'].includes(only)) throw new Error(`unknown --only ${only}; use motion or two-face`);
 
 const ffmpeg = (args) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args]);
 
@@ -124,6 +125,39 @@ const buildMotion = (still, outDir) => {
   }
 };
 
+// The portrait scaled so the face is `scale` times its size in the
+// stand-in's still clip, cropped to half the output frame around the face.
+// The crop runs after the scale, so a shift is in output pixels.
+const halfFrame = (scale, shift = '0') => {
+  const k = (scale * FRAME.width) / STANDIN.window[0];
+  const [cx, cy] = STANDIN.center.map((c) => Math.round(c * k));
+  return [
+    `scale=iw*${k}:ih*${k}:flags=bicubic`,
+    `pad=iw+${2 * PAD}:ih+${2 * PAD}:${PAD}:${PAD}:color=0x808080`,
+    `crop=${FRAME.width / 2}:${FRAME.height}:'${PAD + cx - FRAME.width / 4}-(${shift})':${PAD + cy - FRAME.height / 2}`,
+  ].join(',');
+};
+
+// The user in the left half, rolled about its centre and shifted, the
+// bystander still in the right half.
+const twoFaceFilter = ({ userScale, bystanderScale, roll, shift }) => [
+  'format=rgb24,split=2[user][bystander]',
+  `[user]${halfFrame(userScale, motionExpression(shift))},rotate='(${motionExpression(roll)})*PI/180':c=0x808080[left]`,
+  `[bystander]${halfFrame(userScale * bystanderScale)}[right]`,
+  `[left][right]hstack=inputs=2,${NOISE},format=yuv420p`,
+].join(';');
+
+const buildTwoFace = (portrait, outDir) => {
+  for (const condition of TWO_FACE) {
+    const out = join(outDir, `${condition.id}.y4m`);
+    ffmpeg([
+      '-loop', '1', '-framerate', String(FRAME.fps), '-t', String(condition.clipSeconds), '-i', portrait,
+      '-filter_complex', twoFaceFilter(condition), '-r', String(FRAME.fps), out,
+    ]);
+    console.log(`built ${out}`);
+  }
+};
+
 const buildRecorded = (outDir) => {
   for (const clip of RECORDED) {
     const src = join(RECORDINGS, clip.file);
@@ -142,8 +176,12 @@ const outDir = join(EVAL, '.cache', 'clips', source);
 mkdirSync(outDir, { recursive: true });
 
 if (source === 'standin') {
-  buildSweeps(fetchStandin(outDir), STANDIN, outDir);
+  const portrait = fetchStandin(outDir);
+  if (only === 'motion') throw new Error('--only motion needs --source recordings');
+  if (only === 'all') buildSweeps(portrait, STANDIN, outDir);
+  buildTwoFace(portrait, outDir);
 } else if (source === 'recordings') {
+  if (only === 'two-face') throw new Error('--only two-face needs --source standin');
   const still = firstFrame(join(RECORDINGS, 'static.mp4'), outDir);
   if (only === 'all') buildSweeps(still, { center: [FRAME.width / 2, FRAME.height / 2], window: [FRAME.width, FRAME.height] }, outDir);
   buildMotion(still, outDir);

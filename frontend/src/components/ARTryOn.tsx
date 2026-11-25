@@ -135,6 +135,7 @@ const probeGlassesPose = (
   const poseStats = {
     frameTimestampMs: frame.timestampMs,
     faceCount: frame.faceCount,
+    trackId: frame.trackId,
     poseFilter: filterSetting,
     focalPx: intrinsics?.fx ?? null,
     principalPx: intrinsics ? [intrinsics.cx, intrinsics.cy] : null,

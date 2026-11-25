@@ -26,8 +26,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONDITIONS, FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDED, motionPeriodFrames, motionTruth } from './conditions.mjs';
-import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, ndcToPx, outsideBlinks, pointJitter, renderedJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
+import { CONDITIONS, FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDED, TWO_FACE, motionPeriodFrames, motionTruth } from './conditions.mjs';
+import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, ndcToPx, outsideBlinks, pointJitter, renderedJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, twoFaceSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { frameSamples, mediaTimeMismatchShare, motionMetrics, presentationRate, presentedFrames, readCenterX, readLineAngle, renderedSamples } from './motionMetrics.mjs';
 import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
 import { assertHeadUnchanged, dirtyPaths, gitIn, startCommit } from './provenance.mjs';
@@ -141,7 +141,7 @@ try {
 }
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
-const conditions = [...CONDITIONS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED, ...MOTION].filter((c) => existsSync(clipOf(c)));
+const conditions = [...CONDITIONS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED, ...MOTION, ...TWO_FACE].filter((c) => existsSync(clipOf(c)));
 const runs = {};
 let environment;
 let guardSelfTest;
@@ -239,14 +239,14 @@ const renderedJitterOf = (allPoses, blinks, run) => renderedJitter(
   outsideBlinks(allPoses.length, blinks),
 );
 
-const summary = { latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null, motion: null };
+const summary = { latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null, motion: null, twoFace: null };
 const geometry = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, geometryOf(run)]));
 const medianOf = (id, key) => median(geometry[id].map((g) => g[key]));
 
 const solver = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, solverSummary(run.events)]));
-// The motion clips are kept out of the overall share so it stays comparable
-// with runs before them; their own shares are under byCondition.
-const stillSolver = Object.entries(solver).filter(([id]) => !MOTION.some((m) => m.id === id)).map(([, s]) => s);
+// The motion and two-face clips are kept out of the overall share so it stays
+// comparable with runs before them; their own shares are under byCondition.
+const stillSolver = Object.entries(solver).filter(([id]) => ![...MOTION, ...TWO_FACE].some((m) => m.id === id)).map(([, s]) => s);
 const allSamples = stillSolver.reduce((sum, s) => sum + s.samples, 0);
 summary.solver = {
   gatedShare: allSamples ? stillSolver.reduce((sum, s) => sum + s.gated, 0) / allSamples : null,
@@ -373,6 +373,9 @@ summary.motion = Object.fromEntries(MOTION.filter((c) => runs[c.id]).map((condit
   }];
 }));
 
+// Two-face clips: whether the overlay stayed on the user while a bystander was in view.
+summary.twoFace = Object.fromEntries(TWO_FACE.filter((c) => runs[c.id]).map((c) => [c.id, twoFaceSummary(runs[c.id].events)]));
+
 // The pose settings the app reported with its first pose sample.
 const firstPose = Object.values(runs).flatMap((run) => run.events).find((e) => e.stage === 'glassesPose' && e.focalPx != null);
 const filterDescription = (setting) => (setting && setting !== 'off' ? `${setting} pose filter, renders predict to the newest presented frame` : 'no temporal filter');
@@ -399,7 +402,7 @@ const entry = roundAll({
     cameraFps: environment.cameraFps,
     perceptionDelegate: delegates.join('/'),
   },
-  input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise' : 'webcam recordings (eval/fixtures/recordings); sweeps and motion clips from the first frame of static.mp4 with synthetic transforms and noise',
+  input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise; two-face clip of the portrait twice side by side' : 'webcam recordings (eval/fixtures/recordings); sweeps and motion clips from the first frame of static.mp4 with synthetic transforms and noise',
   conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, gated: solver[c.id].gated, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests, blockedOffOriginAttempts: network[c.id].blocked.length }])),
   network: {
     requests: Object.values(network).reduce((sum, n) => sum + n.requests, 0),

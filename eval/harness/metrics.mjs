@@ -238,6 +238,25 @@ export const solverSummary = (events) => {
   };
 };
 
+// Which face the overlay followed on a clip with the user in the left half of
+// the video and a bystander in the right half: the tracked face by its nose
+// bridge landmark in each pose sample, and the overlay by the bridge anchor
+// in each render (page NDC of the unmirrored page, the video's own layout).
+export const twoFaceSummary = (events) => {
+  const poses = events.filter((e) => e.stage === 'glassesPose');
+  const tracked = poses.filter((e) => e.landmarks);
+  const renders = events.filter((e) => e.stage === 'renderedPose');
+  return {
+    poseSamples: poses.length,
+    bothFacesDetectedShare: poses.length ? poses.filter((e) => e.faceCount >= 2).length / poses.length : null,
+    trackedSamples: tracked.length,
+    trackedOnBystander: tracked.filter((e) => e.landmarks[slot(LANDMARK.noseBridge)][0] >= 0.5).length,
+    trackIds: [...new Set(tracked.map((e) => e.trackId))],
+    renders: renders.length,
+    rendersOnBystander: renders.filter((e) => e.centerNdc[0] >= 0).length,
+  };
+};
+
 // Largest relative change, in percent, of a per-zoom ratio from its value on
 // the unzoomed clip (`still`). Null without the still value or another zoom.
 export const maxChangeFromStillPercent = (ratiosByZoom) => {

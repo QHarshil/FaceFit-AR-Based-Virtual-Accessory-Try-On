@@ -45,6 +45,20 @@ export const MOTION = [
   { ...motionBase, id: 'sine-roll-slow', motion: { kind: 'sine', axis: 'roll', amplitude: 3, periodFrames: 120 } },
 ];
 
+// Two copies of the public-domain stand-in portrait side by side, built with
+// `--source standin` only, so no recorded face is used. The user in the left
+// half, at 0.6 of the face size in the stand-in's still clip, rolls 10 deg
+// with a 2 s period and moves between -60 and +60 px with a 4 s period, while
+// a bystander at 0.8 of the user's size stays still in the right half.
+export const TWO_FACE = [
+  {
+    id: 'two-face', group: 'twoFace', productId: 1, clipSeconds: 4, warmupSeconds: 2, measureSeconds: 8,
+    userScale: 0.6, bystanderScale: 0.8,
+    roll: { kind: 'sine', amplitude: 10, periodFrames: 60 },
+    shift: { kind: 'triangle', amplitude: 60, halfPeriodFrames: 60 },
+  },
+];
+
 // Face speed of a ramp in px/s, or the peak angular speed of a roll in deg/s.
 export const motionSpeed = (motion, fps = FRAME.fps) => {
   if (motion.kind === 'triangle') return ((2 * motion.amplitude) / motion.halfPeriodFrames) * fps;
