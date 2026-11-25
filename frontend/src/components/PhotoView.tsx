@@ -11,9 +11,15 @@ function PhotoView({ photo }: { photo: Blob }) {
 
   useEffect(() => {
     let current = true;
+    // Resizing a canvas clears it, so the last photo is gone while this one
+    // decodes, and stays gone when it cannot be read.
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
     void decodePhoto(photo).then(
       (image) => {
-        const canvas = canvasRef.current;
         if (current && canvas) {
           canvas.width = image.width;
           canvas.height = image.height;
