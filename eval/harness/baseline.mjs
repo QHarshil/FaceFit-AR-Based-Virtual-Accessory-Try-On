@@ -35,7 +35,7 @@ import { gateProblems } from './gate.mjs';
 import { CONDITIONS, FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDED, TWO_FACE, motionPeriodFrames, motionTruth } from './conditions.mjs';
 import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, ndcToPx, outsideBlinks, pointJitter, renderedJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, twoFaceSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { frameSamples, mediaTimeMismatchShare, motionMetrics, presentationRate, presentedFrames, readCenterX, readLineAngle, renderedSamples } from './motionMetrics.mjs';
-import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
+import { offDeviceRequests, sawWorkerFetch, waitForLocalServer } from './network.mjs';
 import { assertHeadUnchanged, dirtyPaths, gitIn, startCommit } from './provenance.mjs';
 import { runCondition, selfTestWorkerGuard } from './run.mjs';
 
@@ -101,14 +101,7 @@ const startPreview = async () => {
     env: { ...process.env, VITE_API_URL: API_URL },
     stdio: 'ignore',
   });
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    try {
-      if ((await fetch(`http://localhost:${WEB_PORT}/`)).ok) return preview;
-    } catch {
-      // not listening yet
-    }
-    await new Promise((done) => setTimeout(done, 200));
-  }
+  if (await waitForLocalServer(WEB_PORT, { attempts: 100 })) return preview;
   preview.kill();
   throw new Error('vite preview did not start');
 };
@@ -132,22 +125,10 @@ for (const step of ['migrate', 'seed']) {
   execFileSync(process.execPath, [join('dist', 'cli', `${step}.js`)], { cwd: BACKEND, env: apiEnv, stdio: 'ignore' });
 }
 
-const waitFor = async (url, what) => {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    try {
-      if ((await fetch(url)).ok) return;
-    } catch {
-      // not listening yet
-    }
-    await new Promise((done) => setTimeout(done, 200));
-  }
-  throw new Error(`${what} did not start`);
-};
-
 const api = spawn(process.execPath, [join('dist', 'server.js')], { cwd: BACKEND, env: apiEnv, stdio: 'ignore' });
 let web;
 try {
-  await waitFor(`${API_URL}/api/ready`, 'catalog API');
+  if (!(await waitForLocalServer(API_PORT, { path: '/api/ready', attempts: 100 }))) throw new Error('catalog API did not start');
   web = await startPreview();
 } catch (error) {
   api.kill();

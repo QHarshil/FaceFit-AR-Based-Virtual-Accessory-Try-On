@@ -32,3 +32,22 @@ export const guardOutcome = (url, { blocked, requests }) => {
 // The model is fetched inside the worker. Seeing it proves the capture covers
 // worker traffic, so an empty off-device list is not a blind spot.
 export const sawWorkerFetch = (urls) => urls.some((url) => url.endsWith('/face_landmarker.task'));
+
+/**
+ * Waits until a local server answers on `port` at any of the addresses
+ * `localhost` can mean. Node's fetch tries one, and a server that listens on
+ * ::1 only (vite preview on some Linux images) refuses the other.
+ */
+export const waitForLocalServer = async (port, { path = '/', attempts = 200, delayMs = 200 } = {}) => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    for (const host of ['localhost', '127.0.0.1', '[::1]']) {
+      try {
+        if ((await fetch(`http://${host}:${port}${path}`)).ok) return true;
+      } catch {
+        // not listening on this address
+      }
+    }
+    await new Promise((done) => setTimeout(done, delayMs));
+  }
+  return false;
+};
