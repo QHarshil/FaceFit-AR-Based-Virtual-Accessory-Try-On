@@ -5391,5 +5391,115 @@
         }
       }
     }
-  ]
+  ],
+  "replayCheck": {
+    "measuredAt": "2026-11-25T03:31:16.808Z",
+    "commit": "3605593722b6b1db08bb7c32cdc82f633f239d27",
+    "command": "node eval/harness/poseFilterReplayCheck.mjs --runs pose-filter-off,pose-filter-kalman,pose-filter",
+    "method": "Each run replayed through the swept One Euro and Kalman operating points for its numFaces, and without a filter, as the sweep replays (eval/harness/poseReplay.mjs). reproductionErrorPx: largest distance between what a filtered run drew and the replay of that filter at its swept point.",
+    "runs": [
+      {
+        "label": "pose-filter-off",
+        "commit": "a2068549db1b4f57f29faa1195708f312c142fcd",
+        "numFaces": 2,
+        "poseFilter": "off",
+        "reproductionErrorPx": null,
+        "oneEuro": {
+          "positionJitterPx": 1.209,
+          "rotationJitterDeg": 0.335,
+          "worstJitterRatio": 3.35,
+          "positionLagMs": 36.75,
+          "rotationLagMs": 49.26,
+          "stepOvershootPercent": 9.298,
+          "blinkShiftPx": 4.884
+        },
+        "kalman": {
+          "positionJitterPx": 1.597,
+          "rotationJitterDeg": 0.2905,
+          "worstJitterRatio": 3.195,
+          "positionLagMs": 36.75,
+          "rotationLagMs": 20.57,
+          "stepOvershootPercent": 37.88,
+          "blinkShiftPx": 6.649
+        },
+        "none": {
+          "positionJitterPx": 1.637,
+          "rotationJitterDeg": 0.7479,
+          "worstJitterRatio": 7.479,
+          "positionLagMs": 29.76,
+          "rotationLagMs": 33.71,
+          "stepOvershootPercent": 0.6133,
+          "blinkShiftPx": 4.939
+        }
+      },
+      {
+        "label": "pose-filter-kalman",
+        "commit": "709133da9627b70cd093824297d4f98ad50bb01c",
+        "numFaces": 2,
+        "poseFilter": "kalman",
+        "reproductionErrorPx": 1.271e-13,
+        "oneEuro": {
+          "positionJitterPx": 1.448,
+          "rotationJitterDeg": 0.3655,
+          "worstJitterRatio": 3.655,
+          "positionLagMs": 36.35,
+          "rotationLagMs": 51.2,
+          "stepOvershootPercent": 9.884,
+          "blinkShiftPx": 4.936
+        },
+        "kalman": {
+          "positionJitterPx": 1.918,
+          "rotationJitterDeg": 0.3169,
+          "worstJitterRatio": 3.836,
+          "positionLagMs": 35.5,
+          "rotationLagMs": 18.29,
+          "stepOvershootPercent": 36.65,
+          "blinkShiftPx": 6.658
+        },
+        "none": {
+          "positionJitterPx": 1.65,
+          "rotationJitterDeg": 0.7658,
+          "worstJitterRatio": 7.658,
+          "positionLagMs": 34.65,
+          "rotationLagMs": 23.93,
+          "stepOvershootPercent": 0.6279,
+          "blinkShiftPx": 4.939
+        }
+      },
+      {
+        "label": "pose-filter",
+        "commit": "6b02e1227ccb1d38ba0b3501f65ba85483d1427d",
+        "numFaces": 2,
+        "poseFilter": "one-euro",
+        "reproductionErrorPx": 1.271e-13,
+        "oneEuro": {
+          "positionJitterPx": 1.158,
+          "rotationJitterDeg": 0.3341,
+          "worstJitterRatio": 3.341,
+          "positionLagMs": 36.78,
+          "rotationLagMs": 50.95,
+          "stepOvershootPercent": 8.059,
+          "blinkShiftPx": 4.864
+        },
+        "kalman": {
+          "positionJitterPx": 1.538,
+          "rotationJitterDeg": 0.2844,
+          "worstJitterRatio": 3.076,
+          "positionLagMs": 35.5,
+          "rotationLagMs": 20.11,
+          "stepOvershootPercent": 36.36,
+          "blinkShiftPx": 6.567
+        },
+        "none": {
+          "positionJitterPx": 1.639,
+          "rotationJitterDeg": 0.7709,
+          "worstJitterRatio": 7.709,
+          "positionLagMs": 35.35,
+          "rotationLagMs": 31.23,
+          "stepOvershootPercent": 0.6133,
+          "blinkShiftPx": 4.939
+        }
+      }
+    ]
+  }
 }
