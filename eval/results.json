@@ -16833,8 +16833,8 @@
       }
     },
     "standin-cpu": {
-      "measuredAt": "2026-11-25T21:40:17.627Z",
-      "commit": "109d13d168a8c01dd119114fddb328504c21eb9d",
+      "measuredAt": "2026-11-25T22:40:30.836Z",
+      "commit": "26f6830ba85653795421e38c12a9d85257d60513",
       "dirty": false,
       "command": "node eval/harness/baseline.mjs --source standin --gate --write --label standin-cpu",
       "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, CPU delegate, module worker at camera rate, self-hosted; solveHeadPose on the 33 rigid landmarks, 60.0 deg horizontal FOV assumed, overlay hidden above 6 mm reprojection RMS, one-euro pose filter, renders predict to the newest presented frame",
@@ -16852,7 +16852,7 @@
           1280,
           720
         ],
-        "cameraFps": 30.082,
+        "cameraFps": 30.917,
         "perceptionDelegate": "CPU"
       },
       "input": "still portrait (public domain), synthetic transforms and noise",
@@ -16860,7 +16860,7 @@
         "still": {
           "group": "still",
           "measureSeconds": 10,
-          "samples": 295,
+          "samples": 302,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16869,7 +16869,7 @@
         "roll-15": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 69,
+          "samples": 92,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16878,7 +16878,7 @@
         "roll-10": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 73,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16887,7 +16887,7 @@
         "roll-5": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 78,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16914,7 +16914,7 @@
         "roll15": {
           "group": "roll",
           "measureSeconds": 3,
-          "samples": 77,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16923,7 +16923,7 @@
         "dx-320": {
           "group": "translate",
           "measureSeconds": 3,
-          "samples": 74,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16932,7 +16932,7 @@
         "dx-160": {
           "group": "translate",
           "measureSeconds": 3,
-          "samples": 68,
+          "samples": 91,
           "gated": 0,
           "pageErrors": 1,
           "requests": 16,
@@ -16960,7 +16960,7 @@
           "group": "translate",
           "measureSeconds": 3,
           "samples": 3,
-          "gated": 76,
+          "gated": 87,
           "pageErrors": 1,
           "requests": 16,
           "blockedOffOriginAttempts": 0
@@ -16968,8 +16968,8 @@
         "dy120": {
           "group": "translate",
           "measureSeconds": 3,
-          "samples": 20,
-          "gated": 58,
+          "samples": 30,
+          "gated": 61,
           "pageErrors": 1,
           "requests": 16,
           "blockedOffOriginAttempts": 0
@@ -17005,253 +17005,253 @@
         "latency": {
           "still": {
             "captureMs": {
-              "n": 296,
+              "n": 302,
               "p50": 0,
               "p95": 0.1
             },
             "resultMs": {
-              "n": 295,
-              "p50": 0.3,
-              "p95": 0.4
+              "n": 302,
+              "p50": 0.2,
+              "p95": 0.3
             },
             "mainThreadPerFrameMs": {
-              "n": 295,
-              "p50": 0.3,
-              "p95": 0.5
-            },
-            "inferenceMs": {
-              "n": 295,
-              "p50": 13.9,
-              "p95": 15.43
-            },
-            "frameToLandmarksMs": {
-              "n": 295,
-              "p50": 13.9,
-              "p95": 15.53
-            },
-            "poseMs": {
-              "n": 295,
+              "n": 302,
               "p50": 0.3,
               "p95": 0.4
             },
-            "renderCpuMs": {
+            "inferenceMs": {
               "n": 302,
+              "p50": 11.8,
+              "p95": 13.3
+            },
+            "frameToLandmarksMs": {
+              "n": 302,
+              "p50": 11.9,
+              "p95": 13.5
+            },
+            "poseMs": {
+              "n": 302,
+              "p50": 0.2,
+              "p95": 0.3
+            },
+            "renderCpuMs": {
+              "n": 604,
               "p50": 0.1,
               "p95": 0.2
             },
             "captureIntervalMs": {
-              "n": 295,
-              "p50": 33.4,
-              "p95": 35.3
+              "n": 301,
+              "p50": 33.3,
+              "p95": 34.2
             },
             "inferenceIntervalMs": {
-              "n": 294,
-              "p50": 33.4,
-              "p95": 35.6
+              "n": 301,
+              "p50": 33.3,
+              "p95": 35.1
             },
             "renderIntervalMs": {
-              "n": 301,
-              "p50": 33.4,
-              "p95": 35.2
+              "n": 603,
+              "p50": 16.7,
+              "p95": 17.4
             },
             "pipelineMs": {
-              "n": 295,
-              "p50": 33.5,
-              "p95": 35.3
+              "n": 302,
+              "p50": 16.9,
+              "p95": 17.7
             },
             "pipelineStepsMs": {
               "frameToPost": {
-                "n": 295,
+                "n": 302,
                 "p50": 0,
                 "p95": 0.1,
-                "mean": 0.026
+                "mean": 0.037
               },
               "queue": {
-                "n": 295,
+                "n": 302,
                 "p50": 0,
                 "p95": 0.1,
-                "mean": 0.017
+                "mean": 0.032
               },
               "inference": {
-                "n": 295,
-                "p50": 13.9,
-                "p95": 15.43,
-                "mean": 13.894
+                "n": 302,
+                "p50": 11.8,
+                "p95": 13.3,
+                "mean": 11.911
               },
               "delivery": {
-                "n": 295,
-                "p50": 0,
+                "n": 302,
+                "p50": 0.1,
                 "p95": 0.1,
-                "mean": 0.051
+                "mean": 0.066
               },
               "resultToRender": {
-                "n": 295,
-                "p50": 19.5,
-                "p95": 21.4,
-                "mean": 19.522
+                "n": 302,
+                "p50": 5,
+                "p95": 5.7,
+                "mean": 4.825
               }
             },
             "ratesHz": {
-              "capture": 29.6,
-              "inference": 29.5,
-              "render": 30.2
+              "capture": 30.2,
+              "inference": 30.2,
+              "render": 60.4
             },
             "framesDropped": 0
           }
         },
         "jitter": {
           "still": {
-            "samples": 295,
+            "samples": 302,
             "blinksMasked": 0,
             "windowSamples": 5,
-            "interocularPx": 210.704,
+            "interocularPx": 210.703,
             "landmarkNoseBridgePx": {
-              "rmsFromMean": 0.412,
-              "rmsHighPass": 0.365,
-              "rmsStep": 0.573
+              "rmsFromMean": 0.413,
+              "rmsHighPass": 0.368,
+              "rmsStep": 0.572
             },
             "rawCenterPx": {
-              "rmsFromMean": 1.242,
-              "rmsHighPass": 1.123,
-              "rmsStep": 1.806
+              "rmsFromMean": 1.236,
+              "rmsHighPass": 1.11,
+              "rmsStep": 1.781
             },
             "smoothedCenterPx": {
-              "rmsFromMean": 0.676,
-              "rmsHighPass": 0.408,
-              "rmsStep": 0.628
+              "rmsFromMean": 0.675,
+              "rmsHighPass": 0.405,
+              "rmsStep": 0.62
             },
             "rawRotationDeg": {
-              "rmsFromMean": 0.551,
-              "rmsHighPass": 0.481,
-              "rmsStep": 0.779
+              "rmsFromMean": 0.55,
+              "rmsHighPass": 0.479,
+              "rmsStep": 0.767
             },
             "smoothedRotationDeg": {
-              "rmsFromMean": 0.289,
-              "rmsHighPass": 0.125,
-              "rmsStep": 0.196
+              "rmsFromMean": 0.285,
+              "rmsHighPass": 0.121,
+              "rmsStep": 0.188
             },
             "rendered": {
-              "samples": 301,
-              "windowSamples": 5,
+              "samples": 603,
+              "windowSamples": 9,
               "centerPx": {
-                "rmsFromMean": 0.979,
-                "rmsHighPass": 0.77,
-                "rmsStep": 1.216
+                "rmsFromMean": 0.835,
+                "rmsHighPass": 0.595,
+                "rmsStep": 0.683
               },
               "rotationDeg": {
-                "rmsFromMean": 0.305,
-                "rmsHighPass": 0.144,
-                "rmsStep": 0.225
+                "rmsFromMean": 0.293,
+                "rmsHighPass": 0.125,
+                "rmsStep": 0.138
               }
             }
           }
         },
         "solver": {
-          "gatedShare": 0.157,
+          "gatedShare": 0.152,
           "byCondition": {
             "still": {
-              "samples": 295,
+              "samples": 302,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 295,
-                "p50": 10.015,
-                "p95": 10.796,
-                "p99": 11.112,
+                "n": 302,
+                "p50": 9.999,
+                "p95": 10.793,
+                "p99": 11.107,
                 "max": 11.496
               },
               "rmsReprojectionMm": {
-                "n": 295,
-                "p50": 4.341,
-                "p95": 4.663,
-                "p99": 4.782,
+                "n": 302,
+                "p50": 4.336,
+                "p95": 4.661,
+                "p99": 4.781,
                 "max": 4.938
               },
               "inliers": {
-                "n": 295,
+                "n": 302,
                 "p50": 33,
                 "p95": 33,
                 "min": 30
               }
             },
             "roll-15": {
-              "samples": 69,
+              "samples": 92,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 69,
+                "n": 92,
                 "p50": 11.088,
                 "p95": 13.48,
                 "p99": 13.765,
                 "max": 13.765
               },
               "rmsReprojectionMm": {
-                "n": 69,
+                "n": 92,
                 "p50": 4.801,
                 "p95": 5.762,
                 "p99": 5.876,
                 "max": 5.876
               },
               "inliers": {
-                "n": 69,
+                "n": 92,
                 "p50": 32,
                 "p95": 33,
                 "min": 28
               }
             },
             "roll-10": {
-              "samples": 73,
+              "samples": 91,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 73,
-                "p50": 9.568,
+                "n": 91,
+                "p50": 9.552,
                 "p95": 10.969,
                 "p99": 11.752,
                 "max": 11.752
               },
               "rmsReprojectionMm": {
-                "n": 73,
-                "p50": 4.153,
+                "n": 91,
+                "p50": 4.148,
                 "p95": 4.73,
                 "p99": 5.052,
                 "max": 5.052
               },
               "inliers": {
-                "n": 73,
-                "p50": 32,
+                "n": 91,
+                "p50": 31,
                 "p95": 33,
                 "min": 30
               }
             },
             "roll-5": {
-              "samples": 78,
+              "samples": 91,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 78,
-                "p50": 10.134,
-                "p95": 11.166,
+                "n": 91,
+                "p50": 10.069,
+                "p95": 11.045,
                 "p99": 11.385,
                 "max": 11.385
               },
               "rmsReprojectionMm": {
-                "n": 78,
-                "p50": 4.398,
-                "p95": 4.81,
+                "n": 91,
+                "p50": 4.367,
+                "p95": 4.756,
                 "p99": 4.881,
                 "max": 4.881
               },
               "inliers": {
-                "n": 78,
+                "n": 91,
                 "p50": 33,
                 "p95": 33,
                 "min": 31
@@ -17312,83 +17312,83 @@
               }
             },
             "roll15": {
-              "samples": 77,
+              "samples": 91,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 77,
-                "p50": 11.169,
-                "p95": 11.792,
+                "n": 91,
+                "p50": 11.192,
+                "p95": 11.909,
                 "p99": 11.986,
                 "max": 11.986
               },
               "rmsReprojectionMm": {
-                "n": 77,
-                "p50": 4.818,
-                "p95": 5.064,
+                "n": 91,
+                "p50": 4.835,
+                "p95": 5.108,
                 "p99": 5.142,
                 "max": 5.142
               },
               "inliers": {
-                "n": 77,
+                "n": 91,
                 "p50": 33,
                 "p95": 33,
                 "min": 32
               }
             },
             "dx-320": {
-              "samples": 74,
+              "samples": 91,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 74,
-                "p50": 7.968,
-                "p95": 8.783,
+                "n": 91,
+                "p50": 7.992,
+                "p95": 8.884,
                 "p99": 8.907,
                 "max": 8.907
               },
               "rmsReprojectionMm": {
-                "n": 74,
-                "p50": 3.55,
-                "p95": 3.905,
+                "n": 91,
+                "p50": 3.565,
+                "p95": 3.95,
                 "p99": 3.951,
                 "max": 3.951
               },
               "inliers": {
-                "n": 74,
+                "n": 91,
                 "p50": 32,
                 "p95": 33,
                 "min": 32
               }
             },
             "dx-160": {
-              "samples": 68,
+              "samples": 91,
               "gated": 0,
               "gatedShare": 0,
               "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 68,
-                "p50": 7.576,
-                "p95": 9.196,
+                "n": 91,
+                "p50": 7.631,
+                "p95": 9.384,
                 "p99": 9.954,
                 "max": 9.954
               },
               "rmsReprojectionMm": {
-                "n": 68,
-                "p50": 3.335,
-                "p95": 4.02,
+                "n": 91,
+                "p50": 3.358,
+                "p95": 4.101,
                 "p99": 4.333,
                 "max": 4.333
               },
               "inliers": {
-                "n": 68,
-                "p50": 30,
-                "p95": 32.65,
+                "n": 91,
+                "p50": 31,
+                "p95": 33,
                 "min": 27
               }
             },
@@ -17447,58 +17447,58 @@
               }
             },
             "dy-120": {
-              "samples": 79,
-              "gated": 76,
-              "gatedShare": 0.962,
+              "samples": 90,
+              "gated": 87,
+              "gatedShare": 0.967,
               "gateReasons": {
-                "reprojection": 76
+                "reprojection": 87
               },
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 79,
+                "n": 90,
                 "p50": 14.084,
-                "p95": 14.852,
-                "p99": 15.056,
+                "p95": 14.962,
+                "p99": 15.39,
                 "max": 15.39
               },
               "rmsReprojectionMm": {
-                "n": 79,
+                "n": 90,
                 "p50": 5.937,
-                "p95": 6.234,
-                "p99": 6.289,
+                "p95": 6.252,
+                "p99": 6.421,
                 "max": 6.421
               },
               "inliers": {
-                "n": 79,
+                "n": 90,
                 "p50": 33,
                 "p95": 33,
                 "min": 31
               }
             },
             "dy120": {
-              "samples": 78,
-              "gated": 58,
-              "gatedShare": 0.744,
+              "samples": 91,
+              "gated": 61,
+              "gatedShare": 0.67,
               "gateReasons": {
-                "reprojection": 58
+                "reprojection": 61
               },
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
-                "n": 78,
-                "p50": 13.465,
+                "n": 91,
+                "p50": 13.477,
                 "p95": 14.834,
                 "p99": 14.854,
                 "max": 14.854
               },
               "rmsReprojectionMm": {
-                "n": 78,
+                "n": 91,
                 "p50": 5.776,
                 "p95": 6.289,
                 "p99": 6.31,
                 "max": 6.31
               },
               "inliers": {
-                "n": 78,
+                "n": 91,
                 "p50": 33,
                 "p95": 33,
                 "min": 30
@@ -17573,72 +17573,72 @@
             "roll15"
           ],
           "faceAngleDeg": [
-            -0.885,
-            -15.781,
-            -11.022,
-            -6.029,
+            -0.886,
+            -15.765,
+            -11.013,
+            -6.026,
             4.369,
             9.154,
             14.225
           ],
           "renderedAngleDeg": [
-            -0.384,
-            -15.855,
-            -10.819,
-            -5.482,
-            4.65,
-            9.363,
-            14.511
+            -0.383,
+            -15.835,
+            -10.823,
+            -5.479,
+            4.649,
+            9.364,
+            14.507
           ],
           "renderedPerFaceDeg": 1.006,
-          "eulerPitchPerFaceRollDeg": 0.018,
+          "eulerPitchPerFaceRollDeg": 0.019,
           "eulerYawPerFaceRollDeg": -0.041,
           "eulerRollPerFaceRollDeg": -1.005
         },
         "registration": {
-          "gainX": 0.995,
-          "gainY": 0.987,
+          "gainX": 0.996,
+          "gainY": 0.986,
           "offsetPxByCondition": {
             "still": [
-              0.05,
-              -11.716
+              0.044,
+              -11.749
             ],
             "dx-320": [
-              2.482,
-              -8.784
+              2.381,
+              -8.868
             ],
             "dx-160": [
-              0.758,
-              -8.006
+              0.761,
+              -8.298
             ],
             "dx160": [
-              -0.329,
-              -9.46
+              -0.325,
+              -9.413
             ],
             "dx320": [
-              -0.502,
-              -9.624
+              -0.498,
+              -9.64
             ],
             "dy-120": [
               -1.217,
               -12.044
             ],
             "dy120": [
-              -1.082,
-              -15.118
+              -1.127,
+              -15.126
             ]
           },
-          "interocularPx": 210.704
+          "interocularPx": 210.703
         },
         "scale": {
           "still": {
-            "faceWidthPx": 334.398,
-            "renderedWidthPx": 354.144,
+            "faceWidthPx": 334.4,
+            "renderedWidthPx": 354.168,
             "renderedOverFace": 1.059
           },
           "zoom0.75": {
             "faceWidthPx": 253.439,
-            "renderedWidthPx": 258.863,
+            "renderedWidthPx": 258.869,
             "renderedOverFace": 1.021
           },
           "zoom1.33": {
@@ -17654,7 +17654,7 @@
               "still": 1.059,
               "zoom1.33": null
             },
-            "maxChangeFromStillPercent": 3.555
+            "maxChangeFromStillPercent": 3.558
           },
           "product2": {
             "renderedOverFace": {},
@@ -17681,8 +17681,8 @@
       }
     },
     "bundle-size": {
-      "measuredAt": "2026-11-25T21:41:18.659Z",
-      "commit": "10c47ec8e8a043bb7f994fc2e09d2047c0882bba",
+      "measuredAt": "2026-11-25T22:38:31.869Z",
+      "commit": "26f6830ba85653795421e38c12a9d85257d60513",
       "dirty": false,
       "command": "node eval/perf/bundleBudget.mjs --write --label bundle-size",
       "input": "frontend production build (npm run build) with VITE_API_URL unset; sizes of the files in dist, brotli quality 11 and gzip level 9",
@@ -17767,6 +17767,134 @@
         },
         "otherJs": {
           "maxRawBytes": 0
+        }
+      },
+      "overBudget": []
+    },
+    "page-load": {
+      "measuredAt": "2026-11-25T22:42:19.895Z",
+      "commit": "26f6830ba85653795421e38c12a9d85257d60513",
+      "dirty": false,
+      "command": "node eval/perf/pageLoad.mjs --write --label page-load",
+      "kind": "lab",
+      "method": "median of 5 cold loads per page in Playwright Chromium; LCP, CLS and FCP from web-vitals; TBT from long tasks after FCP within 10000 ms; the try-on reads the stand-in clip as its camera",
+      "throttle": {
+        "cpuSlowdown": 4,
+        "latencyMs": 40,
+        "downloadBitsPerSecond": 9000000,
+        "uploadBitsPerSecond": 1500000
+      },
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "Darwin 25.6.0",
+        "browser": "Chromium 159.0.8154.6",
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "medians": {
+        "catalogue": {
+          "lcpMs": 532,
+          "cls": 0,
+          "fcpMs": 532,
+          "tbtMs": 0
+        },
+        "tryOn": {
+          "lcpMs": 620,
+          "cls": 0.0296,
+          "fcpMs": 544,
+          "tbtMs": 0
+        }
+      },
+      "runs": {
+        "catalogue": [
+          {
+            "lcpMs": 540,
+            "cls": 0,
+            "fcpMs": 540,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 544,
+            "cls": 0,
+            "fcpMs": 544,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 528,
+            "cls": 0,
+            "fcpMs": 528,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 524,
+            "cls": 0,
+            "fcpMs": 524,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 532,
+            "cls": 0,
+            "fcpMs": 532,
+            "tbtMs": 0,
+            "longTasks": 1
+          }
+        ],
+        "tryOn": [
+          {
+            "lcpMs": 620,
+            "cls": 0.029612070719401043,
+            "fcpMs": 548,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 624,
+            "cls": 0.029612070719401043,
+            "fcpMs": 544,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 612,
+            "cls": 0.029612070719401043,
+            "fcpMs": 544,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 620,
+            "cls": 0.029612070719401043,
+            "fcpMs": 536,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 616,
+            "cls": 0.029612070719401043,
+            "fcpMs": 544,
+            "tbtMs": 0,
+            "longTasks": 1
+          }
+        ]
+      },
+      "budgets": {
+        "basis": "Lab numbers, not field data: median of five cold loads in Chromium 159 with a 4x CPU slowdown and a 9 Mbit/s, 40 ms link. Measured on an Apple M4 Pro (run page-load in results.json) and in an emulated x86 Linux container with 2 CPUs: catalogue LCP 544 and 552 ms, try-on LCP 604 and 624 ms, CLS 0.030 and 0.028 on the try-on and 0 on the catalogue, TBT 0 ms. The budgets sit under the web.dev good thresholds (LCP 2500 ms, CLS 0.1, TBT 200 ms) with at least twice the measured LCP and three times the measured CLS, so a slower runner does not fail a build and a regression of that size does.",
+        "catalogue": {
+          "maxLcpMs": 1500,
+          "maxCls": 0.1,
+          "maxTbtMs": 150
+        },
+        "tryOn": {
+          "maxLcpMs": 1500,
+          "maxCls": 0.1,
+          "maxTbtMs": 150
         }
       },
       "overBudget": []
