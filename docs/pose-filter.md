@@ -42,7 +42,7 @@ The model matches constant-velocity motion, so the posterior and its prediction 
 
 ## Timing in the app
 
-Inference runs at camera rate (about 30 Hz) and rendering at display rate (60 Hz in the harness). Each trusted pose updates the filter at its frame's capture time. A frame without a face resets it; a gated frame does not, and the gap rule restarts the filter when the overlay was hidden longer than 200 ms. Each render predicts to the capture time of the newest frame the video has presented, which `requestVideoFrameCallback` reports before the render runs. That frame is what the overlay is composited over, and its landmarks are still in the worker for about one render, so the prediction covers the inference latency. Predicting to the render's own clock would put the overlay a render ahead of the video on every other render whenever the head moves. `VITE_POSE_FILTER` (`one-euro`, `kalman` or `off`; `one-euro` when unset) selects the filter at build time, and any other value fails the build; the harness records with `off`.
+Inference runs at camera rate (about 30 Hz) and rendering at display rate (60 Hz in the harness). Each trusted pose updates the filter at its frame's capture time. A frame without a face resets it; a gated frame does not, and the gap rule restarts the filter when the overlay was hidden longer than 200 ms. Each render predicts to the capture time of the newest frame the video has presented, which `requestVideoFrameCallback` reports before the render runs. That frame is what the overlay is composited over, and its landmarks are still in the worker for about one render, so the prediction covers the inference latency. Predicting to the render's own clock would put the overlay a render ahead of the video on every other render whenever the head moves. `VITE_POSE_FILTER` (`one-euro`, `kalman` or `off`; `kalman` when unset) selects the filter at build time, and any other value fails the build; the harness records with `off`.
 
 ## Measurement
 
@@ -50,7 +50,7 @@ Inference runs at camera rate (about 30 Hz) and rendering at display rate (60 Hz
 
 **Metrics.** Jitter is the RMS distance from a centred moving average over about 150 ms of what each render drew on rec-static, blinks masked. Lag is measured against the frame on screen at each render: on the step, the time from the first frame showing the step to the first render at 90% of it (median over the steps, which the 60 Hz renders quantize to about 17 ms); on the ramp and the sinusoid, the phase lag of the clip's fundamental, where the cross-correlation peaks for a pure delay. The position lag is the largest of the step lag and the delays on the three ramps, and the rotation lag the larger delay on the two rolls. A One Euro filter trails constant motion by $\tau(f_c)$ and its cutoff falls with speed, so the slowest clip can lag most; a lag from the fast ramp alone misses that. The 50 ms target for the step applies to every delay. Without any filter the step lag is one render: the first render after the step frame appears still has the old pose, because that frame's landmarks are in the worker.
 
-**Sweep.** A harness run per parameter set is too slow for hundreds of points, so the sweep replays two runs recorded with the filter off, one per MediaPipe configuration (`numFaces` 1 and 2), through the same filter code offline ([`poseReplay.mjs`](../eval/harness/poseReplay.mjs)): each shown pose sample updates the filter at its capture time, a lost face resets it, and each recorded render predicts to the newest presented frame. The warmup's events run first. Without a filter the replay reproduces every recorded render (`replayErrorPx`). Rotation parameters are swept first against rotation jitter and the rotation lag, then translation parameters with the chosen rotation against position jitter and position lag ([`poseFilterSweep.mjs`](../eval/harness/poseFilterSweep.mjs)). In each stage the operating point is the least jitter among points with a lag under 50 ms, and the sweep reports any parameter of it that sits on an edge of its grid. The live run with the chosen filter (`runs["pose-filter"]`) then checks the replay's prediction.
+**Sweep.** A harness run per parameter set is too slow for hundreds of points, so the sweep replays two runs recorded with the filter off, one per MediaPipe configuration (`numFaces` 2 in `runs["pose-filter-off"]`, 1 in `runs["pose-filter-off-1face"]`), through the same filter code offline ([`poseReplay.mjs`](../eval/harness/poseReplay.mjs)): each shown pose sample updates the filter at its capture time, a lost face resets it, and each recorded render predicts to the newest presented frame. The warmup's events run first. Without a filter the replay reproduces every recorded render (`replayErrorPx`). Rotation parameters are swept first against rotation jitter and the rotation lag, then translation parameters with the chosen rotation against position jitter and position lag ([`poseFilterSweep.mjs`](../eval/harness/poseFilterSweep.mjs)). In each stage the operating point is the least jitter among points with a lag under 50 ms, and the sweep reports any parameter of it that sits on an edge of its grid. The live run with the chosen filter (`runs["pose-filter"]`) then checks the replay's prediction.
 
 ![Jitter against lag](pose-filter.svg)
 
@@ -60,41 +60,43 @@ Each curve is the Pareto front of one filter's sweep on one MediaPipe configurat
 
 | | `pose-integration` | `pose-filter-off` | `pose-filter` | Replay | Target |
 |---|---|---|---|---|---|
-| Position jitter, rendered (px) | - | 1.43 | 0.95 | 0.96 | at most 0.5 |
-| Position jitter, per frame (px) | 1.47 | 1.49 | 0.76 | - |  |
-| Rotation jitter, rendered (deg) | - | 0.251 | 0.150 | 0.166 | at most 0.1 |
-| Rotation jitter, per frame (deg) | 0.220 | 0.266 | 0.141 | - |  |
-| Step lag to 90%, median / max (ms) | - | 16.7 / 36.1 | 35.4 / 69.2 | 35.6 / 36.1 | under 50 |
-| Step overshoot, median (%) | - | 0.5 | 8.6 | 8.4 |  |
-| Ramp delay (ms) | - | 20.9 | 49.5 | 49.5 | under 50 |
-| Roll delay (ms) | - | 41.7 | 45.8 | 45.7 | under 50 |
-| Blink shift, median (px) | 4.16 | 4.16 | 4.78 | 4.76 |  |
-| Gated share, still and recorded clips | 0.000 | 0.000 | 0.000 | - |  |
+| `numFaces` | 1 | 2 | 2 | 2 | |
+| Position jitter, rendered (px) | - | 1.64 | 1.92 | 1.60 | at most 0.5 |
+| Position jitter, per frame (px) | 1.47 | 1.68 | 1.27 | - | |
+| Rotation jitter, rendered (deg) | - | 0.748 | 0.317 | 0.290 | at most 0.1 |
+| Rotation jitter, per frame (deg) | 0.220 | 0.788 | 0.262 | - | |
+| Step lag to 90%, median / max (ms) | - | 26.9 / 37.0 | 35.5 / 50.2 | 36.8 / 68.7 | under 50 |
+| Step overshoot, median (%) | - | 0.6 | 36.7 | 37.9 | |
+| Ramp delay at 240 / 60 / 30 px/s (ms) | - | 29.8 / 26.4 / 27.6 | 1.2 / -0.5 / 0.1 | 1.0 / -0.2 / 0.0 | under 50 |
+| Roll delay, fast / slow (ms) | - | 33.7 / 21.3 | 18.3 / 2.9 | 20.6 / 1.5 | under 50 |
+| Blink shift, median (px) | 4.16 | 4.94 | 6.66 | 6.65 | |
+| Gated share, still and recorded clips | 0.000 | 0.000 | 0.000 | - | |
+| Worker inference p50, still / rec-static (ms) | 10.3 / 12.3 | 14.4 / 16.5 | 15.5 / 16.3 | - | |
 
-`pose-integration` is the last run before filtering, `pose-filter-off` this branch with the filter off, `pose-filter` the chosen filter live, and Replay the sweep's value for the same point. Apple M4 Pro, HeadlessChrome 158.0.0.0, GPU delegate, 1280x720 at 60 Hz rendering; rec-static is 10 s (553 renders, 277 pose samples, 1 blink masked), each motion clip 8 s with 8 steps on step-x. Per-frame jitter is the filtered pose at each frame's capture time, the quantity `pose-integration` measured; rendered jitter is what the screen shows.
+`pose-integration` is the last run before filtering, `pose-filter-off` this branch with the filter off, `pose-filter` the shipped filter live, and Replay the sweep's value for the same point. Apple M4 Pro on AC power, HeadlessChrome 158.0.0.0, GPU delegate, 1280x720 at 60 Hz rendering; rec-static is 10 s (555 renders, 278 pose samples, 1 blink masked live), each motion clip 8 s with 8 steps on step-x. Per-frame jitter is the filtered pose at each frame's capture time, the quantity `pose-integration` measured; rendered jitter is what the screen shows.
 
-**Choice.** The One Euro filter with rotation $f_\text{min}$ = 0.02 Hz, $\beta$ = 30 Hz per rad/s, $f_d$ = 1 Hz, and translation $f_\text{min}$ = 0.02 Hz, $\beta$ = 0.03 Hz per mm/s, $f_d$ = 2 Hz (`ONE_EURO_OPTIONS`). Among the operating points of both filters and both MediaPipe configurations it is the one with both lags under 50 ms and the smallest worst ratio of jitter to target (`recommended` in the sweep). It meets the step lag target and neither jitter target. The curves show what the targets cost: the One Euro front reaches 0.49 px at 136 ms of position lag and 0.100 degrees at 86 ms of roll delay. The Kalman filter does better on rotation, 0.131 degrees at 35 ms of roll delay and 0.103 at 54 ms, since the roll is smooth and its model predicts it. On position it barely smooths within 50 ms (1.42 px) and overshoots the step by 37%, so it loses overall. The One Euro point overshoots the step by about 8%: after a jump the speed estimate is large and the prediction carries the overlay past.
+**Choice.** The Kalman filter with $\sigma_\alpha$ = 0.139 rad/s² per √Hz and $\sigma_a$ = 64.6 mm/s² per √Hz, and the measurement noise of the solved poses on rec-static with two faces, $\sigma_\theta$ = 0.00888 rad and $\sigma_{x,y,z}$ = 0.878, 0.620, 2.853 mm (`KALMAN_OPTIONS`, the default `VITE_POSE_FILTER`). Among the operating points of both filters and both MediaPipe configurations it is the one with both worst-case lags under 50 ms and the smallest worst ratio of jitter to target (`recommended` in the sweep): 3.20, against 3.35 for the One Euro point (rotation $f_\text{min}$ = 0.2 Hz, $\beta$ = 100 Hz per rad/s, $f_d$ = 0.25 Hz; translation $f_\text{min}$ = 4 Hz, $\beta$ = 0.01 Hz per mm/s, $f_d$ = 2 Hz; `ONE_EURO_OPTIONS`), which has 1.21 px and 0.335 degrees at 36.8 and 49.3 ms. Neither meets a jitter target. No point on any front reaches 0.5 px (the least is 0.57 px, at over 500 ms of lag), and with two faces the rotation fronts reach 0.1 degrees only past 300 ms (317 ms One Euro, 337 ms Kalman).
 
-The live run matches the replay except for rotation jitter, 0.150 against 0.166 degrees, which also varies between runs without a filter (per frame, 0.220 in `pose-integration` and 0.266 in `pose-filter-off`). One of the eight live steps took 69 ms to reach 90%; the median is 35 ms.
+The Kalman filter's constant-velocity model follows the ramps and rolls with almost no delay, so its rotation smoothing costs little lag. It gives up three things the One Euro point keeps. It barely smooths position: the step lag bounds its acceleration noise (the next smoother point takes 69 ms to reach 90%), and the prediction to the frame on screen adds noise back (live, 1.27 px per frame against 1.92 px rendered). It overshoots the step by 37%, and it raises the blink shift from 4.94 to 6.66 px. The two points are close on the selection rule, and the Kalman filter's rendered position jitter varies between runs: the raw per-frame jitter was the same in `pose-filter-off` and `pose-filter` (1.68 px, 0.788 degrees), yet the Kalman filter drew 1.60 px in the replay and 1.92 px live, more than without a filter. The prediction amplifies landmark noise by an amount that depends on how the noise is correlated over a few frames, which differs from run to run.
 
 **Limits.** The motion clips move one recorded frame in the image plane: translation along x and roll about the viewing axis. They give the filter known motion but cover neither yaw, pitch nor depth, nor how the landmark model responds to a real moving face. rec-static is one recording of one person, and its high-pass jitter includes any real head motion above a few hertz. The replay reproduces the unfiltered renders exactly, but landmark noise differs from run to run, so the live and replayed values of the chosen point differ by that much.
 
 ## MediaPipe's landmark filter
 
-With `numFaces` 1, FaceLandmarker smooths landmarks with its own One Euro filter before the solver sees them, and with 2 it does not ([perception README](../frontend/src/perception/README.md)). Our filter stacks on top of it either way.
-
-Measured with the filter off on the same machine (`runs["pose-filter-off"]` and `runs["pose-filter-off-2faces"]`, 10 s of rec-static and 8 s of each motion clip), with the operating points of the sweep for each configuration:
+With `numFaces` 1, FaceLandmarker smooths landmarks with its own One Euro filter before the solver sees them, and with 2 it does not ([perception README](../frontend/src/perception/README.md)). Measured with the filter off on the same machine (`runs["pose-filter-off-1face"]` and `runs["pose-filter-off"]`, 10 s of rec-static and 8 s of each motion clip), with the operating points of the sweep for each configuration:
 
 | | `numFaces` 1 | `numFaces` 2 |
 |---|---|---|
-| Landmark 168 jitter, still (px) | 0.010 | 0.288 |
+| Landmark 168 jitter, still (px) | 0.009 | 0.288 |
 | Landmark 168 jitter, rec-static (px) | 1.46 | 1.58 |
-| Solved rotation jitter, rec-static (deg) | 0.266 | 0.790 |
+| Solved rotation jitter, rec-static (deg) | 0.229 | 0.788 |
 | Landmark lag on the step (ms) | 0.0 | 0.0 |
-| Landmark 168 delay on the ramp (ms) | 3.2 | -0.1 |
-| Eye-line delay on the roll (ms) | 26.0 | 0.3 |
-| Inference p50 on the still clip (ms) | 12.1 | 16.0 |
-| One Euro operating point: position (px) / rotation (deg) | 0.96 / 0.166 | 1.09 / 0.274 |
-| Kalman operating point: position (px) / rotation (deg) | 1.42 / 0.131 | 1.62 / 0.217 |
+| Landmark 168 delay on the ramps, 240 / 60 / 30 px/s (ms) | 3.3 / 12.0 / 23.2 | 0.0 / -0.6 / -1.7 |
+| Eye-line delay on the rolls, fast / slow (ms) | 26.3 / 108.6 | 0.6 / -4.0 |
+| Worker inference p50, still / rec-static (ms) | 10.6 / 10.5 | 14.4 / 16.5 |
+| One Euro operating point: position (px) / rotation (deg) | 1.19 / 0.297 | 1.21 / 0.335 |
+| Its worst position / rotation lag (ms) | 41.0 / 114.2 | 36.8 / 49.3 |
+| Kalman operating point: position (px) / rotation (deg) | 1.63 / 0.282 | 1.60 / 0.290 |
+| Its worst position / rotation lag (ms) | 35.6 / 109.1 | 36.8 / 20.6 |
 
-**Recommendation: keep `numFaces` 1.** MediaPipe's filter delays the landmarks by 26 ms on the roll and 3 ms on the ramp, and not measurably on the step. It also removes most of the landmark noise that drives rotation; without it the solved rotation on rec-static is about three times noisier. Our filter cannot win that back within the lag target; with two faces both filters' operating points are worse on both axes. Two faces also run the face detector on every frame, which raised median inference on the still clip from 12.1 to 16.0 ms.
+**`numFaces` changed from 1 to 2.** MediaPipe's filter lowers its cutoff at low speed, so it delays slow motion most: 23 ms on the 30 px/s ramp and 109 ms on the slow roll, against 3 and 26 ms on the fast clips. Our filter stacks on that delay, so with one face no operating point of either filter gets the rotation lag under 50 ms (the best is 109 ms), and the selection, which then takes the least lag, sits at the top of the One Euro grid. With two faces the landmarks show no delay on any clip and both filters meet every lag target, so our filter sets all of the lag. The cost: the landmarks are noisier (0.009 to 0.288 px on the still clip; solved rotation on rec-static 0.229 to 0.788 degrees), the face detector runs on every frame where fewer than two faces are tracked, which raised worker inference from 10.6 to 14.4 ms on the still clip and from 10.5 to 16.5 ms on rec-static, and the blink shift rose from 4.16 to 4.94 px. Against `pose-integration` (one face, no filter), per-frame jitter is 1.27 px and 0.262 degrees live against 1.47 px and 0.220 degrees then. On the slow roll the overlay trails by 2.9 ms live against 126 ms with one face and no filter (`pose-filter-off-1face`). With more than one face in view the overlay follows the largest ([perception README](../frontend/src/perception/README.md)).
