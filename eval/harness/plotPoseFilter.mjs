@@ -108,8 +108,8 @@ export const renderPlot = (sweep) => {
   const footY = legendY + 24;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${footY + 10}" font-family="sans-serif" font-size="12">
 <rect width="100%" height="100%" fill="white"/>
-${panel({ x0: 0, title: 'Position: rec-static jitter against lag', xLabel: 'larger of step lag to 90% and ramp delay, ms', yLabel: 'high-pass jitter of the bridge anchor, px', series: series('translation'), markers: markers('translation', positionLagOf, positionJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.positionJitterPx } })}
-${panel({ x0: PANEL.left + PANEL.width + PANEL.gap, title: 'Rotation: rec-static jitter against roll delay', xLabel: 'delay on the roll sinusoid, ms', yLabel: 'high-pass rotation jitter, deg', series: series('rotation'), markers: markers('rotation', rotationLagOf, rotationJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.rotationJitterDeg } })}
+${panel({ x0: 0, title: 'Position: rec-static jitter against lag', xLabel: 'largest of step lag to 90% and the three ramp delays, ms', yLabel: 'high-pass jitter of the bridge anchor, px', series: series('translation'), markers: markers('translation', positionLagOf, positionJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.positionJitterPx } })}
+${panel({ x0: PANEL.left + PANEL.width + PANEL.gap, title: 'Rotation: rec-static jitter against roll delay', xLabel: 'larger delay on the two roll sinusoids, ms', yLabel: 'high-pass rotation jitter, deg', series: series('rotation'), markers: markers('rotation', rotationLagOf, rotationJitterOf), targets: { x: sweep.targets.lagMs, y: sweep.targets.rotationJitterDeg } })}
 ${legend.join('\n')}
 <text x="${PANEL.left}" y="${footY}" fill="#555">${escape(`Replayed from runs recorded with the filter off (${sweep.configurations.map((c) => c.label).join(', ')}), commit ${sweep.commit.slice(0, 9)}. Square: no filter.`)}</text>
 </svg>
