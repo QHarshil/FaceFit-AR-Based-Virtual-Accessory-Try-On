@@ -162,7 +162,7 @@ test('findBlinks and blinkShift locate a dip and its displacement', () => {
 
 test('probe landmark order matches the app', async () => {
   const { readFile } = await import('node:fs/promises');
-  const source = await readFile(new URL('../../frontend/src/components/ARTryOn.tsx', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../frontend/src/rendering/overlayProbe.ts', import.meta.url), 'utf8');
   const match = source.match(/PROBE_LANDMARKS = \[([^\]]+)\]/);
   assert.deepEqual(match[1].split(',').map(Number), PROBE_ORDER);
 });
