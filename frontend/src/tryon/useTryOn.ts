@@ -1,5 +1,5 @@
 import { useActorRef, useSelector } from '@xstate/react';
-import { useState, useSyncExternalStore, type RefObject } from 'react';
+import { useLayoutEffect, useState, useSyncExternalStore, type RefObject } from 'react';
 import { createPoseStream } from '../tracking/poseStream';
 import { createTryOnActors, type TryOnDeps } from './actors';
 import { tryOnMachine } from './machine';
@@ -16,7 +16,7 @@ const poseShownOf = (stream: ReturnType<typeof createPoseStream>) => () =>
 export const useTryOn = (
   productId: number | null,
   videoRef: RefObject<HTMLVideoElement | null>,
-  deps: Partial<Pick<TryOnDeps, 'getProduct'>> = {},
+  deps: Partial<Pick<TryOnDeps, 'getProduct' | 'detectPhoto'>> = {},
 ) => {
   const [poseStream] = useState(() => createPoseStream());
   const [machine] = useState(() =>
@@ -25,6 +25,14 @@ export const useTryOn = (
     }),
   );
   const actor = useActorRef(machine, { input: { productId } });
+  // Layout cleanups run before useActorRef's passive one stops the actor,
+  // which keeps its last snapshot, photo included.
+  useLayoutEffect(
+    () => () => {
+      actor.send({ type: 'VIEW_CLOSED' });
+    },
+    [actor],
+  );
   const machineStatus = useSelector(actor, statusOf);
   const poseShown = useSyncExternalStore(poseStream.subscribe, poseShownOf(poseStream));
   return {

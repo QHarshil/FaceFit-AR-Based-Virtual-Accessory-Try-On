@@ -56,7 +56,8 @@ export type TryOnEvent =
   | { type: 'USE_PHOTO' }
   | { type: 'USE_CAMERA' }
   | { type: 'PHOTO_SELECTED'; photo: Blob }
-  | { type: 'RETRY_PHOTO' };
+  | { type: 'RETRY_PHOTO' }
+  | { type: 'VIEW_CLOSED' };
 
 /** Commands the camera and perception actors receive while the page is hidden and shown. */
 export type PauseCommand = { type: 'PAUSE' } | { type: 'RESUME' };
@@ -148,6 +149,10 @@ export const tryOnMachine = tryOnSetup.createMachine({
     photo: null,
   }),
   initial: 'product',
+  // Sent by the view as it unmounts. A stopped actor keeps its last
+  // snapshot and XState runs no exit actions on stop, so the photo is
+  // dropped here.
+  on: { VIEW_CLOSED: { actions: assign({ photo: null }) } },
   states: {
     product: {
       initial: 'loading',
@@ -445,6 +450,7 @@ export const tryOnMachine = tryOnSetup.createMachine({
 
             photo: {
               on: { USE_CAMERA: '#tryOn.session.source.live' },
+              exit: assign({ photo: null }),
               initial: 'choosing',
               states: {
                 choosing: { on: { PHOTO_SELECTED: choosePhoto } },

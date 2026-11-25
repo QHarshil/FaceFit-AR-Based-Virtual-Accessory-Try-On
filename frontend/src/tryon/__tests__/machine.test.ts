@@ -260,9 +260,21 @@ const EDGES: EdgeCase[] = [
   },
   {
     edge: 'source.photo USE_CAMERA -> source.live',
-    from: photo(),
+    from: photoResult({ faceFound: true }),
     fire: fire({ type: 'USE_CAMERA' }),
     to: camera({ active: 'requesting' }),
+    check: (run) => {
+      expect(run.actor.getSnapshot().context.photo).toBeNull();
+    },
+  },
+  {
+    edge: 'tryOn VIEW_CLOSED -> self',
+    from: photoResult({ faceFound: true }),
+    fire: fire({ type: 'VIEW_CLOSED' }),
+    to: photoIn('showing'),
+    check: (run) => {
+      expect(run.actor.getSnapshot().context.photo).toBeNull();
+    },
   },
 
   // Visibility.
