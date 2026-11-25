@@ -86,12 +86,18 @@ describe('createOverlayPose', () => {
   });
 });
 
+interface SweepPoint {
+  chosen: { params: unknown };
+}
+
 interface SweepSummary {
-  recommended: { filter: 'oneEuro' | 'kalman'; numFaces: number; params: unknown };
+  configurations: { numFaces: number; oneEuro: SweepPoint; kalman: SweepPoint }[];
 }
 
 describe('the shipped filter', () => {
-  it('is the operating point the sweep recommends for the configured numFaces', () => {
+  // The sweep's rule picked the Kalman point; the live run overrode it
+  // (docs/pose-filter.md). Both option sets stay the sweep's operating points.
+  it('is One Euro, and each filter runs at its swept point for the configured numFaces', () => {
     // A path, not new URL(..., import.meta.url), which Vite rewrites to a served URL outside its root.
     const resultsFile = join(
       dirname(fileURLToPath(import.meta.url)),
@@ -100,12 +106,12 @@ describe('the shipped filter', () => {
     const results = JSON.parse(readFileSync(resultsFile, 'utf8')) as {
       runs: Record<string, SweepSummary>;
     };
-    const { recommended } = results.runs['pose-filter-sweep']!;
-    expect(recommended.numFaces).toBe(NUM_FACES);
-    expect(DEFAULT_POSE_FILTER).toBe(recommended.filter === 'oneEuro' ? 'one-euro' : 'kalman');
-    expect(DEFAULT_POSE_FILTER === 'kalman' ? KALMAN_OPTIONS : ONE_EURO_OPTIONS).toEqual(
-      recommended.params,
-    );
+    const swept = results.runs['pose-filter-sweep']!.configurations.find(
+      (c) => c.numFaces === NUM_FACES,
+    )!;
+    expect(DEFAULT_POSE_FILTER).toBe('one-euro');
+    expect(ONE_EURO_OPTIONS).toEqual(swept.oneEuro.chosen.params);
+    expect(KALMAN_OPTIONS).toEqual(swept.kalman.chosen.params);
   });
 
   // A head moving 16 mm/s along x, about 30 px/s on screen at the recorded

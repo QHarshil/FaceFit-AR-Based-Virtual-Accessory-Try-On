@@ -15,7 +15,7 @@ export const POSE_FILTER = parsePoseFilterSetting(import.meta.env.VITE_POSE_FILT
  * Operating points of each filter for `numFaces` 2 from the parameter sweep,
  * `runs["pose-filter-sweep"]` in eval/results.json: the least jitter on the
  * recorded still clip with the worst lag across speeds under 50 ms
- * (docs/pose-filter.md). The sweep recommends the Kalman filter.
+ * (docs/pose-filter.md).
  */
 export const ONE_EURO_OPTIONS: OneEuroPoseOptions = {
   rotation: { minCutoffHz: 0.2, beta: 100, derivativeCutoffHz: 0.25 },

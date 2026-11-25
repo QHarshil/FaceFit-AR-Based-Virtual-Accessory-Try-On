@@ -291,24 +291,32 @@ export const readSweepDetail = (resultsFile, summary) => {
   return detail;
 };
 
+// Largest page-pixel distance between what `run` drew at each render and
+// what the replay with `createFilter` draws there. Throws when the replay
+// draws fewer renders than the run, beyond the few before the first measured
+// pose of a run without warmup events.
+export const renderReplayErrorPx = (run, createFilter, id = 'run') => {
+  const { renders } = replayRun(run, createFilter);
+  const all = run.events.filter((e) => e.stage === 'renderedPose');
+  const missing = all.length - renders.length;
+  if (missing > (run.warmupEvents ? 0 : 3)) throw new Error(`${id}: the replay drew ${missing} renders fewer than the run`);
+  const recorded = all.slice(-renders.length || Infinity);
+  const [vw, vh] = run.environment.viewport;
+  let worst = 0;
+  renders.forEach((r, i) => {
+    const [x, y] = recorded[i].centerNdc;
+    worst = Math.max(worst, Math.hypot(r.centerPx[0] - ((x + 1) / 2) * vw, r.centerPx[1] - ((1 - y) / 2) * vh));
+  });
+  return worst;
+};
+
+/** renderReplayErrorPx over every condition the sweep replays. */
+export const replayErrorPx = (runs, createFilter) => Math.max(...CONDITIONS.map((id) => renderReplayErrorPx(runs[id], createFilter, id)));
+
 // The unfiltered replay must draw what the run drew; otherwise the replay
 // does not model the app and the sweep means nothing.
 const replayCheck = (runs) => {
-  let worst = 0;
-  for (const id of CONDITIONS) {
-    const run = runs[id];
-    const { renders } = replayRun(run, () => null);
-    // Without warmup events the replay has no pose for the renders before
-    // the first measured pose sample.
-    const recorded = run.events.filter((e) => e.stage === 'renderedPose').slice(-renders.length || Infinity);
-    const missing = run.events.filter((e) => e.stage === 'renderedPose').length - renders.length;
-    if (missing > (run.warmupEvents ? 0 : 3)) throw new Error(`${id}: the replay drew ${missing} renders fewer than the run`);
-    const [vw, vh] = run.environment.viewport;
-    renders.forEach((r, i) => {
-      const [x, y] = recorded[i].centerNdc;
-      worst = Math.max(worst, Math.hypot(r.centerPx[0] - ((x + 1) / 2) * vw, r.centerPx[1] - ((1 - y) / 2) * vh));
-    });
-  }
+  const worst = replayErrorPx(runs, () => null);
   if (worst > 1e-3) throw new Error(`unfiltered replay is ${worst} px off the recorded renders`);
   return worst;
 };

@@ -5,9 +5,10 @@ import { matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrix
 import { seededRandom } from '../../packages/cv/test/random.ts';
 import { renderPlot } from './plotPoseFilter.mjs';
 import {
-  gridEdges, operatingPoint, paretoFront, positionLagOf, readSweepDetail, recommend, rotationLagOf, solvedPoseNoise, SWEEP_DETAIL, SWEEP_KEY,
-  sweepSummary, TARGETS,
+  gridEdges, operatingPoint, paretoFront, positionLagOf, readSweepDetail, recommend, renderReplayErrorPx, rotationLagOf, solvedPoseNoise, SWEEP_DETAIL,
+  SWEEP_KEY, sweepSummary, TARGETS,
 } from './poseFilterSweep.mjs';
+import { replayedPoint } from './poseFilterReplayCheck.mjs';
 import { pageProjection, replayRun } from './poseReplay.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -244,4 +245,28 @@ test('the recommended point keeps every lag under the target, the 30 px/s ramp i
   assert.ok(point.positionLagMs < TARGETS.lagMs);
   assert.ok(point.rotationLagMs < TARGETS.lagMs);
   assert.deepEqual(point.chosenAtGridEdge, { rotation: [], translation: [] });
+});
+
+test('renderReplayErrorPx is zero for the filter a run drew with and not for another', () => {
+  const run = syntheticRun(30);
+  const params = { rotation: { minCutoffHz: 1, beta: 0.1, derivativeCutoffHz: 1 }, translation: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } };
+  const { renders } = replayRun(run, () => oneEuroPose(params));
+  const [vw, vh] = run.environment.viewport;
+  // Record what the filter drew as the run's own renders, in NDC as the app
+  // probes them; the app records no render while it has no pose.
+  const byTime = new Map(renders.map((r) => [r.t, r]));
+  const drawn = run.events.flatMap((e) => {
+    if (e.stage !== 'renderedPose') return [e];
+    const r = byTime.get(e.t);
+    return r ? [{ ...e, centerNdc: [(2 * r.centerPx[0]) / vw - 1, 1 - (2 * r.centerPx[1]) / vh] }] : [];
+  });
+  const filtered = { ...run, events: drawn };
+  assert.ok(renderReplayErrorPx(filtered, () => oneEuroPose(params)) < 1e-9);
+  assert.ok(renderReplayErrorPx(filtered, () => null) > 1);
+});
+
+test('replayedPoint reports what the sweep selects on', () => {
+  const point = replayedPoint({ ...lagMetrics(1.2, 0.3, 40, 30), stepOvershootPercent: 9, blinkShiftPx: 4.9 });
+  close(point.worstJitterRatio, 3);
+  assert.deepEqual({ ...point, worstJitterRatio: 3 }, { positionJitterPx: 1.2, rotationJitterDeg: 0.3, worstJitterRatio: 3, positionLagMs: 40, rotationLagMs: 30, stepOvershootPercent: 9, blinkShiftPx: 4.9 });
 });

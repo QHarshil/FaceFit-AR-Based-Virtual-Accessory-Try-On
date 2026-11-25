@@ -3,8 +3,11 @@ export const POSE_FILTER_SETTINGS = ['off', 'one-euro', 'kalman'] as const;
 
 export type PoseFilterSetting = (typeof POSE_FILTER_SETTINGS)[number];
 
-/** The filter the parameter sweep recommends (docs/pose-filter.md). */
-export const DEFAULT_POSE_FILTER: PoseFilterSetting = 'kalman';
+/**
+ * The sweep's rule picked the Kalman filter, but live it drew more position
+ * jitter than no filter and overshot steps by 37% (docs/pose-filter.md).
+ */
+export const DEFAULT_POSE_FILTER: PoseFilterSetting = 'one-euro';
 
 const isPoseFilterSetting = (value: string): value is PoseFilterSetting =>
   (POSE_FILTER_SETTINGS as readonly string[]).includes(value);
