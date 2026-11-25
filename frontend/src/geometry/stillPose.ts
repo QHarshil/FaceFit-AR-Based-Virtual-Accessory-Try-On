@@ -9,8 +9,13 @@
 import type { LandmarkFrame } from '../perception/types';
 import { createHeadPoseTracker, type HeadPoseEstimate } from './headPose';
 
-/** Horizontal fields of view tried for a photo, in degrees. */
-export const STILL_FOV_CANDIDATES_DEG = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70] as const;
+/**
+ * Horizontal fields of view tried for a photo, in degrees: long lenses to
+ * the wide front cameras of phones.
+ */
+export const STILL_FOV_CANDIDATES_DEG = [
+  15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90,
+] as const;
 
 export interface StillPose {
   estimate: HeadPoseEstimate;

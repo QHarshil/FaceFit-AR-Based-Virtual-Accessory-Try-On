@@ -45,7 +45,8 @@ const glassesPixels = (pose: HeadPose, intrinsics: CameraIntrinsics) =>
   });
 
 describe('solveStillPose', () => {
-  it.each([20, 30, 45, 60])(
+  // 80 and 90 degrees are wide phone front cameras.
+  it.each([20, 25, 30, 45, 60, 80, 90])(
     'places the glasses where the true pose puts them for a %d degree lens',
     (trueFovDeg) => {
       const truthIntrinsics = intrinsicsAt(trueFovDeg);
