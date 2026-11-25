@@ -24,11 +24,12 @@ export interface LandmarkFrame {
   /**
    * The tracked face (perception/faceSelection.ts) as interleaved x, y, z. x
    * and y are normalized to the frame width and height; z uses roughly the
-   * same scale as x, smaller is closer to the camera. Empty when `faceCount`
-   * is 0.
+   * same scale as x, smaller is closer to the camera. Empty when no face is
+   * tracked in this frame: none was detected, or the tracked face was missed
+   * while others were found.
    */
   landmarks: Float32Array;
-  /** Faces detected in the frame. */
+  /** Faces detected in the frame, the tracked one included. */
   faceCount: number;
   /**
    * Identity of the tracked face, null when the frame has none. It changes

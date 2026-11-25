@@ -100,9 +100,12 @@ export const isLandmarkFrame = (value: unknown): value is LandmarkFrame => {
   }
   if (!Number.isInteger(faceCount) || (faceCount as number) < 0) return false;
   if (!(landmarks instanceof Float32Array)) return false;
-  const expected = faceCount === 0 ? 0 : LANDMARK_COUNT * LANDMARK_STRIDE;
-  if (landmarks.length !== expected) return false;
-  return expected === 0 ? trackId === null : isIndex(trackId);
+  if (landmarks.length === 0) return trackId === null;
+  return (
+    landmarks.length === LANDMARK_COUNT * LANDMARK_STRIDE &&
+    (faceCount as number) >= 1 &&
+    isIndex(trackId)
+  );
 };
 
 export const isWorkerRequest = (value: unknown): value is WorkerRequest => {

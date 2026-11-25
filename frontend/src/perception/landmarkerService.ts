@@ -135,7 +135,7 @@ export const toLandmarkFrame = (
       width,
       height,
       landmarks: new Float32Array(0),
-      faceCount: 0,
+      faceCount: result.faceLandmarks.length,
       trackId: null,
     };
   }

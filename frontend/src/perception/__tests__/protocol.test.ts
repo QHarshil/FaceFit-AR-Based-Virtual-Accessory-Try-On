@@ -33,9 +33,12 @@ describe('LandmarkFrame', () => {
     expect(isLandmarkFrame(emptyFrame())).toBe(true);
   });
 
+  it('accepts faces detected without a tracked one, while the tracked face is missed', () => {
+    expect(isLandmarkFrame({ ...emptyFrame(), faceCount: 1 })).toBe(true);
+  });
+
   it('rejects a face count that does not match the landmark buffer', () => {
     expect(isLandmarkFrame({ ...faceFrame(), faceCount: 0 })).toBe(false);
-    expect(isLandmarkFrame({ ...emptyFrame(), faceCount: 1 })).toBe(false);
     expect(isLandmarkFrame({ ...faceFrame(), landmarks: new Float32Array(468 * 3) })).toBe(false);
     expect(isLandmarkFrame({ ...faceFrame(), landmarks: Array.from(faceFrame().landmarks) })).toBe(
       false,
