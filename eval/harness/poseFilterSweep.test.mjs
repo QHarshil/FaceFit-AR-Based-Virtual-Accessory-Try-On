@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrixFromVector } from '../../packages/cv/src/index.ts';
+import { DEFAULT_MAX_GAP_MS, DEFAULT_MAX_STALE_MS, matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrixFromVector } from '../../packages/cv/src/index.ts';
 import { seededRandom } from '../../packages/cv/test/random.ts';
 import { renderPlot } from './plotPoseFilter.mjs';
 import {
@@ -146,24 +146,24 @@ test('replayRun predicts each render to the newest presented frame and resets on
   assert.deepEqual(frames[20].centerPx, project(solvedPose(poses[21]), bridge));
 });
 
-test('replayRun skips the renders the app skips once the newest frame is past the filter gap', () => {
-  const run = syntheticRun(40);
-  // Frames 20 to 29 are gated without losing the face: 333 ms with no pose.
-  run.events = run.events.map((e) => (e.stage === 'glassesPose' && e.frameTimestampMs >= 20 * 33.3 - 1 && e.frameTimestampMs < 30 * 33.3 - 1
+test('replayRun holds the capped pose past the filter gap and skips renders past the staleness limit', () => {
+  const run = syntheticRun(80);
+  // Frames 20 to 69 are gated without losing the face: 1.67 s with no pose.
+  run.events = run.events.map((e) => (e.stage === 'glassesPose' && e.frameTimestampMs >= 20 * 33.3 - 1 && e.frameTimestampMs < 70 * 33.3 - 1
     ? { ...e, gated: true, gateReason: 'rms', headPose: null }
     : e));
   const params = { rotation: { minCutoffHz: 1, beta: 0.1, derivativeCutoffHz: 1 }, translation: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } };
   const unfiltered = replayRun(run, () => null);
   const filtered = replayRun(run, () => oneEuroPose(params));
-  // The last pose is frame 19 at 633 ms; renders predict to frames up to 200 ms after it.
   const lastPose = 19 * 33.3;
-  const skipped = run.events.filter((e) => e.stage === 'renderedPose' && e.t > lastPose + 15 && e.t < 30 * 33.3 + 15)
-    .filter((e) => {
-      const presented = Math.max(...run.events.filter((c) => c.stage === 'capture' && c.start <= e.t).map((c) => c.timestampMs));
-      return presented - lastPose > 200;
-    });
+  const ageAt = (t) => Math.max(...run.events.filter((c) => c.stage === 'capture' && c.start <= t).map((c) => c.timestampMs)) - lastPose;
+  const gapRenders = run.events.filter((e) => e.stage === 'renderedPose' && e.t > lastPose + 15 && e.t < 70 * 33.3 + 15);
+  const skipped = gapRenders.filter((e) => ageAt(e.t) > DEFAULT_MAX_STALE_MS);
   assert.ok(skipped.length > 0);
   assert.equal(filtered.renders.length, unfiltered.renders.length - skipped.length);
+  const held = new Set(gapRenders.filter((e) => ageAt(e.t) > DEFAULT_MAX_GAP_MS && ageAt(e.t) <= DEFAULT_MAX_STALE_MS)
+    .map((e) => filtered.renders.find((r) => r.t === e.t).centerPx.join(',')));
+  assert.equal(held.size, 1);
 });
 
 test('replayRun runs the warmup first and keeps only the measured output', () => {
