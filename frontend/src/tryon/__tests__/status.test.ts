@@ -112,6 +112,33 @@ describe('statusOf', () => {
     expect(statusOf(run.actor.getSnapshot())).toBe('tracking');
   });
 
+  it.each([
+    ['before', [{ type: 'MODEL_LOADED' }, { type: 'CONTEXT_LOST' }]],
+    ['after', [{ type: 'CONTEXT_LOST' }, { type: 'MODEL_LOADED' }]],
+  ] as const)(
+    'shows a lost context with its reload action when the model loads %s the loss',
+    async (_order, overlayEvents) => {
+      const run = startTryOn();
+      await after({ type: 'CAMERA_READY' }, { type: 'PERCEPTION_READY' }, ...overlayEvents)(run);
+      expect(statusOf(run.actor.getSnapshot())).toBe('contextLost');
+      run.send({ type: 'CONTEXT_RESTORED' });
+      expect(statusOf(run.actor.getSnapshot())).toBe('searching');
+    },
+  );
+
+  it('shows the 3D frame loading again when the context returns before the model', async () => {
+    const run = startTryOn();
+    await after(
+      { type: 'CAMERA_READY' },
+      { type: 'PERCEPTION_READY' },
+      { type: 'CONTEXT_LOST' },
+      { type: 'CONTEXT_RESTORED' },
+    )(run);
+    expect(statusOf(run.actor.getSnapshot())).toBe('glassesLoading');
+    run.send({ type: 'MODEL_FAILED' });
+    expect(statusOf(run.actor.getSnapshot())).toBe('glassesFailed');
+  });
+
   it('asks for the camera before the model finishes loading', async () => {
     const run = startTryOn();
     await after()(run);

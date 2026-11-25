@@ -225,11 +225,48 @@ const EDGES: EdgeCase[] = [
     }),
   },
   {
-    edge: 'session.overlay.contextLost CONTEXT_RESTORED -> session.overlay.ready',
+    edge: 'session.overlay.contextLost.modelLoaded CONTEXT_RESTORED -> session.overlay.ready',
     from: sending({ type: 'MODEL_LOADED' }, { type: 'CONTEXT_LOST' }),
     fire: fire({ type: 'CONTEXT_RESTORED' }),
     to: overlay('ready'),
     check: (run) => {
+      expect(run.actor.getSnapshot().context.overlayAttempt).toBe(0);
+    },
+  },
+  {
+    edge: 'session.overlay.loading CONTEXT_LOST -> session.overlay.contextLost.modelLoading',
+    from: session,
+    fire: fire({ type: 'CONTEXT_LOST' }),
+    to: { session: { overlay: { contextLost: 'modelLoading' } } },
+    check: reports({
+      eventType: 'render_error',
+      payload: { productId: id, errorCode: 'context_lost' },
+    }),
+  },
+  {
+    // The model loading while the context is gone does not hide the loss.
+    edge: 'session.overlay.contextLost.modelLoading MODEL_LOADED -> session.overlay.contextLost.modelLoaded',
+    from: sending({ type: 'CONTEXT_LOST' }),
+    fire: fire({ type: 'MODEL_LOADED' }),
+    to: { session: { overlay: { contextLost: 'modelLoaded' } } },
+  },
+  {
+    edge: 'session.overlay.contextLost.modelLoading MODEL_FAILED -> session.overlay.failed',
+    from: sending({ type: 'CONTEXT_LOST' }),
+    fire: fire({ type: 'MODEL_FAILED' }),
+    to: overlay('failed'),
+    check: reports({
+      eventType: 'render_error',
+      payload: { productId: id, errorCode: 'model_load' },
+    }),
+  },
+  {
+    edge: 'session.overlay.contextLost.modelLoading CONTEXT_RESTORED -> session.overlay.loading',
+    from: sending({ type: 'CONTEXT_LOST' }),
+    fire: fire({ type: 'CONTEXT_RESTORED' }),
+    to: overlay('loading'),
+    check: (run) => {
+      // The same scene is still loading its model, so nothing remounts.
       expect(run.actor.getSnapshot().context.overlayAttempt).toBe(0);
     },
   },

@@ -5,7 +5,7 @@
 ## States
 
 - `product`: `loading`, `notFound` (bad or unknown id), `unavailable` (network, timeout or server error; retry).
-- `session.overlay`: `loading` (GLB), `ready`, `failed` (GLB failed or the overlay crashed; retry), `noWebgl` (retry), `contextLost` (back to `ready` on restore; reload).
+- `session.overlay`: `loading` (GLB), `ready`, `failed` (GLB failed or the overlay crashed; retry), `noWebgl` (retry), `contextLost` (reload). The GLB keeps loading while the context is lost, so `contextLost` has `modelLoaded` and `modelLoading`, and a restore returns to `ready` or `loading`.
 - `session.source.live`, three parallel regions:
   - `visibility`: `visible`, `hidden`.
   - `camera`: `active` (`requesting`, `streaming`, `paused`), `denied`, `missing`, `busy`, `unsupported`, `failed`, `ended`. `missing` and `ended` retry on a device change; `ended` also retries when the page is shown again.

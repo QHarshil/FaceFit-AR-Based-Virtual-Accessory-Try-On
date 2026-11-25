@@ -109,6 +109,11 @@ const report = (build: (context: TryOnContext) => TelemetryEvent) => ({
   params: ({ context }: { context: TryOnContext }) => build(context),
 });
 
+const contextLost = (target: string) => ({
+  target,
+  actions: report((context) => telemetryEvents.renderError(context.productId, 'context_lost')),
+});
+
 const retryOverlay = {
   target: 'loading',
   actions: tryOnSetup.assign({ overlayAttempt: ({ context }) => context.overlayAttempt + 1 }),
@@ -224,20 +229,31 @@ export const tryOnMachine = tryOnSetup.createMachine({
                     telemetryEvents.renderError(context.productId, 'webgl_unavailable'),
                   ),
                 },
+                CONTEXT_LOST: contextLost('contextLost.modelLoading'),
               },
             },
-            ready: {
-              on: {
-                CONTEXT_LOST: {
-                  target: 'contextLost',
-                  actions: report((context) =>
-                    telemetryEvents.renderError(context.productId, 'context_lost'),
-                  ),
+            ready: { on: { CONTEXT_LOST: contextLost('contextLost') } },
+            // The GLB keeps loading while the context is gone, so the
+            // substate remembers whether a restore returns to ready or to
+            // loading.
+            contextLost: {
+              on: { RETRY_OVERLAY: retryOverlay },
+              initial: 'modelLoaded',
+              states: {
+                modelLoaded: { on: { CONTEXT_RESTORED: '#tryOn.session.overlay.ready' } },
+                modelLoading: {
+                  on: {
+                    MODEL_LOADED: 'modelLoaded',
+                    MODEL_FAILED: {
+                      target: '#tryOn.session.overlay.failed',
+                      actions: report((context) =>
+                        telemetryEvents.renderError(context.productId, 'model_load'),
+                      ),
+                    },
+                    CONTEXT_RESTORED: '#tryOn.session.overlay.loading',
+                  },
                 },
               },
-            },
-            contextLost: {
-              on: { CONTEXT_RESTORED: 'ready', RETRY_OVERLAY: retryOverlay },
             },
             failed: { on: { RETRY_OVERLAY: retryOverlay } },
             noWebgl: { on: { RETRY_OVERLAY: retryOverlay } },
