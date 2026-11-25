@@ -45,6 +45,63 @@ describe('StatusPanel', () => {
     },
   );
 
+  // Literal copy, so a change to STATUS_VIEWS cannot pass by changing both sides.
+  it.each([
+    {
+      status: 'cameraDenied',
+      region: 'alert',
+      title: 'Camera access is blocked',
+      announcement:
+        'Camera access is blocked. Allow the camera in your browser settings for this site, then try again.',
+      buttons: [
+        ['Try again', 'RETRY_CAMERA'],
+        ['Use a photo', 'USE_PHOTO'],
+      ],
+    },
+    {
+      status: 'productUnavailable',
+      region: 'alert',
+      title: 'Could not load this frame',
+      announcement: 'Could not load this frame. Check your connection and try again.',
+      buttons: [['Try again', 'RETRY_PRODUCT']],
+    },
+    {
+      status: 'modelFetchFailed',
+      region: 'alert',
+      title: 'Could not download the face tracking model',
+      announcement:
+        'Could not download the face tracking model. Check your connection and try again.',
+      buttons: [['Try again', 'RETRY_PERCEPTION']],
+    },
+    {
+      status: 'contextLost',
+      region: 'status',
+      title: 'Graphics were interrupted',
+      announcement: 'Graphics were interrupted. Restoring the view.',
+      buttons: [['Reload the view', 'RETRY_OVERLAY']],
+    },
+    {
+      status: 'glassesFailed',
+      region: 'alert',
+      title: 'Could not load the 3D frame',
+      announcement: 'Could not load the 3D frame. Check your connection and try again.',
+      buttons: [['Try again', 'RETRY_OVERLAY']],
+    },
+  ] as const)(
+    'shows the $status copy, announcement and recovery',
+    async ({ status, region, title, announcement, buttons }) => {
+      const { onSend } = renderPanel(status);
+      expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+      expect(screen.getByRole(region)).toHaveTextContent(announcement);
+      for (const [label, event] of buttons) {
+        await userEvent.click(screen.getByRole('button', { name: label }));
+        expect(onSend).toHaveBeenLastCalledWith(event);
+      }
+      expect(screen.getAllByRole('button')).toHaveLength(buttons.length);
+      expect(screen.getByRole('link', { name: 'Back to catalogue' })).toHaveAttribute('href', '/');
+    },
+  );
+
   it('gives every status at least one way forward besides waiting', () => {
     for (const status of TRY_ON_STATUSES) {
       expect(STATUS_VIEWS[status].actions.length, status).toBeGreaterThan(0);

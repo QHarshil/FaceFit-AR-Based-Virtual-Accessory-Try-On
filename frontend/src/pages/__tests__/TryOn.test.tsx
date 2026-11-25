@@ -359,6 +359,50 @@ describe('TryOn', () => {
     expect(screen.queryByRole('img', { name: 'Your photo' })).toBeNull();
   });
 
+  it('keeps a picked photo out of storage and off the network', async () => {
+    const network = {
+      fetch: vi.fn(),
+      beacon: vi.fn(),
+      xhr: vi.spyOn(XMLHttpRequest.prototype, 'open'),
+      socket: vi.fn(),
+    };
+    vi.stubGlobal('fetch', network.fetch);
+    vi.stubGlobal('WebSocket', network.socket);
+    Object.defineProperty(navigator, 'sendBeacon', { value: network.beacon, configurable: true });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    const openDatabase = vi.fn();
+    vi.stubGlobal('indexedDB', { open: openDatabase });
+    const objectUrl = vi.fn();
+    // jsdom has no createObjectURL.
+    Object.defineProperty(URL, 'createObjectURL', { value: objectUrl, configurable: true });
+    photos.detect.mockResolvedValue(faceFrame(0));
+
+    await startTracking();
+    await userEvent.click(screen.getByRole('button', { name: 'Use a photo' }));
+    await userEvent.upload(
+      screen.getByLabelText('Photo of your face'),
+      new File(['jpeg bytes'], 'me.jpg', { type: 'image/jpeg' }),
+    );
+    await heading('photoShowing');
+    await userEvent.click(screen.getByRole('button', { name: 'Use the camera' }));
+    await heading('cameraRequesting');
+
+    expect(network.fetch).not.toHaveBeenCalled();
+    expect(network.beacon).not.toHaveBeenCalled();
+    expect(network.xhr).not.toHaveBeenCalled();
+    expect(network.socket).not.toHaveBeenCalled();
+    expect(setItem).not.toHaveBeenCalled();
+    expect(localStorage.length + sessionStorage.length).toBe(0);
+    expect(openDatabase).not.toHaveBeenCalled();
+    expect(objectUrl).not.toHaveBeenCalled();
+
+    Reflect.deleteProperty(navigator, 'sendBeacon');
+    Reflect.deleteProperty(URL, 'createObjectURL');
+    network.xhr.mockRestore();
+    setItem.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
   it('asks for another photo when none has a face', async () => {
     photos.detect.mockResolvedValue({
       timestampMs: 0,
