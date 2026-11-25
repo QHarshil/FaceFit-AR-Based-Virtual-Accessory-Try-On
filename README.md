@@ -32,13 +32,14 @@ This project investigates lightweight facial landmark detection for consumer AR 
 |-----------|----------------|
 | Landmark detection | MediaPipe Tasks Vision `FaceLandmarker` in a module worker, self-hosted and pinned ([details](frontend/src/perception/README.md)) |
 | Pose estimation | `solveHeadPose` from [`packages/cv`](packages/cv/README.md): EPnP, then Huber Levenberg-Marquardt with outlier rejection, against MediaPipe's canonical face; hidden when the reprojection error is high |
+| Temporal filtering | One Euro filter on SE(3) over each solved pose, predicted at every render to the frame on screen, with MediaPipe's own landmark smoothing off. The sweep's rule picked an error-state Kalman filter, and the live run overrode it for its jitter and step overshoot ([details](docs/pose-filter.md)) |
 | Depth/scale | Metric: depth in millimetres under the assumed FOV, models in millimetres |
 | Rendering | Three.js camera with the projection of the camera intrinsics; the canvas renders at the video's size with the same `object-fit: cover` |
 | Asset format | Normalized, meshopt-compressed GLBs with the origin on the bridge ([assets](assets/README.md)) |
 
 ## Performance
 
-Measured numbers live in [`eval/results.json`](eval/results.json), produced by the scripts in [`eval/`](eval/README.md). Each run records the commit, hardware and sample size. Pose accuracy on AFLW2000-3D is in [`docs/pose-benchmark.md`](docs/pose-benchmark.md); PD and face width from the iris are in [`docs/metric-scale.md`](docs/metric-scale.md).
+Measured numbers live in [`eval/results.json`](eval/results.json), produced by the scripts in [`eval/`](eval/README.md). Each run records the commit, hardware and sample size. Pose accuracy on AFLW2000-3D is in [`docs/pose-benchmark.md`](docs/pose-benchmark.md), pose filter jitter and lag in [`docs/pose-filter.md`](docs/pose-filter.md), and PD and face width from the iris in [`docs/metric-scale.md`](docs/metric-scale.md).
 
 ## Repository Structure
 
@@ -97,7 +98,6 @@ cd frontend && npm install && npm run dev   # http://localhost:3000
 
 ## Extensions
 
-- Kalman or exponential smoothing filters upstream of the renderer for additional jitter reduction
 - Custom landmark subsets for different accessory types (hats, earrings)
 - Backend swap to database or external catalogue API without frontend changes
 

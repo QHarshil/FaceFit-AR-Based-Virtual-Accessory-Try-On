@@ -133,7 +133,8 @@ export interface HeadPoseTracker {
 /**
  * Solves the head pose per landmark frame with intrinsics estimated from the
  * frame size. The last trusted pose is passed to the solver as a warm start;
- * a frame without a face drops it.
+ * a frame without a face or with another tracked face drops it, and the gate
+ * starts over.
  */
 export function createHeadPoseTracker(options: HeadPoseTrackerOptions = {}): HeadPoseTracker {
   const horizontalFovDeg = options.horizontalFovDeg ?? DEFAULT_HORIZONTAL_FOV_DEG;
@@ -143,6 +144,7 @@ export function createHeadPoseTracker(options: HeadPoseTrackerOptions = {}): Hea
   let intrinsics: CameraIntrinsics | null = null;
   let lastTrusted: HeadPose | null = null;
   let wasShown = true;
+  let trackId: number | null = null;
 
   const intrinsicsFor = (width: number, height: number): CameraIntrinsics | null => {
     if (intrinsics?.width !== width || intrinsics.height !== height) {
@@ -153,6 +155,11 @@ export function createHeadPoseTracker(options: HeadPoseTrackerOptions = {}): Hea
 
   return {
     update(frame) {
+      if (frame.trackId !== trackId) {
+        trackId = frame.trackId;
+        lastTrusted = null;
+        wasShown = true;
+      }
       const frameIntrinsics = intrinsicsFor(frame.width, frame.height);
       if (!frameIntrinsics) {
         lastTrusted = null;

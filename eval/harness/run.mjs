@@ -83,7 +83,29 @@ const failFirstDelegate = (context) => context.route(/\/vision_wasm_module_inter
   return route.fulfill({ response, body: `${await response.text()}${FIRST_ATTEMPT_FAILURE}` });
 });
 
-export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, headless = true, screenshot, failFirstAttempt = false }) => {
+// Reads the clip frame code (FRAME_CODE in conditions.mjs) of every frame
+// the video presents, in a frame callback of its own: it sees the same
+// mediaTime as the app's capture callback for that frame.
+const startFrameCodeReader = ({ bits, blockPx }) => {
+  const video = document.querySelector('video');
+  const width = bits * blockPx;
+  const context = new OffscreenCanvas(width, blockPx).getContext('2d', { willReadFrequently: true });
+  window.__facefitFrameCodes = [];
+  const read = (now, metadata) => {
+    video.requestVideoFrameCallback(read);
+    context.drawImage(video, 0, 0, width, blockPx, 0, 0, width, blockPx);
+    const pixels = context.getImageData(0, 0, width, blockPx).data;
+    let code = 0;
+    for (let bit = 0; bit < bits; bit += 1) {
+      const centre = ((blockPx >> 1) * width + bit * blockPx + (blockPx >> 1)) * 4;
+      if (pixels[centre] > 128) code |= 1 << bit;
+    }
+    window.__facefitFrameCodes.push({ mediaTime: metadata.mediaTime, code, t: now });
+  };
+  video.requestVideoFrameCallback(read);
+};
+
+export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, headless = true, screenshot, failFirstAttempt = false, frameCode = null }) => {
   const browser = await launch(clip, [], headless);
   try {
     const { context, page, requests, errors } = await instrumentedPage(browser);
@@ -96,10 +118,16 @@ export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, h
       { timeout: 60000 },
     );
     const ready = await page.evaluate(() => window.__facefitEvents.find((e) => e.stage === 'perceptionReady'));
+    if (frameCode) await page.evaluate(startFrameCodeReader, frameCode);
     await page.waitForTimeout(warmupSeconds * 1000);
-    await page.evaluate(() => { window.__facefitEvents.length = 0; });
+    // The warmup's events let an offline replay start with a settled filter.
+    const warmupEvents = await page.evaluate(() => {
+      if (window.__facefitFrameCodes) window.__facefitFrameCodes.length = 0;
+      return window.__facefitEvents.splice(0);
+    });
     await page.waitForTimeout(measureSeconds * 1000);
     const events = await page.evaluate(() => window.__facefitEvents.splice(0));
+    const frameCodes = frameCode ? await page.evaluate(() => window.__facefitFrameCodes.splice(0)) : null;
     const environment = await page.evaluate(describeEnvironment);
     environment.cameraFps = await page.evaluate(measureCameraFps);
     if (screenshot) await page.screenshot({ path: screenshot });
@@ -110,7 +138,7 @@ export const runCondition = async ({ clip, url, warmupSeconds, measureSeconds, h
       ...errors.filter((text) => text.includes('Content Security Policy')),
     ];
     const blocked = (await blockedAttempts(page)).map((e) => `${e.api} ${e.url}`);
-    return { events, environment, delegate: ready ? ready.delegate : null, requests, blocked, cspViolations, errors };
+    return { events, warmupEvents, frameCodes, environment, delegate: ready ? ready.delegate : null, requests, blocked, cspViolations, errors };
   } finally {
     await browser.close();
   }

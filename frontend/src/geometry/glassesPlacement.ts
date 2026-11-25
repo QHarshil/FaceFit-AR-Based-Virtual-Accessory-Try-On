@@ -62,6 +62,15 @@ export function glassesTransform(pose: HeadPose, bridgeAnchorMm: Vec3): RigidTra
   return { rotation, translationMm };
 }
 
+/**
+ * Where a glasses model point sits in the solver's face model frame,
+ * seat + H (p - bridge). The head pose maps it to camera coordinates, which
+ * lets the eval harness project the anchors of any pose it filters offline.
+ */
+export function glassesPointInFaceModel(point: Vec3, bridgeAnchorMm: Vec3): Vec3 {
+  return add(BRIDGE_SEAT_MM, mat3MulVec3(HALF_TURN_X, subtract(point, bridgeAnchorMm)));
+}
+
 export function transformPoint(transform: RigidTransform, point: Vec3): Vec3 {
   return add(mat3MulVec3(transform.rotation, point), transform.translationMm);
 }

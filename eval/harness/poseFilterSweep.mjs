@@ -1,0 +1,393 @@
+#!/usr/bin/env node
+// Sweeps the parameters of both pose filters by replaying runs recorded with
+// the filter off (poseReplay.mjs), one run per MediaPipe configuration. Writes
+// every stage's Pareto front to eval/results/pose-filter-sweep.json and a
+// summary that points to it into runs["pose-filter-sweep"] of eval/results.json.
+//
+//   node eval/harness/poseFilterSweep.mjs --runs pose-filter-off,pose-filter-off-2faces
+//   node eval/harness/poseFilterSweep.mjs --runs ... --allow-dirty   (writes under eval/.cache instead)
+//
+// Each label names a baseline.mjs run in results.json and its raw runs in
+// eval/.cache/runs/<label>/. Rotation and translation are swept in turn: the
+// rotation parameters against rotation jitter on rec-static and the larger
+// delay on the two roll sinusoids, then the translation parameters, with the
+// chosen rotation, against position jitter and the position lag, the largest
+// of the lag to 90% on the step and the delays on the three ramps. Each stage's operating
+// point is the least jitter among points with a lag under the target, or the
+// least lag when none is. The detail file keeps each stage's Pareto front and
+// operating point; the script and the cached runs reproduce the full grid.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { oneEuroPose, poseKalman } from '../../packages/cv/src/index.ts';
+import { FRAME, MOTION, motionTruth } from './conditions.mjs';
+import { blinkShift, findBlinks, lineAngle, median, outsideBlinks, renderedJitter, rotationJitter, sampleGeometry, shownPoses } from './metrics.mjs';
+import { motionMetrics, presentationRate, presentedFrames, renderedSamples } from './motionMetrics.mjs';
+import { replayRun } from './poseReplay.mjs';
+import { assertHeadUnchanged, dirtyPaths, gitIn, startCommit } from './provenance.mjs';
+
+const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
+const REPO = join(EVAL, '..');
+const RESULTS = join(EVAL, 'results.json');
+export const SWEEP_KEY = 'pose-filter-sweep';
+// The detail file, relative to the results file whose summary names it.
+export const SWEEP_DETAIL = 'results/pose-filter-sweep.json';
+
+// The step lag target also bounds the delay on every ramp and roll: a step
+// alone rewards a filter that is fast on large jumps and slow at moderate
+// speed.
+export const TARGETS = { rotationJitterDeg: 0.1, positionJitterPx: 0.5, lagMs: 50 };
+
+// Clips whose worst lag bounds each channel. A One Euro filter trails
+// constant motion by 1 / (2 pi f_c), and f_c falls with the speed, so the
+// slowest clip can lag most.
+export const POSITION_LAG_CLIPS = { step: 'step-x', delays: ['ramp-x', 'ramp-x-60', 'ramp-x-30'] };
+export const ROTATION_LAG_CLIPS = ['sine-roll', 'sine-roll-slow'];
+const DELAY_CLIPS = [...POSITION_LAG_CLIPS.delays, ...ROTATION_LAG_CLIPS];
+
+// Each grid reaches past the operating points it produced, so none sits on
+// an edge (gridEdges reports it if one does).
+const ONE_EURO_GRID = {
+  minCutoffHz: [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.4, 0.7, 1, 1.5, 2, 2.5, 3, 4, 6, 10],
+  rotationBeta: [0, 0.1, 0.3, 1, 3, 10, 30, 100, 300],
+  translationBeta: [0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3],
+  derivativeCutoffHz: [0.05, 0.1, 0.25, 0.5, 1, 2, 4, 8],
+};
+const geometric = (from, to, count) => Array.from({ length: count }, (_, i) => from * (to / from) ** (i / (count - 1)));
+const KALMAN_GRID = {
+  angularAccelerationNoise: geometric(0.0003, 300, 19),
+  linearAccelerationNoiseMm: geometric(0.03, 30000, 19),
+};
+
+const CONDITIONS = ['still', 'rec-static', 'rec-blink', ...MOTION.map((m) => m.id)];
+
+const arg = (name) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i > 0 ? process.argv[i + 1] : undefined;
+};
+const git = gitIn(REPO);
+const round = (obj) => JSON.parse(JSON.stringify(obj, (_, v) => (typeof v === 'number' ? Number(v.toPrecision(4)) : v)));
+
+export const loadRuns = (label) => {
+  const dir = join(EVAL, '.cache', 'runs', label);
+  return Object.fromEntries(CONDITIONS.map((id) => {
+    const file = join(dir, `${id}.json`);
+    if (!existsSync(file)) throw new Error(`missing ${file}; record it with baseline.mjs --pose-filter off --label ${label}`);
+    return [id, JSON.parse(readFileSync(file, 'utf8'))];
+  }));
+};
+
+// What the recorded run needs beyond the replay: blink masks, presented
+// frames with their truth, and the raw pose noise that sets the Kalman
+// measurement noise.
+export const prepare = (runs) => {
+  const blinksOf = (run) => {
+    const poses = shownPoses(run.events);
+    const openness = poses.map((e) => sampleGeometry(e, run.environment.video, run.environment.viewport).eyeOpenness);
+    return { poseTimes: poses.map((e) => e.t), blinks: findBlinks(openness), count: poses.length };
+  };
+  const motion = Object.fromEntries(MOTION.map((condition) => {
+    const run = runs[condition.id];
+    const clipFrames = condition.clipSeconds * FRAME.fps;
+    const frames = presentedFrames(run.events, run.frameCodes, clipFrames);
+    return [condition.id, { condition, frames, fps: presentationRate(frames, clipFrames) }];
+  }));
+  return { still: blinksOf(runs.still), recStatic: blinksOf(runs['rec-static']), recBlink: blinksOf(runs['rec-blink']), motion };
+};
+
+/**
+ * Measurement noise of the solved pose on rec-static: the RMS distance from a
+ * centred moving average of five samples, outside blinks, scaled by
+ * sqrt(5 / 4) because subtracting a five-sample mean removes a fifth of the
+ * variance of white noise. Rotation is split evenly over three axes.
+ */
+export const solvedPoseNoise = (run) => {
+  const poses = shownPoses(run.events);
+  const openness = poses.map((e) => sampleGeometry(e, run.environment.video, run.environment.viewport).eyeOpenness);
+  const keep = outsideBlinks(poses.length, findBlinks(openness)).map((i) => poses[i]);
+  const window = 5;
+  const half = Math.floor(window / 2);
+  const correction = Math.sqrt(window / (window - 1));
+  const axis = (k) => {
+    const xs = keep.map((e) => e.headPose.translationMm[k]);
+    let sum = 0;
+    let n = 0;
+    for (let i = half; i < xs.length - half; i += 1) {
+      const mean = xs.slice(i - half, i + half + 1).reduce((s, v) => s + v, 0) / window;
+      sum += (xs[i] - mean) ** 2;
+      n += 1;
+    }
+    return Math.sqrt(sum / n) * correction;
+  };
+  const rotationDeg = rotationJitter(keep.map((e) => e.headPose.quaternion), window).rmsHighPass * correction;
+  return { translationMm: [axis(0), axis(1), axis(2)], rotationRad: ((rotationDeg / Math.sqrt(3)) * Math.PI) / 180 };
+};
+
+const asRenderEvents = (renders) => renders.map((r) => ({ stage: 'renderedPose', t: r.t, centerPx: r.centerPx, endsPx: r.endsPx }));
+
+/** Every sweep metric for one filter on one MediaPipe configuration. */
+export const evaluate = (runs, prepared, createFilter) => {
+  const replays = Object.fromEntries(CONDITIONS.map((id) => [id, replayRun(runs[id], createFilter)]));
+  const jitter = (id, masks) => {
+    const j = renderedJitter(replays[id].renders, masks.poseTimes, outsideBlinks(masks.count, masks.blinks));
+    return { positionPx: j.centerPx.rmsHighPass, rotationDeg: j.rotationDeg.rmsHighPass };
+  };
+  const blinkFrames = replays['rec-blink'].frames;
+  const shifts = blinkShift(blinkFrames.map((f) => f.centerPx[1]), prepared.recBlink.blinks);
+  const motion = (id) => {
+    const { condition, frames, fps } = prepared.motion[id];
+    const truthOf = (index) => motionTruth(condition.motion, index);
+    const read = condition.motion.axis === 'roll' ? (e) => lineAngle(e.endsPx[0], e.endsPx[1]) : (e) => e.centerPx[0];
+    return motionMetrics(renderedSamples(asRenderEvents(replays[id].renders), frames, truthOf, read), frames, condition, fps, truthOf);
+  };
+  const step = motion(POSITION_LAG_CLIPS.step);
+  const delayed = Object.fromEntries(DELAY_CLIPS.map((id) => [id, motion(id)]));
+  const byClip = (read, ids = DELAY_CLIPS) => Object.fromEntries(ids.map((id) => [id, read(delayed[id])]));
+  return {
+    still: jitter('still', prepared.still),
+    recStatic: jitter('rec-static', prepared.recStatic),
+    blinkShiftPx: shifts.length ? median(shifts) : null,
+    stepLagMs: step.stepLagMs.median,
+    stepLagMaxMs: step.stepLagMs.max,
+    stepOvershootPercent: step.overshootPercent.median,
+    stepErrorRmsPx: step.error.rms,
+    // Phase delay of each clip's fundamental; null where the filter kept less than half its amplitude.
+    delayMs: byClip((m) => m.delayMs),
+    constantVelocityLagMs: byClip((m) => m.constantVelocityLagMs, POSITION_LAG_CLIPS.delays),
+    // px on the ramps, degrees on the rolls.
+    errorRms: byClip((m) => m.error.rms),
+  };
+};
+
+// Least jitter among points with a lag under the target, else the least lag.
+export const operatingPoint = (points, jitterOf, lagOf, lagTarget) => {
+  const timed = points.filter((p) => lagOf(p) != null);
+  const fast = timed.filter((p) => lagOf(p) < lagTarget);
+  if (fast.length) return fast.reduce((best, p) => (jitterOf(p) < jitterOf(best) ? p : best));
+  return timed.reduce((best, p) => (lagOf(p) < lagOf(best) ? p : best));
+};
+
+// Points not beaten on both lag and jitter by another, by increasing lag.
+export const paretoFront = (points, lagOf, jitterOf) => {
+  const sorted = points.filter((p) => lagOf(p) != null).sort((a, b) => lagOf(a) - lagOf(b) || jitterOf(a) - jitterOf(b));
+  const front = [];
+  for (const p of sorted) if (!front.length || jitterOf(p) < jitterOf(front.at(-1))) front.push(p);
+  return front;
+};
+
+export const rotationJitterOf = (p) => p.metrics.recStatic.rotationDeg;
+export const positionJitterOf = (p) => p.metrics.recStatic.positionPx;
+// The largest lag, or null when any is missing: a motion smoothed away has no bounded lag.
+const worstLag = (lags) => (lags.some((lag) => lag == null) ? null : Math.max(...lags));
+export const rotationLagOf = (p) => worstLag(ROTATION_LAG_CLIPS.map((id) => p.metrics.delayMs[id]));
+export const positionLagOf = (p) => worstLag([p.metrics.stepLagMs, ...POSITION_LAG_CLIPS.delays.map((id) => p.metrics.delayMs[id])]);
+
+// Swept parameters of `params` at the first or last value of their grid. A
+// zero lower end is not an edge: no parameter here goes below zero.
+export const gridEdges = (params, grid) => Object.keys(params).filter((key) => {
+  const values = grid[key];
+  if (!values) return false;
+  const lowest = Math.min(...values);
+  return (params[key] === lowest && lowest > 0) || params[key] === Math.max(...values);
+});
+
+// A stage's sweep as kept in the detail file: how many points were tried,
+// the Pareto front as the swept parameters with their lag and jitter, the
+// operating point with every metric, and which of its parameters sit on an
+// edge of the grid.
+const stage = (points, jitterOf, lagOf, sweptOf, grid) => {
+  const chosen = operatingPoint(points, jitterOf, lagOf, TARGETS.lagMs);
+  const front = paretoFront(points, lagOf, jitterOf).map((p) => ({ params: sweptOf(p.params), lagMs: lagOf(p), jitter: jitterOf(p) }));
+  return { evaluated: points.length, front, chosen, chosenAtGridEdge: gridEdges(sweptOf(chosen.params), grid) };
+};
+
+const sweepOneEuro = (runs, prepared) => {
+  const grid = (betas) => ONE_EURO_GRID.minCutoffHz.flatMap((minCutoffHz) => betas.flatMap((beta) =>
+    ONE_EURO_GRID.derivativeCutoffHz.map((derivativeCutoffHz) => ({ minCutoffHz, beta, derivativeCutoffHz }))));
+  const middle = { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 };
+  const axes = (beta) => ({ minCutoffHz: ONE_EURO_GRID.minCutoffHz, beta, derivativeCutoffHz: ONE_EURO_GRID.derivativeCutoffHz });
+  const rotation = stage(grid(ONE_EURO_GRID.rotationBeta).map((channel) => {
+    const params = { rotation: channel, translation: middle };
+    return { params, metrics: evaluate(runs, prepared, () => oneEuroPose(params)) };
+  }), rotationJitterOf, rotationLagOf, (params) => params.rotation, axes(ONE_EURO_GRID.rotationBeta));
+  const translation = stage(grid(ONE_EURO_GRID.translationBeta).map((channel) => {
+    const params = { rotation: rotation.chosen.params.rotation, translation: channel };
+    return { params, metrics: evaluate(runs, prepared, () => oneEuroPose(params)) };
+  }), positionJitterOf, positionLagOf, (params) => params.translation, axes(ONE_EURO_GRID.translationBeta));
+  return { rotation, translation, chosen: translation.chosen };
+};
+
+const sweepKalman = (runs, prepared, noise) => {
+  const base = { rotationNoiseRad: noise.rotationRad, translationNoiseMm: noise.translationMm };
+  const rotation = stage(KALMAN_GRID.angularAccelerationNoise.map((angularAccelerationNoise) => {
+    const params = { ...base, angularAccelerationNoise, linearAccelerationNoiseMm: 100 };
+    return { params, metrics: evaluate(runs, prepared, () => poseKalman(params)) };
+  }), rotationJitterOf, rotationLagOf, (params) => ({ angularAccelerationNoise: params.angularAccelerationNoise }), KALMAN_GRID);
+  const translation = stage(KALMAN_GRID.linearAccelerationNoiseMm.map((linearAccelerationNoiseMm) => {
+    const params = { ...base, angularAccelerationNoise: rotation.chosen.params.angularAccelerationNoise, linearAccelerationNoiseMm };
+    return { params, metrics: evaluate(runs, prepared, () => poseKalman(params)) };
+  }), positionJitterOf, positionLagOf, (params) => ({ linearAccelerationNoiseMm: params.linearAccelerationNoiseMm }), KALMAN_GRID);
+  return { rotation, translation, chosen: translation.chosen };
+};
+
+// The recommended filter and configuration: among the operating points whose
+// position and rotation lags are both under the target, the one with the
+// smallest worst ratio of position and rotation jitter to their targets.
+export const recommend = (configurations) => {
+  const candidates = configurations.flatMap((c) => ['oneEuro', 'kalman'].map((filter) => ({ filter, numFaces: c.numFaces, point: c[filter].chosen })));
+  const ratio = ({ point }) => Math.max(positionJitterOf(point) / TARGETS.positionJitterPx, rotationJitterOf(point) / TARGETS.rotationJitterDeg);
+  const fast = candidates.filter(({ point }) => positionLagOf(point) < TARGETS.lagMs && rotationLagOf(point) < TARGETS.lagMs);
+  const best = (fast.length ? fast : candidates).reduce((a, b) => (ratio(b) < ratio(a) ? b : a));
+  return { filter: best.filter, numFaces: best.numFaces, worstJitterRatio: ratio(best), lagsUnderTarget: fast.length > 0 };
+};
+
+// The least-lag front point that meets the jitter target, or null.
+const atJitterTarget = (front, target) => front.find((p) => p.jitter <= target) ?? null;
+
+// What results.json keeps of a sweep: provenance, each filter's operating
+// point with every metric and the cheapest front point at each jitter target,
+// and the path of the detail file with every front.
+export const sweepSummary = (detail) => {
+  const filterSummary = (f) => ({
+    evaluated: f.rotation.evaluated + f.translation.evaluated,
+    chosen: f.chosen,
+    positionLagMs: positionLagOf(f.chosen),
+    rotationLagMs: rotationLagOf(f.chosen),
+    chosenAtGridEdge: { rotation: f.rotation.chosenAtGridEdge, translation: f.translation.chosenAtGridEdge },
+    atJitterTarget: {
+      position: atJitterTarget(f.translation.front, detail.targets.positionJitterPx),
+      rotation: atJitterTarget(f.rotation.front, detail.targets.rotationJitterDeg),
+    },
+  });
+  const { recommended } = detail;
+  const recommendedFilter = detail.configurations.find((c) => c.numFaces === recommended.numFaces)[recommended.filter];
+  return {
+    measuredAt: detail.measuredAt,
+    commit: detail.commit,
+    dirty: detail.dirty,
+    command: detail.command,
+    detail: SWEEP_DETAIL,
+    hardware: detail.configurations[0].hardware,
+    targets: detail.targets,
+    recommended: { ...recommended, params: recommendedFilter.chosen.params },
+    configurations: detail.configurations.map((c) => ({
+      label: c.label,
+      numFaces: c.numFaces,
+      commit: c.commit,
+      unfiltered: c.unfiltered,
+      oneEuro: filterSummary(c.oneEuro),
+      kalman: filterSummary(c.kalman),
+    })),
+  };
+};
+
+/** The detail file a sweep summary names, resolved next to the results file at URL `resultsFile`. */
+export const readSweepDetail = (resultsFile, summary) => {
+  if (!summary?.detail) throw new Error(`no runs["${SWEEP_KEY}"] with a detail path; run poseFilterSweep.mjs`);
+  const detail = JSON.parse(readFileSync(new URL(summary.detail, resultsFile), 'utf8'));
+  if (detail.commit !== summary.commit || detail.measuredAt !== summary.measuredAt) {
+    throw new Error(`${summary.detail} is not the sweep runs["${SWEEP_KEY}"] summarizes`);
+  }
+  return detail;
+};
+
+// Largest page-pixel distance between what `run` drew at each render and
+// what the replay with `createFilter` draws there. Throws when the replay
+// draws fewer renders than the run, beyond the few before the first measured
+// pose of a run without warmup events.
+export const renderReplayErrorPx = (run, createFilter, id = 'run') => {
+  const { renders } = replayRun(run, createFilter);
+  const all = run.events.filter((e) => e.stage === 'renderedPose');
+  const missing = all.length - renders.length;
+  if (missing > (run.warmupEvents ? 0 : 3)) throw new Error(`${id}: the replay drew ${missing} renders fewer than the run`);
+  const recorded = all.slice(-renders.length || Infinity);
+  const [vw, vh] = run.environment.viewport;
+  let worst = 0;
+  renders.forEach((r, i) => {
+    const [x, y] = recorded[i].centerNdc;
+    worst = Math.max(worst, Math.hypot(r.centerPx[0] - ((x + 1) / 2) * vw, r.centerPx[1] - ((1 - y) / 2) * vh));
+  });
+  return worst;
+};
+
+/** renderReplayErrorPx over every condition the sweep replays. */
+export const replayErrorPx = (runs, createFilter) => Math.max(...CONDITIONS.map((id) => renderReplayErrorPx(runs[id], createFilter, id)));
+
+// The unfiltered replay must draw what the run drew; otherwise the replay
+// does not model the app and the sweep means nothing.
+const replayCheck = (runs) => {
+  const worst = replayErrorPx(runs, () => null);
+  if (worst > 1e-3) throw new Error(`unfiltered replay is ${worst} px off the recorded renders`);
+  return worst;
+};
+
+const main = () => {
+  const labels = (arg('runs') ?? '').split(',').filter(Boolean);
+  if (!labels.length) throw new Error('pass --runs <label>[,<label>]');
+  const allowDirty = process.argv.includes('--allow-dirty');
+  const dirty = dirtyPaths(git);
+  if (dirty.length && !allowDirty) {
+    console.error(`working tree is dirty; commit first or pass --allow-dirty\n${dirty.join('\n')}`);
+    process.exit(1);
+  }
+  const commit = startCommit(git);
+  const results = JSON.parse(readFileSync(RESULTS, 'utf8'));
+  const configurations = labels.map((label) => {
+    const dirtyResults = join(EVAL, '.cache', 'results-dirty.json');
+    const recorded = results.runs[label] ?? (allowDirty && existsSync(dirtyResults) ? JSON.parse(readFileSync(dirtyResults, 'utf8')).runs[label] : undefined);
+    if (!recorded) throw new Error(`no runs["${label}"] in results.json`);
+    if (recorded.dirty && !allowDirty) throw new Error(`runs["${label}"] was measured on a dirty tree`);
+    const runs = loadRuns(label);
+    const prepared = prepare(runs);
+    const noise = solvedPoseNoise(runs['rec-static']);
+    const replayErrorPx = replayCheck(runs);
+    const numFaces = Number(/numFaces (\d+)/.exec(recorded.pipeline)[1]);
+    process.stdout.write(`${label}: one-euro `);
+    const oneEuro = sweepOneEuro(runs, prepared);
+    process.stdout.write('kalman ');
+    const kalman = sweepKalman(runs, prepared, noise);
+    console.log('done');
+    for (const [name, filter] of Object.entries({ oneEuro, kalman })) {
+      for (const channel of ['rotation', 'translation']) {
+        const edges = filter[channel].chosenAtGridEdge;
+        if (edges.length) console.warn(`${label} ${name} ${channel}: operating point on the grid edge for ${edges.join(', ')}; widen the grid`);
+      }
+    }
+    return {
+      label,
+      numFaces,
+      commit: recorded.commit,
+      measuredAt: recorded.measuredAt,
+      hardware: { cpu: recorded.hardware.cpu, browser: recorded.hardware.browser, perceptionDelegate: recorded.hardware.perceptionDelegate },
+      replayErrorPx,
+      solvedPoseNoise: noise,
+      unfiltered: evaluate(runs, prepared, () => null),
+      oneEuro,
+      kalman,
+    };
+  });
+  const detail = round({
+    measuredAt: new Date().toISOString(),
+    commit,
+    dirty: dirty.length > 0,
+    command: `node eval/harness/poseFilterSweep.mjs ${process.argv.slice(2).join(' ')}`.trim(),
+    method: 'Offline replay of runs recorded with the filter off: each shown pose sample updates the filter at its frame capture time, a lost face resets it, and each render predicts to the newest presented frame (eval/harness/poseReplay.mjs). Jitter is the RMS high-pass of what renders drew on rec-static (blinks masked); lags are on the motion clips against the frame on screen.',
+    targets: TARGETS,
+    lags: `position lag: the largest of the median lag to 90% on ${POSITION_LAG_CLIPS.step} and the delays on ${POSITION_LAG_CLIPS.delays.join(', ')}; rotation lag: the larger delay on ${ROTATION_LAG_CLIPS.join(' and ')}`,
+    selection: 'Rotation, then translation with the chosen rotation: the least rec-static jitter among points with a lag under the target, else the least lag. The recommendation is the operating point with both lags under the target and the smallest worst ratio of position and rotation jitter to their targets.',
+    grids: { oneEuro: { ...ONE_EURO_GRID, translationDuringRotationSweep: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } }, kalman: { ...KALMAN_GRID, linearAccelerationNoiseMmDuringRotationSweep: 100 } },
+    recommended: recommend(configurations),
+    configurations,
+  });
+  assertHeadUnchanged(git, commit);
+  const out = dirty.length ? join(EVAL, '.cache', 'results-dirty.json') : RESULTS;
+  const detailOut = join(dirname(out), SWEEP_DETAIL);
+  mkdirSync(dirname(detailOut), { recursive: true });
+  writeFileSync(detailOut, `${JSON.stringify(detail, null, 2)}\n`);
+  const target = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : { runs: {} };
+  target.runs[SWEEP_KEY] = sweepSummary(detail);
+  writeFileSync(out, `${JSON.stringify(target, null, 2)}\n`);
+  console.log(`wrote ${detailOut} and ${out}`);
+};
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();

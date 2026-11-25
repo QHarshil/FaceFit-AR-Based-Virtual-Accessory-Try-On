@@ -60,9 +60,15 @@ const FACE: LandmarkFrame = {
   height: 720,
   landmarks: new Float32Array(LANDMARK_COUNT * 3).map((_, i) => 0.4 + (i % 7) * 0.02),
   faceCount: 1,
+  trackId: 1,
 };
 
-const NO_FACE: LandmarkFrame = { ...FACE, landmarks: new Float32Array(0), faceCount: 0 };
+const NO_FACE: LandmarkFrame = {
+  ...FACE,
+  landmarks: new Float32Array(0),
+  faceCount: 0,
+  trackId: null,
+};
 
 const renderTryOn = () =>
   render(
@@ -104,6 +110,15 @@ describe('TryOn', () => {
 
     act(() => tracking.callbacks?.onLandmarks(NO_FACE));
     expect(await screen.findByText('Align your face with the camera.')).toBeInTheDocument();
+  });
+
+  it('forwards presented camera frames to the overlay', async () => {
+    getProductById.mockResolvedValue(PRODUCTS[0]);
+    renderTryOn();
+    await screen.findByText('Align your face with the camera.');
+
+    expect(tracking.callbacks?.onFramePresented).toBeTypeOf('function');
+    expect(() => act(() => tracking.callbacks?.onFramePresented?.(33.3))).not.toThrow();
   });
 
   it('shows a camera error with a way back when access is denied', async () => {

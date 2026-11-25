@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   PROBE_ORDER, blinkShift, findBlinks, outsideBlinks, landmarkToPx, latency, linearFit, maxChangeFromStillPercent, ndcToPx,
-  percentile, pointJitter, rotationJitter, shownPoses, solverSummary, windowSamples, wrapLineAngle,
+  percentile, pointJitter, renderedJitter, rotationJitter, shownPoses, solverSummary, twoFaceSummary, windowSamples, wrapLineAngle,
 } from './metrics.mjs';
 
 const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
@@ -197,6 +197,28 @@ test('solverSummary counts gated samples by reason and spreads the reprojection 
   assert.equal(summary.rmsReprojectionPx.max, 12);
   assert.equal(summary.rmsReprojectionMm.max, 6);
   assert.equal(summary.inliers.min, 20);
+  assert.equal(summary.maxFaceCount, null);
+  assert.equal(solverSummary([{ ...pose(false, null, 2, 33), faceCount: 1 }, { ...pose(false, null, 2, 33), faceCount: 2 }]).maxFaceCount, 2);
+});
+
+test('twoFaceSummary counts the samples and renders on the right half, where the bystander is', () => {
+  // Probe landmarks with the nose bridge (landmark 168) at x; the rest at the centre.
+  const landmarksAt = (x) => PROBE_ORDER.map((index) => (index === 168 ? [x, 0.4, 0] : [0.5, 0.5, 0]));
+  const pose = (x, faceCount, trackId) => ({ stage: 'glassesPose', faceCount, trackId, landmarks: x == null ? null : landmarksAt(x) });
+  const render = (x) => ({ stage: 'renderedPose', centerNdc: [x, 0] });
+  const summary = twoFaceSummary([
+    pose(0.3, 2, 4), render(-0.4), pose(0.25, 2, 4), render(-0.5), pose(null, 1, null), pose(0.75, 2, 5), render(0.5), pose(0.3, 1, 4),
+  ]);
+  assert.deepEqual(summary, {
+    poseSamples: 5,
+    bothFacesDetectedShare: 0.6,
+    trackedSamples: 4,
+    trackedOnBystander: 1,
+    trackIds: [4, 5],
+    renders: 3,
+    rendersOnBystander: 1,
+  });
+  assert.equal(twoFaceSummary([]).bothFacesDetectedShare, null);
 });
 
 test('maxChangeFromStillPercent takes the largest change from the unzoomed ratio', () => {
@@ -205,4 +227,19 @@ test('maxChangeFromStillPercent takes the largest change from the unzoomed ratio
   close(maxChangeFromStillPercent({ 'zoom0.75': 5.344, still: 4.016, 'zoom1.33': 3.035 }), 33.07, 0.01);
   assert.equal(maxChangeFromStillPercent({ still: 1 }), null);
   assert.equal(maxChangeFromStillPercent({ 'zoom0.75': 1 }), null);
+});
+
+test('renderedJitter drops renders whose newest pose sample is masked', () => {
+  const quat = [0, 0, 0, 1];
+  // Renders at 60 Hz alternating 1 px left and right of x = 100; pose samples at 30 Hz.
+  const renders = Array.from({ length: 60 }, (_, i) => ({ t: i * 16.7, centerPx: [100 + (i % 2 ? 1 : -1), 50], quat }));
+  const poseTimes = Array.from({ length: 30 }, (_, k) => k * 33.4);
+  const all = renderedJitter(renders, poseTimes, [...Array(30).keys()]);
+  assert.equal(all.samples, 60);
+  assert.ok(all.centerPx.rmsHighPass > 0.8 && all.centerPx.rmsHighPass <= 1);
+  close(all.rotationDeg.rmsHighPass, 0);
+  // Masking pose samples 10 to 19 drops the renders they were the newest for.
+  const masked = renderedJitter(renders, poseTimes, [...Array(30).keys()].filter((k) => k < 10 || k > 19));
+  assert.equal(masked.samples, 40);
+  assert.equal(renderedJitter(renders.slice(0, 2), poseTimes, [0]), null);
 });

@@ -81,7 +81,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
-const isFrameId = (value: unknown): value is number =>
+const isIndex = (value: unknown): value is number =>
   Number.isInteger(value) && (value as number) >= 0;
 
 // Structural check: VideoFrame does not exist in every environment that loads
@@ -94,14 +94,18 @@ const isVideoFrame = (value: unknown): value is VideoFrame =>
 
 export const isLandmarkFrame = (value: unknown): value is LandmarkFrame => {
   if (!isRecord(value)) return false;
-  const { timestampMs, width, height, landmarks, faceCount } = value;
+  const { timestampMs, width, height, landmarks, faceCount, trackId } = value;
   if (!isFiniteNumber(timestampMs) || !isFiniteNumber(width) || !isFiniteNumber(height)) {
     return false;
   }
   if (!Number.isInteger(faceCount) || (faceCount as number) < 0) return false;
   if (!(landmarks instanceof Float32Array)) return false;
-  const expected = faceCount === 0 ? 0 : LANDMARK_COUNT * LANDMARK_STRIDE;
-  return landmarks.length === expected;
+  if (landmarks.length === 0) return trackId === null;
+  return (
+    landmarks.length === LANDMARK_COUNT * LANDMARK_STRIDE &&
+    (faceCount as number) >= 1 &&
+    isIndex(trackId)
+  );
 };
 
 export const isWorkerRequest = (value: unknown): value is WorkerRequest => {
@@ -111,7 +115,7 @@ export const isWorkerRequest = (value: unknown): value is WorkerRequest => {
       return typeof value.wasmBaseUrl === 'string' && typeof value.modelUrl === 'string';
     case 'frame':
       return (
-        isFrameId(value.frameId) && isFiniteNumber(value.timestampMs) && isVideoFrame(value.frame)
+        isIndex(value.frameId) && isFiniteNumber(value.timestampMs) && isVideoFrame(value.frame)
       );
     default:
       return false;
@@ -125,7 +129,7 @@ export const isWorkerResponse = (value: unknown): value is WorkerResponse => {
       return value.delegate === 'GPU' || value.delegate === 'CPU';
     case 'result':
       return (
-        isFrameId(value.frameId) &&
+        isIndex(value.frameId) &&
         isFiniteNumber(value.inferenceStartMs) &&
         isFiniteNumber(value.inferenceMs) &&
         isLandmarkFrame(value.landmarkFrame)
@@ -134,7 +138,7 @@ export const isWorkerResponse = (value: unknown): value is WorkerResponse => {
       return (
         ERROR_CODES.includes(value.code as PerceptionErrorCode) &&
         typeof value.detail === 'string' &&
-        (value.frameId === undefined || isFrameId(value.frameId))
+        (value.frameId === undefined || isIndex(value.frameId))
       );
     case 'blocked':
       return GUARDED_APIS.includes(value.api as GuardedApi) && typeof value.url === 'string';

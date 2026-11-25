@@ -6,6 +6,7 @@ import type {
   FaceLandmarkerOptions,
   FaceLandmarkerResult,
 } from '@mediapipe/tasks-vision';
+import { createTrackedFaceSelector, type TrackedFace } from './faceSelection';
 import type {
   ErrorResponse,
   FrameRequest,
@@ -45,15 +46,19 @@ export interface LandmarkerServiceDeps {
   post: (message: WorkerResponse) => void;
 }
 
+const DEFAULT_NUM_FACES = 2;
+
 export const numFacesFrom = (value: string | undefined): number => {
   const faces = Number(value);
-  return Number.isInteger(faces) && faces >= 1 ? faces : 1;
+  return Number.isInteger(faces) && faces >= 1 ? faces : DEFAULT_NUM_FACES;
 };
 
-// One face, because nothing downstream reads a second. With more than one face
-// MediaPipe skips its built-in landmark smoothing and runs the face detector on
-// every frame where fewer faces are tracked. The eval harness builds with
-// VITE_NUM_FACES=2 to measure that cost.
+// Two faces, which turns off MediaPipe's built-in landmark smoothing: with one
+// face it delays slow motion by about 100 ms before the pose filter sees it,
+// and the pose filter then owns all the smoothing and lag (docs/pose-filter.md).
+// The cost is the face detector on every frame where fewer faces are tracked.
+// The overlay follows one face (faceSelection.ts). The eval harness builds with
+// VITE_NUM_FACES=1 to measure the other configuration.
 export const NUM_FACES = numFacesFrom(import.meta.env.VITE_NUM_FACES);
 
 // MediaPipe needs strictly increasing timestamps. It converts milliseconds to
@@ -115,15 +120,24 @@ export const isZipArchive = (bytes: Uint8Array): boolean => {
 const contentTypeOf = (response: Response): string =>
   response.headers.get('content-type') ?? 'no content type';
 
+/** The tracked face of `result` as a landmark frame, with the count of faces seen. */
 export const toLandmarkFrame = (
   result: FaceLandmarkerResult,
   timestampMs: number,
   width: number,
   height: number,
+  tracked: TrackedFace | null,
 ): LandmarkFrame => {
-  const face = result.faceLandmarks[0];
-  if (!face) {
-    return { timestampMs, width, height, landmarks: new Float32Array(0), faceCount: 0 };
+  const face = tracked && result.faceLandmarks[tracked.index];
+  if (!tracked || !face) {
+    return {
+      timestampMs,
+      width,
+      height,
+      landmarks: new Float32Array(0),
+      faceCount: result.faceLandmarks.length,
+      trackId: null,
+    };
   }
   if (face.length < LANDMARK_COUNT) {
     throw new RangeError(`Expected ${LANDMARK_COUNT} landmarks, got ${face.length}`);
@@ -135,7 +149,14 @@ export const toLandmarkFrame = (
     landmarks[i * LANDMARK_STRIDE + 1] = point.y;
     landmarks[i * LANDMARK_STRIDE + 2] = point.z;
   }
-  return { timestampMs, width, height, landmarks, faceCount: result.faceLandmarks.length };
+  return {
+    timestampMs,
+    width,
+    height,
+    landmarks,
+    faceCount: result.faceLandmarks.length,
+    trackId: tracked.trackId,
+  };
 };
 
 export interface LandmarkerService {
@@ -146,6 +167,7 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
   let state: 'idle' | 'loading' | 'ready' | 'failed' = 'idle';
   let landmarker: VideoLandmarker | null = null;
   let lastGraphTimestamp = -Infinity;
+  const faceSelector = createTrackedFaceSelector();
 
   const fail = (code: PerceptionErrorCode, detail: string, frameId?: number) => {
     const message: ErrorResponse = { type: 'error', code, detail };
@@ -234,17 +256,14 @@ export const createLandmarkerService = (deps: LandmarkerServiceDeps): Landmarker
       const start = deps.now();
       const result = landmarker.detectForVideo(frame, graphTimestamp);
       const inferenceMs = deps.now() - start;
+      const { displayWidth: width, displayHeight: height } = frame;
+      const tracked = faceSelector.select(result.faceLandmarks, width, height);
       deps.post({
         type: 'result',
         frameId,
         inferenceStartMs: start,
         inferenceMs,
-        landmarkFrame: toLandmarkFrame(
-          result,
-          timestampMs,
-          frame.displayWidth,
-          frame.displayHeight,
-        ),
+        landmarkFrame: toLandmarkFrame(result, timestampMs, width, height, tracked),
       });
     } catch (error) {
       fail('inference', describeError(error), frameId);

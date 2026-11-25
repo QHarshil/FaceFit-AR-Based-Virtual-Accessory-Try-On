@@ -1,11 +1,20 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { Ref } from 'react';
-import type { CameraIntrinsics, Vec2, Vec3 } from '@facefit/cv';
+import {
+  quaternionFromMatrix,
+  type CameraIntrinsics,
+  type HeadPose,
+  type Mat3,
+  type Vec2,
+  type Vec3,
+} from '@facefit/cv';
 import * as THREE from 'three';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createOverlayPose, type OverlayPose } from '../filtering/overlayPose';
 import { coverFit, sourceToBox } from '../geometry/coverFit';
 import {
+  glassesPointInFaceModel,
   glassesTransform,
   transformPoint,
   type RigidTransform,
@@ -95,22 +104,59 @@ const fitToVideo = (stage: Stage, intrinsics: CameraIntrinsics) => {
 
 // Screen geometry for eval/harness: page NDC of the unmirrored page, as the
 // metrics read it, through the same cover fit the CSS applies.
+const pageProjector = (stage: Stage) => {
+  const page = { width: stage.container.clientWidth, height: stage.container.clientHeight };
+  const intrinsics = stage.intrinsics;
+  const fit = intrinsics && coverFit(intrinsics, page);
+  if (!intrinsics || !fit) return null;
+  return (transform: RigidTransform, modelPoint: Vec3): Vec2 => {
+    const eye = transformPoint(transform, modelPoint);
+    const [x, y] = sourceToBox(fit, eyeToVideoPixel(stage.camera, intrinsics, eye));
+    return [(2 * x) / page.width - 1, 1 - (2 * y) / page.height];
+  };
+};
+
+/** Three.js order, x y z w. */
+const quaternionArray = (rotation: Mat3) => {
+  const q = quaternionFromMatrix(rotation);
+  return [q.x, q.y, q.z, q.w];
+};
+
 const probeGlassesPose = (
   stage: Stage,
   frame: LandmarkFrame,
   estimate: HeadPoseEstimate,
-  placement: { transform: RigidTransform; glasses: THREE.Group } | null,
+  filtered: HeadPose | null,
   anchors: ProductAnchors,
+  filterSetting: string,
 ) => {
+  const intrinsics = estimate.intrinsics;
+  const rawPose = estimate.fit?.pose ?? null;
   const poseStats = {
-    focalPx: estimate.intrinsics?.fx ?? null,
-    frameSize: estimate.intrinsics ? [estimate.intrinsics.width, estimate.intrinsics.height] : null,
+    frameTimestampMs: frame.timestampMs,
+    faceCount: frame.faceCount,
+    trackId: frame.trackId,
+    poseFilter: filterSetting,
+    focalPx: intrinsics?.fx ?? null,
+    principalPx: intrinsics ? [intrinsics.cx, intrinsics.cy] : null,
+    frameSize: intrinsics ? [intrinsics.width, intrinsics.height] : null,
     gateMaxRmsMm: MAX_RMS_REPROJECTION_MM,
     gated: !estimate.trusted,
     gateReason: estimate.trusted ? null : estimate.reason,
     rmsReprojectionPx: estimate.fit?.rmsReprojectionPx ?? null,
     rmsReprojectionMm: estimate.fit?.rmsReprojectionMm ?? null,
     inliers: estimate.fit?.inlierCount ?? null,
+    // The solved pose before filtering, so the harness can replay any filter offline.
+    headPose: rawPose
+      ? {
+          quaternion: quaternionArray(rawPose.rotation),
+          translationMm: rawPose.translationMm,
+        }
+      : null,
+    // Bridge and hinge anchors (wearer's right first) in the face model frame.
+    anchorsFaceMm: [anchors.bridgeCenter, anchors.hingeRight, anchors.hingeLeft].map((anchor) =>
+      glassesPointInFaceModel(anchor, anchors.bridgeCenter),
+    ),
     landmarks: hasFace(frame)
       ? PROBE_LANDMARKS.map((i) => {
           const point = landmarkPoint(frame, i);
@@ -118,41 +164,85 @@ const probeGlassesPose = (
         })
       : null,
   };
-  const page = { width: stage.container.clientWidth, height: stage.container.clientHeight };
-  const fit = stage.intrinsics && coverFit(stage.intrinsics, page);
-  if (!placement || !stage.intrinsics || !fit) {
+  const pageNdc = pageProjector(stage);
+  if (!estimate.trusted || !filtered || !rawPose || !pageNdc) {
     probe({ stage: 'glassesPose', t: performance.now(), ...poseStats });
     return;
   }
-  const intrinsics = stage.intrinsics;
-  const pageNdc = (modelPoint: Vec3): Vec2 => {
-    const eye = transformPoint(placement.transform, modelPoint);
-    const [x, y] = sourceToBox(fit, eyeToVideoPixel(stage.camera, intrinsics, eye));
-    return [(2 * x) / page.width - 1, 1 - (2 * y) / page.height];
-  };
-  const center = pageNdc(anchors.bridgeCenter);
-  const quaternion = placement.glasses.quaternion.toArray();
-  const euler = new THREE.Euler().setFromQuaternion(placement.glasses.quaternion, 'XYZ');
+  const target = glassesTransform(rawPose, anchors.bridgeCenter);
+  const smoothed = glassesTransform(filtered, anchors.bridgeCenter);
+  const smoothedQuat = quaternionArray(smoothed.rotation);
+  const euler = new THREE.Euler().setFromQuaternion(new THREE.Quaternion(...smoothedQuat), 'XYZ');
   probe({
     stage: 'glassesPose',
     t: performance.now(),
     ...poseStats,
     // Decomposed for reporting only; the pose itself stays a rotation matrix.
     euler: [euler.x, euler.y, euler.z],
-    // Without a temporal filter the target and the rendered pose are the same.
-    targetNdc: center,
-    smoothedNdc: center,
+    // Target is the solved pose; smoothed is the filtered pose at the frame's
+    // capture time, which renders see before prediction.
+    targetNdc: pageNdc(target, anchors.bridgeCenter),
+    smoothedNdc: pageNdc(smoothed, anchors.bridgeCenter),
     // Image left first: the wearer's right hinge, as the metrics expect.
-    smoothedEndsNdc: [pageNdc(anchors.hingeRight), pageNdc(anchors.hingeLeft)],
-    targetQuat: quaternion,
-    smoothedQuat: quaternion,
+    smoothedEndsNdc: [pageNdc(smoothed, anchors.hingeRight), pageNdc(smoothed, anchors.hingeLeft)],
+    targetQuat: quaternionArray(target.rotation),
+    smoothedQuat,
   });
+};
+
+/** The pose each render drew, at the render's start, and the capture time it was predicted to. */
+const probeRenderedPose = (
+  stage: Stage,
+  placed: PlacedGlasses,
+  renderStart: number,
+  anchors: ProductAnchors,
+) => {
+  const pageNdc = pageProjector(stage);
+  if (!pageNdc) return;
+  const { transform } = placed;
+  probe({
+    stage: 'renderedPose',
+    t: renderStart,
+    targetTimestampMs: placed.timestampMs,
+    quat: quaternionArray(transform.rotation),
+    centerNdc: pageNdc(transform, anchors.bridgeCenter),
+    endsNdc: [pageNdc(transform, anchors.hingeRight), pageNdc(transform, anchors.hingeLeft)],
+  });
+};
+
+interface PlacedGlasses {
+  transform: RigidTransform;
+  timestampMs: number;
+}
+
+/**
+ * Places the glasses at the pose this render should draw. Returns null when
+ * the glasses are hidden or there is no pose, which hides them until the next
+ * trusted pose.
+ */
+const placeGlasses = (
+  stage: Stage,
+  overlayPose: OverlayPose,
+  anchors: ProductAnchors,
+): PlacedGlasses | null => {
+  const glasses = stage.glasses;
+  if (!glasses?.visible) return null;
+  const renderPose = overlayPose.poseForRender();
+  if (!renderPose) {
+    glasses.visible = false;
+    return null;
+  }
+  const transform = glassesTransform(renderPose.pose, anchors.bridgeCenter);
+  applyTransform(glasses, transform);
+  return { transform, timestampMs: renderPose.timestampMs };
 };
 
 function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [tracker] = useState(createHeadPoseTracker);
-  // The pose is applied per camera frame, so the scene lives in a ref and the
+  const [overlayPose] = useState(() => createOverlayPose());
+  const trackIdRef = useRef<number | null>(null);
+  // The pose is applied on every render, so the scene lives in a ref and the
   // component does not re-render on every landmark update.
   const stageRef = useRef<Stage | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -161,31 +251,43 @@ function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
+  // Read by the render loop, so a new product's anchors do not rebuild the scene.
+  const anchorsRef = useRef(anchors);
+  useEffect(() => {
+    anchorsRef.current = anchors;
+  }, [anchors]);
 
   useImperativeHandle(
     ref,
     (): ARTryOnHandle => ({
       updateModel: (frame: LandmarkFrame) => {
+        // Filter state carried to another face would swing the overlay across
+        // from the last one.
+        if (frame.trackId !== trackIdRef.current) {
+          trackIdRef.current = frame.trackId;
+          overlayPose.lose();
+        }
         const estimate = tracker.update(frame);
+        // A gated frame keeps the filter: a short gap continues the track and
+        // a long one restarts it on the next pose. A lost face ends it.
+        let filtered: HeadPose | null = null;
+        if (estimate.trusted) filtered = overlayPose.update(estimate.fit.pose, frame.timestampMs);
+        else if (estimate.reason === 'no-face') overlayPose.lose();
         const stage = stageRef.current;
         if (!stage) return;
         if (estimate.intrinsics) fitToVideo(stage, estimate.intrinsics);
         const glasses = stage.glasses;
         if (!glasses) return;
-
-        let placement: { transform: RigidTransform; glasses: THREE.Group } | null = null;
-        if (estimate.trusted && stage.intrinsics) {
-          const transform = glassesTransform(estimate.fit.pose, anchors.bridgeCenter);
-          applyTransform(glasses, transform);
-          glasses.visible = true;
-          placement = { transform, glasses };
-        } else {
-          glasses.visible = false;
+        glasses.visible = estimate.trusted && stage.intrinsics !== null;
+        if (probeEnabled()) {
+          probeGlassesPose(stage, frame, estimate, filtered, anchors, overlayPose.setting);
         }
-        if (probeEnabled()) probeGlassesPose(stage, frame, estimate, placement, anchors);
+      },
+      presentFrame: (timestampMs: number) => {
+        overlayPose.present(timestampMs);
       },
     }),
-    [tracker, anchors],
+    [tracker, overlayPose, anchors],
   );
 
   useEffect(() => {
@@ -249,8 +351,12 @@ function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       const renderStart = performance.now();
+      const placed = placeGlasses(stage, overlayPose, anchorsRef.current);
       renderer.render(scene, camera);
       probe({ stage: 'render', start: renderStart, end: performance.now() });
+      if (placed && probeEnabled()) {
+        probeRenderedPose(stage, placed, renderStart, anchorsRef.current);
+      }
     };
     animate();
 
@@ -275,7 +381,7 @@ function ARTryOn({ modelPath, anchors, ref, onError }: ARTryOnProps) {
       if (stageRef.current === stage) stageRef.current = null;
       setIsLoading(true);
     };
-  }, [modelPath]);
+  }, [modelPath, overlayPose]);
 
   return (
     <div

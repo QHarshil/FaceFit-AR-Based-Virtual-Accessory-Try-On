@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import { loadEnv, searchForWorkspaceRoot } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { apiOriginOf, contentSecurityPolicy } from './csp';
+import { parsePoseFilterSetting } from './src/filtering/poseFilterSetting';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 // The app bundles @facefit/cv from source. Type checks read declarations
@@ -27,6 +28,8 @@ const tasksVisionVersion = (
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, ROOT, 'VITE_');
+  // Throws on a value the app would not recognise, so the build fails.
+  parsePoseFilterSetting(env.VITE_POSE_FILTER);
   const apiOrigin = apiOriginOf(env.VITE_API_URL || DEFAULT_API_URL);
   // A fresh nonce per dev server start; the production policy has none.
   const devNonce = randomBytes(16).toString('base64');

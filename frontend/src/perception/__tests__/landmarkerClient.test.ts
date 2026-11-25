@@ -37,6 +37,7 @@ const faceFrame = (timestampMs: number): LandmarkFrame => ({
   height: 480,
   landmarks: new Float32Array(LANDMARK_COUNT * 3),
   faceCount: 1,
+  trackId: 1,
 });
 
 const result = (frameId: number) => ({

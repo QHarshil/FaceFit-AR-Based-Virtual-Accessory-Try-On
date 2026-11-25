@@ -55,7 +55,15 @@ export const startFrameSource = (
     const frameId = nextFrameId;
     nextFrameId += 1;
     onFrame({ frameId, frame, timestampMs, capturedAt });
-    probe({ stage: 'capture', frameId, start: capturedAt, end: performance.now() });
+    // mediaTime lets the harness find which clip frame this was.
+    probe({
+      stage: 'capture',
+      frameId,
+      timestampMs,
+      mediaTime: metadata.mediaTime,
+      start: capturedAt,
+      end: performance.now(),
+    });
   };
 
   handle = video.requestVideoFrameCallback(onVideoFrame);

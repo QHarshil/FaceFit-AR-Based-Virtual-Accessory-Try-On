@@ -1,0 +1,285 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { DEFAULT_MAX_GAP_MS, DEFAULT_MAX_STALE_MS, matrixFromQuaternion, oneEuroPose, quaternionFromMatrix, rotationMatrixFromVector } from '../../packages/cv/src/index.ts';
+import { seededRandom } from '../../packages/cv/test/random.ts';
+import { renderPlot } from './plotPoseFilter.mjs';
+import {
+  gridEdges, operatingPoint, paretoFront, positionLagOf, readSweepDetail, recommend, renderReplayErrorPx, rotationLagOf, solvedPoseNoise, SWEEP_DETAIL,
+  SWEEP_KEY, sweepSummary, TARGETS,
+} from './poseFilterSweep.mjs';
+import { replayedPoint } from './poseFilterReplayCheck.mjs';
+import { pageProjection, replayRun } from './poseReplay.mjs';
+
+const close = (actual, expected, tol = 1e-9) => assert.ok(Math.abs(actual - expected) <= tol, `${actual} != ${expected}`);
+
+const point = (lag, jitter) => ({ lag, jitter });
+const lagOf = (p) => p.lag;
+const jitterOf = (p) => p.jitter;
+
+test('paretoFront keeps the points no other beats on both lag and jitter', () => {
+  const points = [point(10, 3), point(20, 2), point(25, 2.5), point(30, 1), point(40, 1.2), point(50, 0.5), point(null, 0.1)];
+  assert.deepEqual(paretoFront(points, lagOf, jitterOf), [point(10, 3), point(20, 2), point(30, 1), point(50, 0.5)]);
+});
+
+test('operatingPoint takes the least jitter under the lag target, else the least lag', () => {
+  const points = [point(10, 3), point(45, 1.5), point(49, 1.2), point(60, 0.5)];
+  assert.deepEqual(operatingPoint(points, jitterOf, lagOf, 50), point(49, 1.2));
+  assert.deepEqual(operatingPoint(points, jitterOf, lagOf, 5), point(10, 3));
+});
+
+// Sweep metrics with one position lag on the step and every ramp, and one rotation lag on both rolls.
+const lagMetrics = (positionPx, rotationDeg, positionLagMs, rotationLagMs = positionLagMs) => ({
+  recStatic: { positionPx, rotationDeg },
+  stepLagMs: positionLagMs,
+  delayMs: { 'ramp-x': positionLagMs, 'ramp-x-60': positionLagMs, 'ramp-x-30': positionLagMs, 'sine-roll': rotationLagMs, 'sine-roll-slow': rotationLagMs },
+});
+
+test('the lags are the worst case over the step, every ramp speed and both rolls', () => {
+  const fastOnly = { metrics: { stepLagMs: 35, delayMs: { 'ramp-x': 40, 'ramp-x-60': 120, 'ramp-x-30': 300, 'sine-roll': 30, 'sine-roll-slow': 90 } } };
+  assert.equal(positionLagOf(fastOnly), 300);
+  assert.equal(rotationLagOf(fastOnly), 90);
+  // A clip whose motion the filter smoothed away has no delay: unbounded lag.
+  const flattened = { metrics: { ...fastOnly.metrics, delayMs: { ...fastOnly.metrics.delayMs, 'ramp-x-30': null, 'sine-roll-slow': null } } };
+  assert.equal(positionLagOf(flattened), null);
+  assert.equal(rotationLagOf(flattened), null);
+});
+
+test('gridEdges names the swept parameters of a point at the end of their grid', () => {
+  const grid = { minCutoffHz: [0.01, 0.1, 1], beta: [0, 1, 10], derivativeCutoffHz: [0.5, 1, 2] };
+  assert.deepEqual(gridEdges({ minCutoffHz: 0.1, beta: 1, derivativeCutoffHz: 1 }, grid), []);
+  assert.deepEqual(gridEdges({ minCutoffHz: 0.01, beta: 10, derivativeCutoffHz: 1 }, grid), ['minCutoffHz', 'beta']);
+  // Zero is as far as beta and other non-negative parameters go.
+  assert.deepEqual(gridEdges({ minCutoffHz: 1, beta: 0, derivativeCutoffHz: 0.5 }, grid), ['minCutoffHz', 'derivativeCutoffHz']);
+});
+
+test('recommend prefers operating points with both lags under the target', () => {
+  const metrics = (positionPx, rotationDeg, stepLagMs, sineDelayMs) => ({ metrics: lagMetrics(positionPx, rotationDeg, stepLagMs, sineDelayMs) });
+  const configurations = [
+    { numFaces: 1, oneEuro: { chosen: metrics(0.9, 0.15, 35, 45) }, kalman: { chosen: metrics(0.4, 0.05, 80, 30) } },
+    { numFaces: 2, oneEuro: { chosen: metrics(1.0, 0.12, 35, 40) }, kalman: { chosen: metrics(1.4, 0.11, 35, 30) } },
+  ];
+  const best = recommend(configurations);
+  assert.equal(best.filter, 'oneEuro');
+  assert.equal(best.numFaces, 1);
+  assert.equal(best.lagsUnderTarget, true);
+  close(best.worstJitterRatio, 1.8);
+});
+
+// A run as baseline.mjs records it: frames presented every 33 ms, each solved
+// 15 ms later, and renders every 16.7 ms. The face moves 2 mm per frame.
+const syntheticRun = (count) => {
+  const events = [];
+  const anchors = [[0, -32.7, -55.4], [-60, -35, -45], [60, -35, -45]];
+  const sample = (k, extra = {}) => {
+    const rotation = rotationMatrixFromVector([0, 0.01 * k, 0]);
+    const q = quaternionFromMatrix(rotation);
+    return {
+      stage: 'glassesPose', t: k * 33.3 + 15, frameTimestampMs: k * 33.3, gated: false, focalPx: 1000, principalPx: [640, 360], frameSize: [1280, 720],
+      headPose: { quaternion: [q.x, q.y, q.z, q.w], translationMm: [2 * k, 0, 600] }, anchorsFaceMm: anchors, ...extra,
+    };
+  };
+  for (let k = 0; k < count; k += 1) {
+    events.push({ stage: 'capture', start: k * 33.3 + 1, timestampMs: k * 33.3 });
+    events.push({ stage: 'renderedPose', t: k * 33.3 + 2 });
+    events.push(k === 20 ? sample(k, { gated: true, gateReason: 'no-face', headPose: null }) : sample(k));
+    events.push({ stage: 'renderedPose', t: k * 33.3 + 18 });
+  }
+  return { events, environment: { video: [1280, 720], viewport: [1280, 720] } };
+};
+
+test('pageProjection is the pinhole through the cover fit', () => {
+  const project = pageProjection({ focalPx: 1000, principalPx: [640, 360], frameSize: [1280, 720] }, [1280, 720], [640, 640]);
+  const identity = { rotation: [1, 0, 0, 0, 1, 0, 0, 0, 1], translationMm: [0, 0, 500] };
+  // 16:9 video in a square page: scale 640 / 720, centred with the sides cropped.
+  const [x, y] = project(identity, [50, 25, 0]);
+  const scale = 640 / 720;
+  close(x, (640 + 100) * scale + (640 - 1280 * scale) / 2);
+  close(y, (360 + 50) * scale);
+});
+
+test('replayRun without a filter draws each solved pose until the next one', () => {
+  const run = syntheticRun(10);
+  const { renders, frames } = replayRun(run, () => null);
+  assert.equal(frames.length, 10);
+  // The first render of frame 0 comes before any pose.
+  assert.equal(renders.length, 19);
+  assert.deepEqual(renders[0].centerPx, frames[0].centerPx);
+  assert.deepEqual(renders[1].centerPx, frames[0].centerPx);
+  assert.deepEqual(renders[2].centerPx, frames[1].centerPx);
+});
+
+test('replayRun predicts each render to the newest presented frame and resets on a lost face', () => {
+  const run = syntheticRun(30);
+  const params = { rotation: { minCutoffHz: 1, beta: 0.1, derivativeCutoffHz: 1 }, translation: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } };
+  const { renders, frames } = replayRun(run, () => oneEuroPose(params));
+  // Reference: the same filter driven by hand.
+  const reference = oneEuroPose(params);
+  const poses = run.events.filter((e) => e.stage === 'glassesPose');
+  const project = pageProjection(poses[0], [1280, 720], [1280, 720]);
+  const bridge = poses[0].anchorsFaceMm[0];
+  const solvedPose = (e) => {
+    const [x, y, z, w] = e.headPose.quaternion;
+    return { rotation: matrixFromQuaternion({ w, x, y, z }), translationMm: e.headPose.translationMm };
+  };
+  let renderIndex = 0;
+  let latest = null;
+  let presented = -Infinity;
+  for (const e of run.events) {
+    if (e.stage === 'capture') presented = e.timestampMs;
+    if (e.stage === 'glassesPose' && e.gated) {
+      reference.reset();
+      latest = null;
+    } else if (e.stage === 'glassesPose') {
+      reference.update(solvedPose(e), e.frameTimestampMs);
+      latest = e.frameTimestampMs;
+    } else if (e.stage === 'renderedPose' && latest !== null) {
+      const expected = project(reference.predict(Math.max(presented, latest)), bridge);
+      close(renders[renderIndex].centerPx[0], expected[0], 1e-9);
+      close(renders[renderIndex].centerPx[1], expected[1], 1e-9);
+      renderIndex += 1;
+    }
+  }
+  assert.equal(renderIndex, renders.length);
+  assert.equal(frames.length, 29);
+  // The first pose after the lost face is drawn as solved: frames skip the gated sample.
+  assert.deepEqual(frames[20].centerPx, project(solvedPose(poses[21]), bridge));
+});
+
+test('replayRun holds the capped pose past the filter gap and skips renders past the staleness limit', () => {
+  const run = syntheticRun(80);
+  // Frames 20 to 69 are gated without losing the face: 1.67 s with no pose.
+  run.events = run.events.map((e) => (e.stage === 'glassesPose' && e.frameTimestampMs >= 20 * 33.3 - 1 && e.frameTimestampMs < 70 * 33.3 - 1
+    ? { ...e, gated: true, gateReason: 'rms', headPose: null }
+    : e));
+  const params = { rotation: { minCutoffHz: 1, beta: 0.1, derivativeCutoffHz: 1 }, translation: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } };
+  const unfiltered = replayRun(run, () => null);
+  const filtered = replayRun(run, () => oneEuroPose(params));
+  const lastPose = 19 * 33.3;
+  const ageAt = (t) => Math.max(...run.events.filter((c) => c.stage === 'capture' && c.start <= t).map((c) => c.timestampMs)) - lastPose;
+  const gapRenders = run.events.filter((e) => e.stage === 'renderedPose' && e.t > lastPose + 15 && e.t < 70 * 33.3 + 15);
+  const skipped = gapRenders.filter((e) => ageAt(e.t) > DEFAULT_MAX_STALE_MS);
+  assert.ok(skipped.length > 0);
+  assert.equal(filtered.renders.length, unfiltered.renders.length - skipped.length);
+  const held = new Set(gapRenders.filter((e) => ageAt(e.t) > DEFAULT_MAX_GAP_MS && ageAt(e.t) <= DEFAULT_MAX_STALE_MS)
+    .map((e) => filtered.renders.find((r) => r.t === e.t).centerPx.join(',')));
+  assert.equal(held.size, 1);
+});
+
+test('replayRun runs the warmup first and keeps only the measured output', () => {
+  const run = syntheticRun(20);
+  const split = run.events.findIndex((e) => e.stage === 'capture' && e.timestampMs > 300);
+  const warm = replayRun({ ...run, warmupEvents: run.events.slice(0, split), events: run.events.slice(split) }, () => null);
+  const cold = replayRun(run, () => null);
+  assert.equal(warm.renders.length, cold.renders.filter((r) => r.t >= run.events[split].start).length);
+  assert.deepEqual(warm.renders.at(-1), cold.renders.at(-1));
+});
+
+test('solvedPoseNoise recovers white translation and rotation noise of a known size', () => {
+  const random = seededRandom(31);
+  const sigma = [0.8, 0.3, 2];
+  const sigmaRad = 0.003;
+  const events = Array.from({ length: 3000 }, (_, k) => {
+    const rotation = rotationMatrixFromVector([random.gaussian(sigmaRad), random.gaussian(sigmaRad), random.gaussian(sigmaRad)]);
+    const q = quaternionFromMatrix(rotation);
+    const landmarks = Array.from({ length: 13 }, (_, i) => [0.4 + 0.01 * i, 0.5 + (i % 3) * 0.01, 0]);
+    return {
+      stage: 'glassesPose', t: k * 33.3, gated: false,
+      headPose: { quaternion: [q.x, q.y, q.z, q.w], translationMm: sigma.map((s, i) => [0, 0, 600][i] + random.gaussian(s)) },
+      landmarks, targetNdc: [0, 0], smoothedNdc: [0, 0], smoothedEndsNdc: [[-0.1, 0], [0.1, 0]], euler: [0, 0, 0],
+    };
+  });
+  const noise = solvedPoseNoise({ events, environment: { video: [1280, 720], viewport: [1280, 720] } });
+  noise.translationMm.forEach((estimate, i) => close(estimate / sigma[i], 1, 0.06));
+  close(noise.rotationRad / sigmaRad, 1, 0.06);
+});
+
+test('renderPlot draws one curve per filter and configuration, the unfiltered points and the targets', () => {
+  const metrics = (positionPx, rotationDeg, lagMs) => ({ metrics: lagMetrics(positionPx, rotationDeg, lagMs) });
+  const stage = () => ({ front: [{ lagMs: 20, jitter: 1.2 }, { lagMs: 40, jitter: 0.8 }, { lagMs: 400, jitter: 0.5 }], chosen: metrics(0.8, 0.15, 40) });
+  const configuration = (numFaces) => ({ numFaces, label: `off-${numFaces}`, unfiltered: metrics(1.4, 0.24, 17).metrics, oneEuro: { rotation: stage(), translation: stage() }, kalman: { rotation: stage(), translation: stage() } });
+  const svg = renderPlot({ commit: 'abcdef1234', targets: { positionJitterPx: 0.5, rotationJitterDeg: 0.1, lagMs: 50 }, recommended: { filter: 'oneEuro', numFaces: 1 }, configurations: [configuration(1), configuration(2)] });
+  assert.ok(svg.startsWith('<svg'));
+  // Two panels with four curves each; the 400 ms point is past the axis and dropped.
+  assert.equal((svg.match(/<path /g) ?? []).length, 8);
+  assert.equal((svg.match(/stroke-dasharray="6 4"/g) ?? []).length, 2 * 2 + 2);
+  assert.equal((svg.match(/>none, [12]</g) ?? []).length, 4);
+  assert.equal((svg.match(/>chosen</g) ?? []).length, 2);
+  assert.ok(svg.includes('>target<'));
+});
+
+test('sweepSummary keeps the operating points, the cheapest front point at each target and the detail path', () => {
+  const chosen = (positionPx, rotationDeg, lagMs) => ({ params: { lagMs }, metrics: lagMetrics(positionPx, rotationDeg, lagMs) });
+  const front = (target) => [{ lagMs: 20, jitter: 2 * target }, { lagMs: 60, jitter: target }, { lagMs: 90, jitter: target / 2 }];
+  const filter = (lagMs) => ({ rotation: { evaluated: 10, front: front(0.1) }, translation: { evaluated: 12, front: front(0.5) }, chosen: chosen(0.9, 0.15, lagMs) });
+  const detail = {
+    measuredAt: 'then', commit: 'abc', dirty: false, command: 'node sweep', targets: { positionJitterPx: 0.5, rotationJitterDeg: 0.1, lagMs: 50 },
+    recommended: { filter: 'kalman', numFaces: 1, worstJitterRatio: 1.8, lagsUnderTarget: true },
+    configurations: [{ label: 'off', numFaces: 1, commit: 'def', hardware: { cpu: 'M' }, unfiltered: { stepLagMs: 17 }, oneEuro: filter(40), kalman: filter(30) }],
+  };
+  const summary = sweepSummary(detail);
+  assert.equal(summary.detail, SWEEP_DETAIL);
+  assert.equal(summary.commit, 'abc');
+  assert.deepEqual(summary.hardware, { cpu: 'M' });
+  assert.deepEqual(summary.recommended.params, { lagMs: 30 });
+  const kalman = summary.configurations[0].kalman;
+  assert.deepEqual(kalman.chosen, chosen(0.9, 0.15, 30));
+  assert.equal(kalman.positionLagMs, 30);
+  assert.equal(kalman.rotationLagMs, 30);
+  assert.deepEqual(kalman.atJitterTarget, { position: { lagMs: 60, jitter: 0.5 }, rotation: { lagMs: 60, jitter: 0.1 } });
+  assert.ok(!JSON.stringify(summary).includes('"front"'));
+});
+
+test('docs/pose-filter.svg regenerates byte for byte from the committed sweep', () => {
+  const resultsFile = new URL('../results.json', import.meta.url);
+  const summary = JSON.parse(readFileSync(resultsFile, 'utf8')).runs[SWEEP_KEY];
+  const detail = readSweepDetail(resultsFile, summary);
+  assert.equal(renderPlot(detail), readFileSync(new URL('../../docs/pose-filter.svg', import.meta.url), 'utf8'));
+});
+
+// The app ships the One Euro point for numFaces 2, not the sweep's Kalman
+// recommendation (docs/pose-filter.md); the frontend's overlayPose test checks
+// ONE_EURO_OPTIONS equals this point.
+const SHIPPED = { filter: 'oneEuro', numFaces: 2 };
+
+// The target is 50 ms for every lag. In replay the shipped point's worst is
+// the slow roll at 49.3 ms, 0.7 ms under it. Live (runs["pose-filter"]) the
+// slow roll measured 51.0 ms, 1.0 ms over, and docs/pose-filter.md says so;
+// this test checks the replay, which the sweep selects on.
+test('the shipped One Euro point keeps every replayed lag under the 50 ms target, off the grid edges', () => {
+  const summary = JSON.parse(readFileSync(new URL('../results.json', import.meta.url), 'utf8')).runs[SWEEP_KEY];
+  const point = summary.configurations.find((c) => c.numFaces === SHIPPED.numFaces)[SHIPPED.filter];
+  assert.equal(TARGETS.lagMs, 50);
+  const lags = { 'step-x': point.chosen.metrics.stepLagMs, ...point.chosen.metrics.delayMs };
+  assert.deepEqual(Object.keys(lags).sort(), ['ramp-x', 'ramp-x-30', 'ramp-x-60', 'sine-roll', 'sine-roll-slow', 'step-x']);
+  for (const [clip, lagMs] of Object.entries(lags)) {
+    assert.ok(lagMs < TARGETS.lagMs, `${lagMs} ms on ${clip}, ${(lagMs - TARGETS.lagMs).toFixed(1)} ms over the target`);
+  }
+  assert.equal(point.positionLagMs, Math.max(lags['step-x'], lags['ramp-x'], lags['ramp-x-60'], lags['ramp-x-30']));
+  assert.equal(point.rotationLagMs, Math.max(lags['sine-roll'], lags['sine-roll-slow']));
+  assert.deepEqual(point.chosenAtGridEdge, { rotation: [], translation: [] });
+});
+
+test('renderReplayErrorPx is zero for the filter a run drew with and not for another', () => {
+  const run = syntheticRun(30);
+  const params = { rotation: { minCutoffHz: 1, beta: 0.1, derivativeCutoffHz: 1 }, translation: { minCutoffHz: 1, beta: 0.01, derivativeCutoffHz: 1 } };
+  const { renders } = replayRun(run, () => oneEuroPose(params));
+  const [vw, vh] = run.environment.viewport;
+  // Record what the filter drew as the run's own renders, in NDC as the app
+  // probes them; the app records no render while it has no pose.
+  const byTime = new Map(renders.map((r) => [r.t, r]));
+  const drawn = run.events.flatMap((e) => {
+    if (e.stage !== 'renderedPose') return [e];
+    const r = byTime.get(e.t);
+    return r ? [{ ...e, centerNdc: [(2 * r.centerPx[0]) / vw - 1, 1 - (2 * r.centerPx[1]) / vh] }] : [];
+  });
+  const filtered = { ...run, events: drawn };
+  assert.ok(renderReplayErrorPx(filtered, () => oneEuroPose(params)) < 1e-9);
+  assert.ok(renderReplayErrorPx(filtered, () => null) > 1);
+});
+
+test('replayedPoint reports what the sweep selects on', () => {
+  const point = replayedPoint({ ...lagMetrics(1.2, 0.3, 40, 30), stepOvershootPercent: 9, blinkShiftPx: 4.9 });
+  close(point.worstJitterRatio, 3);
+  assert.deepEqual({ ...point, worstJitterRatio: 3 }, { positionJitterPx: 1.2, rotationJitterDeg: 0.3, worstJitterRatio: 3, positionLagMs: 40, rotationLagMs: 30, stepOvershootPercent: 9, blinkShiftPx: 4.9 });
+});

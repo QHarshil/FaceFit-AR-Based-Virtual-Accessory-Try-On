@@ -13,6 +13,7 @@ import { rotationFromDegrees } from '../../test/syntheticFace';
 import {
   BRIDGE_FORWARD_OFFSET_MM,
   CANONICAL_NOSE_BRIDGE_MM,
+  glassesPointInFaceModel,
   glassesTransform,
   transformPoint,
 } from '../glassesPlacement';
@@ -155,5 +156,22 @@ describe('bridge offset from landmark 168', () => {
     };
     expect(offsetPx(400)).toBeCloseTo(-0.908, 2);
     expect(offsetPx(600)).toBeCloseTo(-0.365, 2);
+  });
+});
+
+describe('glassesPointInFaceModel', () => {
+  it('lands on the same pixel through the head pose as the glasses transform puts it', () => {
+    const pose: HeadPose = {
+      rotation: rotationFromDegrees(-8, 20, 5),
+      translationMm: [30, -15, 550],
+    };
+    for (const anchor of [ANCHORS.bridgeCenter, ANCHORS.hingeLeft, ANCHORS.hingeRight]) {
+      const viaTransform = eyePixel(
+        transformPoint(glassesTransform(pose, ANCHORS.bridgeCenter), anchor),
+      );
+      const viaFaceModel = facePixel(pose, glassesPointInFaceModel(anchor, ANCHORS.bridgeCenter));
+      expect(viaFaceModel[0]).toBeCloseTo(viaTransform[0], 9);
+      expect(viaFaceModel[1]).toBeCloseTo(viaTransform[1], 9);
+    }
   });
 });

@@ -60,6 +60,19 @@ describe('frame source', () => {
     expect((frames[0]?.frame as unknown as FakeVideoFrame).source).toBe(video);
   });
 
+  it('probes each capture with its timestamp and media time', () => {
+    const events: Record<string, unknown>[] = [];
+    vi.stubGlobal('__facefitProbe', (event: Record<string, unknown>) => events.push(event));
+    const { video, present } = fakeVideo();
+    startFrameSource(video, { onFrame: vi.fn(), onError: vi.fn() });
+
+    present(100, { captureTime: 90.25, mediaTime: 1.5 });
+
+    expect(events).toEqual([
+      expect.objectContaining({ stage: 'capture', frameId: 0, timestampMs: 90.25, mediaTime: 1.5 }),
+    ]);
+  });
+
   it('stops requesting frames after stop', () => {
     const { video, present, callbacks } = fakeVideo();
     const onFrame = vi.fn();

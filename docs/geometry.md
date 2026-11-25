@@ -108,7 +108,36 @@ $$\text{rms}_\text{mm} = \text{rms} \cdot \frac{t_z}{f_x},$$
 
 exceeds 6 mm. The facing test rejects a mirrored landmark set, which fits the model with a flipped depth and a small RMS. A hidden overlay shows again only below 5 mm. The eval harness measures at most 3.58 mm for a still face and 4.53 mm through blinks, so 5 mm shows a blinking face at once, and a reading between 5 and 6 mm does not flip the overlay every frame.
 
-The scaling removes the face's size in pixels from the gap between the wearer's face and the canonical one, and from the assumed FOV to first order, since $t_z$ scales with $f_x$. It does not remove it from landmark noise. For a fixed noise in pixels the RMS in millimetres grows in proportion to depth, so a far face reaches 6 mm sooner than a near one.
+The scaling removes the face's size in pixels from the gap between the wearer's face and the canonical one, and from the assumed FOV to first order, since $t_z$ scales with $f_x$. It does not remove it from landmark noise. For a fixed noise in pixels the RMS in millimetres grows in proportion to depth, so a far face reaches 6 mm sooner than a near one. Trusted poses then go through the temporal filter in [pose-filter.md](pose-filter.md).
+
+## Gate by yaw and distance
+
+[`eval/benchmark/gate-report.mjs`](../eval/benchmark/gate-report.mjs) runs the gate on single frames (`runs["pose-gate-report"]`). Without the hysteresis a video has, each share is that of frames that would hide a shown overlay; "held" counts the frames between 5 and 6 mm, which keep a shown overlay and do not bring back a hidden one.
+
+**AFLW2000-3D by absolute yaw.** The benchmark's MediaPipe landmarks (CPU delegate, IMAGE mode), pixels as normalized landmarks times 450, intrinsics from the app's 60 degree FOV. "No face" images are hidden in the app as well.
+
+| Absolute yaw (deg) | Images | No face | Hidden of solved | Held, 5 to 6 mm | Hidden with no face | RMS median / p95 (mm) |
+|---|---|---|---|---|---|---|
+| 0 to 15 | 891 | 6 | 18.5% | 11.4% | 19.1% | 3.83 / 8.44 |
+| 15 to 30 | 420 | 2 | 13.9% | 10.5% | 14.3% | 3.80 / 7.83 |
+| 30 to 45 | 195 | 9 | 12.9% | 9.1% | 16.9% | 4.00 / 6.59 |
+| 45 to 60 | 185 | 35 | 27.3% | 14.7% | 41.1% | 4.75 / 8.56 |
+| 60 to 75 | 192 | 96 | 54.2% | 12.5% | 77.1% | 6.26 / 9.89 |
+| 75 to 99 | 86 | 72 | 50.0% | 14.3% | 91.9% | 6.24 / 9.35 |
+| All | 1969 | 220 | 19.8% | 11.3% | 28.7% | 4.04 / 8.23 |
+
+Every hidden image is hidden for an RMS over 6 mm; no solve failed and none faced away. The share rises past 45 degrees of yaw, and past 60 degrees FaceLandmarker misses most faces as well. Near-frontal images are hidden more often than those at 15 to 45 degrees. The RMS on these varied faces, expressions included, sits well above the still clip's median of 2.79 mm (`runs["pose-integration"]`), so a threshold set on one person's recordings would hide about a fifth of single frames of faces like these. In video the hysteresis keeps a shown overlay up to 6 mm, so frames in the held band do not flicker it.
+
+**Synthetic faces by distance.** The 33 rigid landmarks, moved by isotropic Gaussian shape noise sized so the median RMS at 600 mm without pixel noise matches the still clip's, posed within 30 degrees of yaw, 20 of pitch and 15 of roll, projected through 1280x720 intrinsics at 60 degrees, plus fixed Gaussian pixel noise. Each cell is 400 faces: the hidden share, then the median RMS in millimetres. This is a model. Fixed pixel noise is the pessimistic case if MediaPipe's pixel errors shrink with the face, as they would for a model that works on a face crop. On real landmarks the RMS in millimetres changed little across the zoom clips (`summary.solver.byCondition` of `runs["pose-integration"]`), so the shape term dominates at desk distance.
+
+| Pixel noise | 400 mm | 600 mm | 800 mm | 1000 mm | 1500 mm | 2000 mm | 2500 mm | 3000 mm |
+|---|---|---|---|---|---|---|---|---|
+| 0 px | 0.0% (2.9) | 0.0% (2.8) | 0.0% (2.7) | 0.0% (2.7) | 0.0% (2.6) | 0.0% (2.6) | 0.0% (2.6) | 0.0% (2.6) |
+| 0.5 px | 0.0% (3.0) | 0.0% (2.9) | 0.0% (2.8) | 0.0% (2.8) | 0.0% (2.8) | 0.0% (2.9) | 0.0% (3.1) | 0.0% (3.2) |
+| 1 px | 0.0% (2.9) | 0.0% (2.9) | 0.0% (2.9) | 0.0% (2.9) | 0.0% (3.3) | 0.0% (3.6) | 0.0% (4.1) | 0.5% (4.6) |
+| 2 px | 0.0% (3.1) | 0.0% (3.2) | 0.0% (3.4) | 0.0% (3.7) | 2.0% (4.7) | 37.2% (5.7) | 83.8% (6.8) | 97.8% (8.0) |
+
+With pixel noise up to 1 px the gate hides almost nothing out to 3000 mm. At 2 px it starts hiding at 1500 mm and hides most frames from 2500 mm, where the noise term passes the 6 mm threshold.
 
 ## Seating the frame
 

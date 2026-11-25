@@ -1,0 +1,5505 @@
+{
+  "measuredAt": "2026-11-25T02:31:47.430Z",
+  "commit": "17da376a9de21c36c90f58f618769bf2271c1c78",
+  "dirty": false,
+  "command": "node eval/harness/poseFilterSweep.mjs --runs pose-filter-off,pose-filter-off-1face",
+  "method": "Offline replay of runs recorded with the filter off: each shown pose sample updates the filter at its frame capture time, a lost face resets it, and each render predicts to the newest presented frame (eval/harness/poseReplay.mjs). Jitter is the RMS high-pass of what renders drew on rec-static (blinks masked); lags are on the motion clips against the frame on screen.",
+  "targets": {
+    "rotationJitterDeg": 0.1,
+    "positionJitterPx": 0.5,
+    "lagMs": 50
+  },
+  "lags": "position lag: the largest of the median lag to 90% on step-x and the delays on ramp-x, ramp-x-60, ramp-x-30; rotation lag: the larger delay on sine-roll and sine-roll-slow",
+  "selection": "Rotation, then translation with the chosen rotation: the least rec-static jitter among points with a lag under the target, else the least lag. The recommendation is the operating point with both lags under the target and the smallest worst ratio of position and rotation jitter to their targets.",
+  "grids": {
+    "oneEuro": {
+      "minCutoffHz": [
+        0.005,
+        0.01,
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.4,
+        0.7,
+        1,
+        1.5,
+        2,
+        2.5,
+        3,
+        4,
+        6,
+        10
+      ],
+      "rotationBeta": [
+        0,
+        0.1,
+        0.3,
+        1,
+        3,
+        10,
+        30,
+        100,
+        300
+      ],
+      "translationBeta": [
+        0,
+        0.001,
+        0.003,
+        0.01,
+        0.03,
+        0.1,
+        0.3,
+        1,
+        3
+      ],
+      "derivativeCutoffHz": [
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        1,
+        2,
+        4,
+        8
+      ],
+      "translationDuringRotationSweep": {
+        "minCutoffHz": 1,
+        "beta": 0.01,
+        "derivativeCutoffHz": 1
+      }
+    },
+    "kalman": {
+      "angularAccelerationNoise": [
+        0.0003,
+        0.0006463,
+        0.001392,
+        0.003,
+        0.006463,
+        0.01392,
+        0.03,
+        0.06463,
+        0.1392,
+        0.3,
+        0.6463,
+        1.392,
+        3,
+        6.463,
+        13.92,
+        30,
+        64.63,
+        139.2,
+        300
+      ],
+      "linearAccelerationNoiseMm": [
+        0.03,
+        0.06463,
+        0.1392,
+        0.3,
+        0.6463,
+        1.392,
+        3,
+        6.463,
+        13.92,
+        30,
+        64.63,
+        139.2,
+        300,
+        646.3,
+        1392,
+        3000,
+        6463,
+        13920,
+        30000
+      ],
+      "linearAccelerationNoiseMmDuringRotationSweep": 100
+    }
+  },
+  "recommended": {
+    "filter": "kalman",
+    "numFaces": 2,
+    "worstJitterRatio": 3.195,
+    "lagsUnderTarget": true
+  },
+  "configurations": [
+    {
+      "label": "pose-filter-off",
+      "numFaces": 2,
+      "commit": "a2068549db1b4f57f29faa1195708f312c142fcd",
+      "measuredAt": "2026-11-25T02:24:25.901Z",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "perceptionDelegate": "GPU"
+      },
+      "replayErrorPx": 1.271e-13,
+      "solvedPoseNoise": {
+        "translationMm": [
+          0.8784,
+          0.6203,
+          2.853
+        ],
+        "rotationRad": 0.008877
+      },
+      "unfiltered": {
+        "still": {
+          "positionPx": 0.4676,
+          "rotationDeg": 0.7601
+        },
+        "recStatic": {
+          "positionPx": 1.637,
+          "rotationDeg": 0.7479
+        },
+        "blinkShiftPx": 4.939,
+        "stepLagMs": 26.85,
+        "stepLagMaxMs": 37,
+        "stepOvershootPercent": 0.6133,
+        "stepErrorRmsPx": 12.62,
+        "delayMs": {
+          "ramp-x": 29.76,
+          "ramp-x-60": 26.42,
+          "ramp-x-30": 27.62,
+          "sine-roll": 33.71,
+          "sine-roll-slow": 21.34
+        },
+        "constantVelocityLagMs": {
+          "ramp-x": 29.67,
+          "ramp-x-60": 26.95,
+          "ramp-x-30": 26.86
+        },
+        "errorRms": {
+          "ramp-x": 7.486,
+          "ramp-x-60": 1.938,
+          "ramp-x-30": 1.125,
+          "sine-roll": 0.8509,
+          "sine-roll-slow": 0.3765
+        }
+      },
+      "oneEuro": {
+        "rotation": {
+          "evaluated": 1152,
+          "front": [
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.193,
+              "jitter": 1.221
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.215,
+              "jitter": 1.22
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.226,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.232,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.235,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.238,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.241,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.244,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.246,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.248,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.249,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.25,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.25,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.25,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.25,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 3.25,
+              "jitter": 1.219
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.046,
+              "jitter": 1.041
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.072,
+              "jitter": 1.039
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.086,
+              "jitter": 1.038
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.093,
+              "jitter": 1.038
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.097,
+              "jitter": 1.037
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.1,
+              "jitter": 1.037
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.104,
+              "jitter": 1.037
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.108,
+              "jitter": 1.037
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.11,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.112,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.114,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.115,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.115,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.115,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.115,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 4.115,
+              "jitter": 1.036
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 5.588,
+              "jitter": 0.9892
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 5.773,
+              "jitter": 0.9803
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 5.877,
+              "jitter": 0.9751
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 5.933,
+              "jitter": 0.9723
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 5.962,
+              "jitter": 0.9708
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 5.992,
+              "jitter": 0.9693
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.022,
+              "jitter": 0.9677
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.053,
+              "jitter": 0.9661
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.073,
+              "jitter": 0.9651
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.092,
+              "jitter": 0.9641
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.105,
+              "jitter": 0.9634
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.112,
+              "jitter": 0.9631
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.115,
+              "jitter": 0.9629
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.117,
+              "jitter": 0.9628
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.118,
+              "jitter": 0.9628
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 100,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 6.118,
+              "jitter": 0.9627
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.23,
+              "jitter": 0.8835
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.267,
+              "jitter": 0.8794
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.287,
+              "jitter": 0.8771
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.297,
+              "jitter": 0.8759
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.302,
+              "jitter": 0.8753
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.308,
+              "jitter": 0.8746
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.313,
+              "jitter": 0.874
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.318,
+              "jitter": 0.8733
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.322,
+              "jitter": 0.873
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.325,
+              "jitter": 0.8726
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.327,
+              "jitter": 0.8723
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.328,
+              "jitter": 0.8722
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.329,
+              "jitter": 0.8721
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.329,
+              "jitter": 0.872
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.329,
+              "jitter": 0.872
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 6.329,
+              "jitter": 0.872
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 7.945,
+              "jitter": 0.8215
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.19,
+              "jitter": 0.8048
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.333,
+              "jitter": 0.7944
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.411,
+              "jitter": 0.7886
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.452,
+              "jitter": 0.7855
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.494,
+              "jitter": 0.7823
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.538,
+              "jitter": 0.7789
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.583,
+              "jitter": 0.7753
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.611,
+              "jitter": 0.7731
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.639,
+              "jitter": 0.7708
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.659,
+              "jitter": 0.7693
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.668,
+              "jitter": 0.7685
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.673,
+              "jitter": 0.7681
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.676,
+              "jitter": 0.7678
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.677,
+              "jitter": 0.7678
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 100,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 8.678,
+              "jitter": 0.7677
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 30,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 11.57,
+              "jitter": 0.7463
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.87,
+              "jitter": 0.7443
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.88,
+              "jitter": 0.7426
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.9,
+              "jitter": 0.7409
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.91,
+              "jitter": 0.7392
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.93,
+              "jitter": 0.7373
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.94,
+              "jitter": 0.7362
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.95,
+              "jitter": 0.7351
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.95,
+              "jitter": 0.7343
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.96,
+              "jitter": 0.7339
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.96,
+              "jitter": 0.7337
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.96,
+              "jitter": 0.7336
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.96,
+              "jitter": 0.7335
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 11.96,
+              "jitter": 0.7335
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 30,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 12.93,
+              "jitter": 0.7025
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 13.73,
+              "jitter": 0.695
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 30,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 13.87,
+              "jitter": 0.6719
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.17,
+              "jitter": 0.6663
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.45,
+              "jitter": 0.6473
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.61,
+              "jitter": 0.6362
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.69,
+              "jitter": 0.6301
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.79,
+              "jitter": 0.6237
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.88,
+              "jitter": 0.6168
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 14.99,
+              "jitter": 0.6094
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.05,
+              "jitter": 0.6048
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.12,
+              "jitter": 0.5999
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.17,
+              "jitter": 0.5965
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.19,
+              "jitter": 0.5948
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.21,
+              "jitter": 0.5939
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.21,
+              "jitter": 0.5934
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.22,
+              "jitter": 0.5932
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 100,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 15.22,
+              "jitter": 0.5932
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 19.4,
+              "jitter": 0.5747
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 20.79,
+              "jitter": 0.5337
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 21.68,
+              "jitter": 0.5084
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 23.29,
+              "jitter": 0.4941
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 25.81,
+              "jitter": 0.4787
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 27.81,
+              "jitter": 0.4729
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.04,
+              "jitter": 0.4648
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.29,
+              "jitter": 0.4563
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.47,
+              "jitter": 0.4504
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.56,
+              "jitter": 0.4474
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.61,
+              "jitter": 0.4458
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.64,
+              "jitter": 0.4449
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.65,
+              "jitter": 0.4446
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 28.65,
+              "jitter": 0.4444
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 32.71,
+              "jitter": 0.4434
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 33.96,
+              "jitter": 0.4427
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 30,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 35.51,
+              "jitter": 0.4315
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 10,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 35.64,
+              "jitter": 0.4277
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 35.74,
+              "jitter": 0.4112
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 36.83,
+              "jitter": 0.3935
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 38.5,
+              "jitter": 0.3742
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 42.98,
+              "jitter": 0.3658
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 43.66,
+              "jitter": 0.3533
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 46.81,
+              "jitter": 0.343
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 49.18,
+              "jitter": 0.335
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 50.5,
+              "jitter": 0.331
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 50.56,
+              "jitter": 0.3305
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 51.21,
+              "jitter": 0.3289
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 51.64,
+              "jitter": 0.3277
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 51.79,
+              "jitter": 0.3273
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 51.86,
+              "jitter": 0.327
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 55.97,
+              "jitter": 0.3159
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 30,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 57.35,
+              "jitter": 0.3058
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 30,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 62.84,
+              "jitter": 0.3005
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 30,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 65.99,
+              "jitter": 0.2812
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 10,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 71.66,
+              "jitter": 0.2778
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 73.1,
+              "jitter": 0.272
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 74.6,
+              "jitter": 0.2614
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 30,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 78.61,
+              "jitter": 0.2545
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 30,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 82.27,
+              "jitter": 0.2543
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 100,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 88.17,
+              "jitter": 0.2511
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 100,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 89.33,
+              "jitter": 0.2457
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 30,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 89.47,
+              "jitter": 0.2375
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 90.51,
+              "jitter": 0.2309
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 30,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 97.43,
+              "jitter": 0.2254
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 101.5,
+              "jitter": 0.2225
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 30,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 104.6,
+              "jitter": 0.2196
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 105.8,
+              "jitter": 0.2084
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 30,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 112.1,
+              "jitter": 0.2038
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 113.6,
+              "jitter": 0.2001
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 117.6,
+              "jitter": 0.1967
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 30,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 122.3,
+              "jitter": 0.1934
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 122.3,
+              "jitter": 0.1894
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 128.1,
+              "jitter": 0.1872
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 128.4,
+              "jitter": 0.1841
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 131.3,
+              "jitter": 0.1825
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 132.4,
+              "jitter": 0.182
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 132.7,
+              "jitter": 0.1818
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 132.9,
+              "jitter": 0.1818
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 144.6,
+              "jitter": 0.1737
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 30,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 146,
+              "jitter": 0.1686
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 151.5,
+              "jitter": 0.163
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 157.6,
+              "jitter": 0.1612
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 162.1,
+              "jitter": 0.1582
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 164.2,
+              "jitter": 0.1573
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 165.8,
+              "jitter": 0.1569
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 165.9,
+              "jitter": 0.1512
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 167,
+              "jitter": 0.1508
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 172.2,
+              "jitter": 0.1471
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 174.2,
+              "jitter": 0.1458
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 174.7,
+              "jitter": 0.1446
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 177.4,
+              "jitter": 0.1427
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 178.4,
+              "jitter": 0.142
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 178.7,
+              "jitter": 0.1418
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 178.8,
+              "jitter": 0.1417
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 193.2,
+              "jitter": 0.1371
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 212.1,
+              "jitter": 0.1325
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 216.1,
+              "jitter": 0.1239
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 220.8,
+              "jitter": 0.1225
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 230.6,
+              "jitter": 0.118
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 232.4,
+              "jitter": 0.1159
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 236,
+              "jitter": 0.1158
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 237.6,
+              "jitter": 0.1136
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 239.5,
+              "jitter": 0.1128
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 240,
+              "jitter": 0.1125
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 240.3,
+              "jitter": 0.1124
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 271.3,
+              "jitter": 0.1056
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 311.5,
+              "jitter": 0.1046
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 313.9,
+              "jitter": 0.104
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 316.9,
+              "jitter": 0.08954
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 331.6,
+              "jitter": 0.08646
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 354.9,
+              "jitter": 0.079
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 364.9,
+              "jitter": 0.07858
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 367.7,
+              "jitter": 0.07799
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 367.8,
+              "jitter": 0.07587
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 372.5,
+              "jitter": 0.07476
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 373.9,
+              "jitter": 0.07444
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 374.6,
+              "jitter": 0.07429
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 30,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 422,
+              "jitter": 0.07045
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 30,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 448.4,
+              "jitter": 0.06584
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 450.2,
+              "jitter": 0.06338
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 458.7,
+              "jitter": 0.05929
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 491.6,
+              "jitter": 0.05483
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 533.8,
+              "jitter": 0.05055
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 540.6,
+              "jitter": 0.04579
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 579.1,
+              "jitter": 0.04141
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 625.7,
+              "jitter": 0.03672
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 657.7,
+              "jitter": 0.03226
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 711,
+              "jitter": 0.02713
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 729.7,
+              "jitter": 0.02558
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 739.1,
+              "jitter": 0.02484
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotation": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "translation": {
+                "minCutoffHz": 1,
+                "beta": 0.01,
+                "derivativeCutoffHz": 1
+              }
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.2753,
+                "rotationDeg": 0.2596
+              },
+              "recStatic": {
+                "positionPx": 0.7409,
+                "rotationDeg": 0.335
+              },
+              "blinkShiftPx": 5.614,
+              "stepLagMs": 136,
+              "stepLagMaxMs": 137.8,
+              "stepOvershootPercent": 0.3432,
+              "stepErrorRmsPx": 15.48,
+              "delayMs": {
+                "ramp-x": 83.78,
+                "ramp-x-60": 126.7,
+                "ramp-x-30": 143.1,
+                "sine-roll": 44.79,
+                "sine-roll-slow": 49.18
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 79.21,
+                "ramp-x-60": 128.4,
+                "ramp-x-30": 146.2
+              },
+              "errorRms": {
+                "ramp-x": 19.28,
+                "ramp-x-60": 7.26,
+                "ramp-x-30": 4.093,
+                "sine-roll": 1.205,
+                "sine-roll-slow": 0.2852
+              }
+            }
+          },
+          "chosenAtGridEdge": []
+        },
+        "translation": {
+          "evaluated": 1152,
+          "front": [
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 26.85,
+              "jitter": 1.359
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 27.69,
+              "jitter": 1.343
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 29.94,
+              "jitter": 1.336
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 32.65,
+              "jitter": 1.33
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 36,
+              "jitter": 1.324
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 36.05,
+              "jitter": 1.312
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.01,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 36.75,
+              "jitter": 1.209
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 67.5,
+              "jitter": 1.207
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.01,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 68.65,
+              "jitter": 1.133
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 68.7,
+              "jitter": 1.046
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 68.85,
+              "jitter": 0.9561
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 70.05,
+              "jitter": 0.9516
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 92.3,
+              "jitter": 0.9277
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 102.1,
+              "jitter": 0.8558
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 102.2,
+              "jitter": 0.7896
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.01,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 102.3,
+              "jitter": 0.7773
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 123.1,
+              "jitter": 0.76
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 136,
+              "jitter": 0.7179
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 159.9,
+              "jitter": 0.7174
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 169.1,
+              "jitter": 0.6802
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.003,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 169.3,
+              "jitter": 0.6775
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 202.1,
+              "jitter": 0.6484
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.003,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 235.6,
+              "jitter": 0.6399
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.001,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 236.7,
+              "jitter": 0.6286
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 268.9,
+              "jitter": 0.6231
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.003,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 302.8,
+              "jitter": 0.6119
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.001,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 369.1,
+              "jitter": 0.6029
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 401.9,
+              "jitter": 0.5987
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.001,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 568.7,
+              "jitter": 0.5959
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 635.1,
+              "jitter": 0.5935
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotation": {
+                "minCutoffHz": 0.2,
+                "beta": 100,
+                "derivativeCutoffHz": 0.25
+              },
+              "translation": {
+                "minCutoffHz": 4,
+                "beta": 0.01,
+                "derivativeCutoffHz": 2
+              }
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.2809,
+                "rotationDeg": 0.2596
+              },
+              "recStatic": {
+                "positionPx": 1.209,
+                "rotationDeg": 0.335
+              },
+              "blinkShiftPx": 4.884,
+              "stepLagMs": 36.75,
+              "stepLagMaxMs": 70.8,
+              "stepOvershootPercent": 9.298,
+              "stepErrorRmsPx": 13.09,
+              "delayMs": {
+                "ramp-x": 31,
+                "ramp-x-60": 35.8,
+                "ramp-x-30": 36.73,
+                "sine-roll": 44.81,
+                "sine-roll-slow": 49.26
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 30.37,
+                "ramp-x-60": 36.51,
+                "ramp-x-30": 36.49
+              },
+              "errorRms": {
+                "ramp-x": 8.042,
+                "ramp-x-60": 2.241,
+                "ramp-x-30": 1.22,
+                "sine-roll": 1.206,
+                "sine-roll-slow": 0.2854
+              }
+            }
+          },
+          "chosenAtGridEdge": []
+        },
+        "chosen": {
+          "params": {
+            "rotation": {
+              "minCutoffHz": 0.2,
+              "beta": 100,
+              "derivativeCutoffHz": 0.25
+            },
+            "translation": {
+              "minCutoffHz": 4,
+              "beta": 0.01,
+              "derivativeCutoffHz": 2
+            }
+          },
+          "metrics": {
+            "still": {
+              "positionPx": 0.2809,
+              "rotationDeg": 0.2596
+            },
+            "recStatic": {
+              "positionPx": 1.209,
+              "rotationDeg": 0.335
+            },
+            "blinkShiftPx": 4.884,
+            "stepLagMs": 36.75,
+            "stepLagMaxMs": 70.8,
+            "stepOvershootPercent": 9.298,
+            "stepErrorRmsPx": 13.09,
+            "delayMs": {
+              "ramp-x": 31,
+              "ramp-x-60": 35.8,
+              "ramp-x-30": 36.73,
+              "sine-roll": 44.81,
+              "sine-roll-slow": 49.26
+            },
+            "constantVelocityLagMs": {
+              "ramp-x": 30.37,
+              "ramp-x-60": 36.51,
+              "ramp-x-30": 36.49
+            },
+            "errorRms": {
+              "ramp-x": 8.042,
+              "ramp-x-60": 2.241,
+              "ramp-x-30": 1.22,
+              "sine-roll": 1.206,
+              "sine-roll-slow": 0.2854
+            }
+          }
+        }
+      },
+      "kalman": {
+        "rotation": {
+          "evaluated": 19,
+          "front": [
+            {
+              "params": {
+                "angularAccelerationNoise": 300
+              },
+              "lagMs": 1.563,
+              "jitter": 2.197
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 139.2
+              },
+              "lagMs": 1.564,
+              "jitter": 2.195
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 64.63
+              },
+              "lagMs": 1.566,
+              "jitter": 2.184
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 30
+              },
+              "lagMs": 1.578,
+              "jitter": 2.139
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 13.92
+              },
+              "lagMs": 1.626,
+              "jitter": 1.979
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 6.463
+              },
+              "lagMs": 1.784,
+              "jitter": 1.638
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 3
+              },
+              "lagMs": 2.089,
+              "jitter": 1.228
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 1.392
+              },
+              "lagMs": 2.697,
+              "jitter": 0.8638
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.6463
+              },
+              "lagMs": 4.324,
+              "jitter": 0.5911
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.3
+              },
+              "lagMs": 8.721,
+              "jitter": 0.4071
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.1392
+              },
+              "lagMs": 20.56,
+              "jitter": 0.2905
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.06463
+              },
+              "lagMs": 50.99,
+              "jitter": 0.219
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.03
+              },
+              "lagMs": 118.9,
+              "jitter": 0.1755
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.01392
+              },
+              "lagMs": 228.4,
+              "jitter": 0.1369
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.006463
+              },
+              "lagMs": 337,
+              "jitter": 0.09812
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.003
+              },
+              "lagMs": 460,
+              "jitter": 0.06702
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotationNoiseRad": 0.008877,
+              "translationNoiseMm": [
+                0.8784,
+                0.6203,
+                2.853
+              ],
+              "angularAccelerationNoise": 0.1392,
+              "linearAccelerationNoiseMm": 100
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.6899,
+                "rotationDeg": 0.235
+              },
+              "recStatic": {
+                "positionPx": 1.939,
+                "rotationDeg": 0.2905
+              },
+              "blinkShiftPx": 6.613,
+              "stepLagMs": 36.05,
+              "stepLagMaxMs": 37.7,
+              "stepOvershootPercent": 42.14,
+              "stepErrorRmsPx": 15.22,
+              "delayMs": {
+                "ramp-x": -0.1172,
+                "ramp-x-60": -0.553,
+                "ramp-x-30": -0.394,
+                "sine-roll": 20.56,
+                "sine-roll-slow": 1.508
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 0.3601,
+                "ramp-x-60": -0.6419,
+                "ramp-x-30": -2.543
+              },
+              "errorRms": {
+                "ramp-x": 3.906,
+                "ramp-x-60": 0.9519,
+                "ramp-x-30": 0.6283,
+                "sine-roll": 1.095,
+                "sine-roll-slow": 0.2302
+              }
+            }
+          },
+          "chosenAtGridEdge": []
+        },
+        "translation": {
+          "evaluated": 19,
+          "front": [
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 300
+              },
+              "lagMs": 26.85,
+              "jitter": 3.044
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 139.2
+              },
+              "lagMs": 36.05,
+              "jitter": 2.234
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 64.63
+              },
+              "lagMs": 36.75,
+              "jitter": 1.597
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 30
+              },
+              "lagMs": 68.85,
+              "jitter": 1.118
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 13.92
+              },
+              "lagMs": 102.2,
+              "jitter": 0.8161
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 6.463
+              },
+              "lagMs": 151.5,
+              "jitter": 0.6916
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 3
+              },
+              "lagMs": 185.3,
+              "jitter": 0.669
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 1.392
+              },
+              "lagMs": 284.3,
+              "jitter": 0.6584
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 0.6463
+              },
+              "lagMs": 535,
+              "jitter": 0.6181
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotationNoiseRad": 0.008877,
+              "translationNoiseMm": [
+                0.8784,
+                0.6203,
+                2.853
+              ],
+              "angularAccelerationNoise": 0.1392,
+              "linearAccelerationNoiseMm": 64.63
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.4797,
+                "rotationDeg": 0.235
+              },
+              "recStatic": {
+                "positionPx": 1.597,
+                "rotationDeg": 0.2905
+              },
+              "blinkShiftPx": 6.649,
+              "stepLagMs": 36.75,
+              "stepLagMaxMs": 68.7,
+              "stepOvershootPercent": 37.88,
+              "stepErrorRmsPx": 15.17,
+              "delayMs": {
+                "ramp-x": 0.9739,
+                "ramp-x-60": -0.2066,
+                "ramp-x-30": 0.01744,
+                "sine-roll": 20.56,
+                "sine-roll-slow": 1.5
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 0.4753,
+                "ramp-x-60": -0.708,
+                "ramp-x-30": -2.337
+              },
+              "errorRms": {
+                "ramp-x": 4.663,
+                "ramp-x-60": 0.9925,
+                "ramp-x-30": 0.6802,
+                "sine-roll": 1.094,
+                "sine-roll-slow": 0.2302
+              }
+            }
+          },
+          "chosenAtGridEdge": []
+        },
+        "chosen": {
+          "params": {
+            "rotationNoiseRad": 0.008877,
+            "translationNoiseMm": [
+              0.8784,
+              0.6203,
+              2.853
+            ],
+            "angularAccelerationNoise": 0.1392,
+            "linearAccelerationNoiseMm": 64.63
+          },
+          "metrics": {
+            "still": {
+              "positionPx": 0.4797,
+              "rotationDeg": 0.235
+            },
+            "recStatic": {
+              "positionPx": 1.597,
+              "rotationDeg": 0.2905
+            },
+            "blinkShiftPx": 6.649,
+            "stepLagMs": 36.75,
+            "stepLagMaxMs": 68.7,
+            "stepOvershootPercent": 37.88,
+            "stepErrorRmsPx": 15.17,
+            "delayMs": {
+              "ramp-x": 0.9739,
+              "ramp-x-60": -0.2066,
+              "ramp-x-30": 0.01744,
+              "sine-roll": 20.56,
+              "sine-roll-slow": 1.5
+            },
+            "constantVelocityLagMs": {
+              "ramp-x": 0.4753,
+              "ramp-x-60": -0.708,
+              "ramp-x-30": -2.337
+            },
+            "errorRms": {
+              "ramp-x": 4.663,
+              "ramp-x-60": 0.9925,
+              "ramp-x-30": 0.6802,
+              "sine-roll": 1.094,
+              "sine-roll-slow": 0.2302
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "pose-filter-off-1face",
+      "numFaces": 1,
+      "commit": "a2068549db1b4f57f29faa1195708f312c142fcd",
+      "measuredAt": "2026-11-25T02:30:30.931Z",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "perceptionDelegate": "GPU"
+      },
+      "replayErrorPx": 1.271e-13,
+      "solvedPoseNoise": {
+        "translationMm": [
+          0.7827,
+          0.2611,
+          1.77
+        ],
+        "rotationRad": 0.002578
+      },
+      "unfiltered": {
+        "still": {
+          "positionPx": 0.01213,
+          "rotationDeg": 0.0143
+        },
+        "recStatic": {
+          "positionPx": 1.439,
+          "rotationDeg": 0.2192
+        },
+        "blinkShiftPx": 4.159,
+        "stepLagMs": 16.9,
+        "stepLagMaxMs": 18,
+        "stepOvershootPercent": 0.5224,
+        "stepErrorRmsPx": 10.36,
+        "delayMs": {
+          "ramp-x": 21.28,
+          "ramp-x-60": 28.56,
+          "ramp-x-30": 41.52,
+          "sine-roll": 42.31,
+          "sine-roll-slow": 126
+        },
+        "constantVelocityLagMs": {
+          "ramp-x": 19.31,
+          "ramp-x-60": 26.12,
+          "ramp-x-30": 40.05
+        },
+        "errorRms": {
+          "ramp-x": 6.666,
+          "ramp-x-60": 2.191,
+          "ramp-x-30": 1.479,
+          "sine-roll": 1.049,
+          "sine-roll-slow": 0.4479
+        }
+      },
+      "oneEuro": {
+        "rotation": {
+          "evaluated": 1152,
+          "front": [
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 114.1,
+              "jitter": 0.2966
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 114.2,
+              "jitter": 0.2694
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 114.7,
+              "jitter": 0.244
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 300,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 115.5,
+              "jitter": 0.2431
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 115.9,
+              "jitter": 0.2229
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 116.8,
+              "jitter": 0.2208
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 117.5,
+              "jitter": 0.2196
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 117.9,
+              "jitter": 0.2188
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 118.1,
+              "jitter": 0.2184
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 118.3,
+              "jitter": 0.218
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 118.6,
+              "jitter": 0.2176
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 118.9,
+              "jitter": 0.2171
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 300,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 119,
+              "jitter": 0.2168
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 119.1,
+              "jitter": 0.2059
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 120.4,
+              "jitter": 0.202
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 121.4,
+              "jitter": 0.1994
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 122,
+              "jitter": 0.1979
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 122.4,
+              "jitter": 0.197
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 122.8,
+              "jitter": 0.1961
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 100,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 123.1,
+              "jitter": 0.1928
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 124.5,
+              "jitter": 0.1928
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 124.8,
+              "jitter": 0.1923
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 124.9,
+              "jitter": 0.192
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.05,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 125,
+              "jitter": 0.1919
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 125,
+              "jitter": 0.1918
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.01,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 125.1,
+              "jitter": 0.1918
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.005,
+                "beta": 300,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 125.1,
+              "jitter": 0.1918
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 10,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 125.1,
+              "jitter": 0.1846
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 125.8,
+              "jitter": 0.1791
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 126,
+              "jitter": 0.1773
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 126.1,
+              "jitter": 0.1766
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 126.1,
+              "jitter": 0.1764
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 126.1,
+              "jitter": 0.1763
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 10,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 127.7,
+              "jitter": 0.1728
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 128.3,
+              "jitter": 0.1695
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 128.4,
+              "jitter": 0.1685
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 128.5,
+              "jitter": 0.1681
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 128.5,
+              "jitter": 0.168
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 128.5,
+              "jitter": 0.1679
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 10,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 132.9,
+              "jitter": 0.1658
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 133.3,
+              "jitter": 0.164
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 133.4,
+              "jitter": 0.1634
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 133.4,
+              "jitter": 0.1632
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 133.5,
+              "jitter": 0.1631
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 133.5,
+              "jitter": 0.1631
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 135.8,
+              "jitter": 0.1579
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 136.3,
+              "jitter": 0.1543
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 136.5,
+              "jitter": 0.153
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 136.6,
+              "jitter": 0.1526
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 136.6,
+              "jitter": 0.1524
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 138.3,
+              "jitter": 0.1479
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 138.8,
+              "jitter": 0.1458
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 138.9,
+              "jitter": 0.1451
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 139,
+              "jitter": 0.1448
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 139,
+              "jitter": 0.1447
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 143.5,
+              "jitter": 0.1421
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 143.8,
+              "jitter": 0.141
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 143.9,
+              "jitter": 0.1406
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 143.9,
+              "jitter": 0.1405
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 143.9,
+              "jitter": 0.1404
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 10,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 147.4,
+              "jitter": 0.1399
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 149.1,
+              "jitter": 0.1357
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 149.5,
+              "jitter": 0.1336
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 149.7,
+              "jitter": 0.133
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 149.7,
+              "jitter": 0.1327
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 150.5,
+              "jitter": 0.1307
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 151.5,
+              "jitter": 0.1275
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 151.9,
+              "jitter": 0.1263
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 152,
+              "jitter": 0.1259
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 152.1,
+              "jitter": 0.1257
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 155.9,
+              "jitter": 0.1247
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 156.6,
+              "jitter": 0.1229
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 156.9,
+              "jitter": 0.1223
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 156.9,
+              "jitter": 0.1221
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 157,
+              "jitter": 0.122
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 162.3,
+              "jitter": 0.1196
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 164.1,
+              "jitter": 0.1155
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 164.8,
+              "jitter": 0.1139
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 165,
+              "jitter": 0.1135
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 165.1,
+              "jitter": 0.1133
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 169.3,
+              "jitter": 0.1112
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 169.8,
+              "jitter": 0.1104
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 169.9,
+              "jitter": 0.1101
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 169.9,
+              "jitter": 0.11
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 174.1,
+              "jitter": 0.1087
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 175,
+              "jitter": 0.1069
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 175.3,
+              "jitter": 0.1064
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 175.4,
+              "jitter": 0.1061
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 179.4,
+              "jitter": 0.1046
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 180,
+              "jitter": 0.1036
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 180.2,
+              "jitter": 0.1033
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 180.3,
+              "jitter": 0.1032
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 186.1,
+              "jitter": 0.1024
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 186.4,
+              "jitter": 0.102
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 186.4,
+              "jitter": 0.1019
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 186.5,
+              "jitter": 0.1018
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 188.4,
+              "jitter": 0.1016
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 188.4,
+              "jitter": 0.1016
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 188.4,
+              "jitter": 0.1015
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 188.7,
+              "jitter": 0.1012
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 190.2,
+              "jitter": 0.09921
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 190.6,
+              "jitter": 0.09861
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 190.8,
+              "jitter": 0.09831
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 194.3,
+              "jitter": 0.09734
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 195.2,
+              "jitter": 0.0962
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 195.5,
+              "jitter": 0.09587
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 195.7,
+              "jitter": 0.0957
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 201.4,
+              "jitter": 0.09539
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 201.8,
+              "jitter": 0.0949
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 201.9,
+              "jitter": 0.09475
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 202,
+              "jitter": 0.09468
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 203.9,
+              "jitter": 0.09468
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 203.9,
+              "jitter": 0.09461
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 204,
+              "jitter": 0.09457
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 212.6,
+              "jitter": 0.09297
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 214.1,
+              "jitter": 0.09291
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 215.1,
+              "jitter": 0.09062
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 215.9,
+              "jitter": 0.08994
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 216.3,
+              "jitter": 0.08959
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 218.6,
+              "jitter": 0.08921
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 220.3,
+              "jitter": 0.08786
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 220.8,
+              "jitter": 0.08747
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 221.1,
+              "jitter": 0.08727
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 227.2,
+              "jitter": 0.08691
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 227.4,
+              "jitter": 0.08673
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 227.5,
+              "jitter": 0.08665
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 255.6,
+              "jitter": 0.08343
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 257.9,
+              "jitter": 0.08269
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 263.4,
+              "jitter": 0.07992
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 265,
+              "jitter": 0.07912
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 265.1,
+              "jitter": 0.07879
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 265.9,
+              "jitter": 0.07873
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 268.9,
+              "jitter": 0.07711
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 270,
+              "jitter": 0.07663
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 270.6,
+              "jitter": 0.07639
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 277,
+              "jitter": 0.07619
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 277.2,
+              "jitter": 0.07608
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 302.8,
+              "jitter": 0.07494
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 311.2,
+              "jitter": 0.07374
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 320.6,
+              "jitter": 0.06922
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 326.6,
+              "jitter": 0.06918
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 327.8,
+              "jitter": 0.06717
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 330,
+              "jitter": 0.06659
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 331.1,
+              "jitter": 0.06629
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 337.6,
+              "jitter": 0.06609
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 338.1,
+              "jitter": 0.06595
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 10,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 386.3,
+              "jitter": 0.06583
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 394.5,
+              "jitter": 0.06061
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 420.9,
+              "jitter": 0.05922
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 427,
+              "jitter": 0.05779
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 436.5,
+              "jitter": 0.05272
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 455,
+              "jitter": 0.04995
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 459.8,
+              "jitter": 0.04963
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 460.8,
+              "jitter": 0.04917
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 463.8,
+              "jitter": 0.04879
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 467.9,
+              "jitter": 0.04826
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 470.3,
+              "jitter": 0.04787
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 471.5,
+              "jitter": 0.04767
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 3,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 515.9,
+              "jitter": 0.04455
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 578,
+              "jitter": 0.04022
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 605.3,
+              "jitter": 0.03412
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 649.5,
+              "jitter": 0.03056
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 1,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 654.6,
+              "jitter": 0.02876
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 707.7,
+              "jitter": 0.02842
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.1,
+                "beta": 3,
+                "derivativeCutoffHz": 0.1
+              },
+              "lagMs": 747.9,
+              "jitter": 0.02126
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.02,
+                "beta": 10,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 852.1,
+              "jitter": 0.0194
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotation": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "translation": {
+                "minCutoffHz": 1,
+                "beta": 0.01,
+                "derivativeCutoffHz": 1
+              }
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.02525,
+                "rotationDeg": 0.01616
+              },
+              "recStatic": {
+                "positionPx": 0.6866,
+                "rotationDeg": 0.2966
+              },
+              "blinkShiftPx": 7.191,
+              "stepLagMs": 159.6,
+              "stepLagMaxMs": 169.9,
+              "stepOvershootPercent": 0.9936,
+              "stepErrorRmsPx": 15.7,
+              "delayMs": {
+                "ramp-x": 89.34,
+                "ramp-x-60": 141.3,
+                "ramp-x-30": 170.1,
+                "sine-roll": 26.32,
+                "sine-roll-slow": 114.1
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 83.51,
+                "ramp-x-60": 140.8,
+                "ramp-x-30": 171.6
+              },
+              "errorRms": {
+                "ramp-x": 20.64,
+                "ramp-x-60": 8.159,
+                "ramp-x-30": 4.872,
+                "sine-roll": 0.691,
+                "sine-roll-slow": 0.4303
+              }
+            }
+          },
+          "chosenAtGridEdge": [
+            "minCutoffHz",
+            "beta",
+            "derivativeCutoffHz"
+          ]
+        },
+        "translation": {
+          "evaluated": 1152,
+          "front": [
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 8
+              },
+              "lagMs": 26.16,
+              "jitter": 1.904
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 26.39,
+              "jitter": 1.746
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 26.84,
+              "jitter": 1.606
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 28.12,
+              "jitter": 1.507
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 3,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 31.73,
+              "jitter": 1.44
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 35.61,
+              "jitter": 1.385
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.3,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 36.76,
+              "jitter": 1.384
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 37.53,
+              "jitter": 1.383
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 38.97,
+              "jitter": 1.383
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.1,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 39.81,
+              "jitter": 1.272
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.01,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 40.75,
+              "jitter": 1.228
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.003,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 40.94,
+              "jitter": 1.199
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.001,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 41,
+              "jitter": 1.19
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 41.02,
+              "jitter": 1.185
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 51.35,
+              "jitter": 1.104
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.01,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 51.7,
+              "jitter": 1.103
+            },
+            {
+              "params": {
+                "minCutoffHz": 10,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 58.6,
+              "jitter": 1.067
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 60.24,
+              "jitter": 1.058
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.001,
+                "derivativeCutoffHz": 4
+              },
+              "lagMs": 66.14,
+              "jitter": 1.043
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 67.86,
+              "jitter": 1.031
+            },
+            {
+              "params": {
+                "minCutoffHz": 6,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 68.9,
+              "jitter": 0.994
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.03,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 74.3,
+              "jitter": 0.9606
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.01,
+                "derivativeCutoffHz": 2
+              },
+              "lagMs": 77.95,
+              "jitter": 0.9503
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.03,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 82.59,
+              "jitter": 0.9362
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 84.5,
+              "jitter": 0.9177
+            },
+            {
+              "params": {
+                "minCutoffHz": 4,
+                "beta": 0.3,
+                "derivativeCutoffHz": 0.05
+              },
+              "lagMs": 84.6,
+              "jitter": 0.9081
+            },
+            {
+              "params": {
+                "minCutoffHz": 2.5,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 84.64,
+              "jitter": 0.8969
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.1,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 93.81,
+              "jitter": 0.8748
+            },
+            {
+              "params": {
+                "minCutoffHz": 3,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 101,
+              "jitter": 0.8602
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 103.2,
+              "jitter": 0.801
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.01,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 103.8,
+              "jitter": 0.7687
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 117.3,
+              "jitter": 0.7678
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.01,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 135.4,
+              "jitter": 0.7289
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 159.6,
+              "jitter": 0.7156
+            },
+            {
+              "params": {
+                "minCutoffHz": 2,
+                "beta": 0.003,
+                "derivativeCutoffHz": 1
+              },
+              "lagMs": 167.8,
+              "jitter": 0.7081
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 168.2,
+              "jitter": 0.6771
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 184.1,
+              "jitter": 0.6717
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 202.2,
+              "jitter": 0.6365
+            },
+            {
+              "params": {
+                "minCutoffHz": 1.5,
+                "beta": 0.001,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 236.6,
+              "jitter": 0.6357
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 243.7,
+              "jitter": 0.6103
+            },
+            {
+              "params": {
+                "minCutoffHz": 1,
+                "beta": 0.003,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 302.8,
+              "jitter": 0.6073
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 0.03,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 361.1,
+              "jitter": 0.5955
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 367.8,
+              "jitter": 0.5824
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.7,
+                "beta": 0.001,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 567.6,
+              "jitter": 0.5814
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.4,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.25
+              },
+              "lagMs": 570,
+              "jitter": 0.5781
+            },
+            {
+              "params": {
+                "minCutoffHz": 0.2,
+                "beta": 0.01,
+                "derivativeCutoffHz": 0.5
+              },
+              "lagMs": 584.4,
+              "jitter": 0.5696
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotation": {
+                "minCutoffHz": 10,
+                "beta": 300,
+                "derivativeCutoffHz": 8
+              },
+              "translation": {
+                "minCutoffHz": 10,
+                "beta": 0,
+                "derivativeCutoffHz": 2
+              }
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.01757,
+                "rotationDeg": 0.01616
+              },
+              "recStatic": {
+                "positionPx": 1.185,
+                "rotationDeg": 0.2966
+              },
+              "blinkShiftPx": 5.141,
+              "stepLagMs": 36.55,
+              "stepLagMaxMs": 85.1,
+              "stepOvershootPercent": 11.22,
+              "stepErrorRmsPx": 11.61,
+              "delayMs": {
+                "ramp-x": 22.99,
+                "ramp-x-60": 29.16,
+                "ramp-x-30": 41.02,
+                "sine-roll": 26.36,
+                "sine-roll-slow": 114.2
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 20,
+                "ramp-x-60": 26.21,
+                "ramp-x-30": 39.08
+              },
+              "errorRms": {
+                "ramp-x": 6.594,
+                "ramp-x-60": 2.137,
+                "ramp-x-30": 1.458,
+                "sine-roll": 0.692,
+                "sine-roll-slow": 0.4307
+              }
+            }
+          },
+          "chosenAtGridEdge": [
+            "minCutoffHz"
+          ]
+        },
+        "chosen": {
+          "params": {
+            "rotation": {
+              "minCutoffHz": 10,
+              "beta": 300,
+              "derivativeCutoffHz": 8
+            },
+            "translation": {
+              "minCutoffHz": 10,
+              "beta": 0,
+              "derivativeCutoffHz": 2
+            }
+          },
+          "metrics": {
+            "still": {
+              "positionPx": 0.01757,
+              "rotationDeg": 0.01616
+            },
+            "recStatic": {
+              "positionPx": 1.185,
+              "rotationDeg": 0.2966
+            },
+            "blinkShiftPx": 5.141,
+            "stepLagMs": 36.55,
+            "stepLagMaxMs": 85.1,
+            "stepOvershootPercent": 11.22,
+            "stepErrorRmsPx": 11.61,
+            "delayMs": {
+              "ramp-x": 22.99,
+              "ramp-x-60": 29.16,
+              "ramp-x-30": 41.02,
+              "sine-roll": 26.36,
+              "sine-roll-slow": 114.2
+            },
+            "constantVelocityLagMs": {
+              "ramp-x": 20,
+              "ramp-x-60": 26.21,
+              "ramp-x-30": 39.08
+            },
+            "errorRms": {
+              "ramp-x": 6.594,
+              "ramp-x-60": 2.137,
+              "ramp-x-30": 1.458,
+              "sine-roll": 0.692,
+              "sine-roll-slow": 0.4307
+            }
+          }
+        }
+      },
+      "kalman": {
+        "rotation": {
+          "evaluated": 19,
+          "front": [
+            {
+              "params": {
+                "angularAccelerationNoise": 0.6463
+              },
+              "lagMs": 109.1,
+              "jitter": 0.2824
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.3
+              },
+              "lagMs": 109.1,
+              "jitter": 0.2225
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.1392
+              },
+              "lagMs": 109.7,
+              "jitter": 0.1727
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.06463
+              },
+              "lagMs": 111.5,
+              "jitter": 0.1385
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.03
+              },
+              "lagMs": 116.1,
+              "jitter": 0.1191
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.01392
+              },
+              "lagMs": 129.3,
+              "jitter": 0.1085
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.006463
+              },
+              "lagMs": 173.1,
+              "jitter": 0.09844
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.003
+              },
+              "lagMs": 287.2,
+              "jitter": 0.08105
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.001392
+              },
+              "lagMs": 437.1,
+              "jitter": 0.05986
+            },
+            {
+              "params": {
+                "angularAccelerationNoise": 0.0006463
+              },
+              "lagMs": 636.5,
+              "jitter": 0.04319
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotationNoiseRad": 0.002578,
+              "translationNoiseMm": [
+                0.7827,
+                0.2611,
+                1.77
+              ],
+              "angularAccelerationNoise": 0.6463,
+              "linearAccelerationNoiseMm": 100
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.01756,
+                "rotationDeg": 0.01875
+              },
+              "recStatic": {
+                "positionPx": 1.451,
+                "rotationDeg": 0.2824
+              },
+              "blinkShiftPx": 4.238,
+              "stepLagMs": 35.65,
+              "stepLagMaxMs": 52.9,
+              "stepOvershootPercent": 37.31,
+              "stepErrorRmsPx": 12.39,
+              "delayMs": {
+                "ramp-x": 5.292,
+                "ramp-x-60": 12.13,
+                "ramp-x-30": 24.2,
+                "sine-roll": 25.66,
+                "sine-roll-slow": 109.1
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 2.731,
+                "ramp-x-60": 9.134,
+                "ramp-x-30": 22.29
+              },
+              "errorRms": {
+                "ramp-x": 3.857,
+                "ramp-x-60": 1.353,
+                "ramp-x-30": 1.076,
+                "sine-roll": 0.6797,
+                "sine-roll-slow": 0.414
+              }
+            }
+          },
+          "chosenAtGridEdge": []
+        },
+        "translation": {
+          "evaluated": 19,
+          "front": [
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 30000
+              },
+              "lagMs": 23.37,
+              "jitter": 2.635
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 13920
+              },
+              "lagMs": 23.37,
+              "jitter": 2.634
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 6463
+              },
+              "lagMs": 23.37,
+              "jitter": 2.631
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 3000
+              },
+              "lagMs": 23.38,
+              "jitter": 2.616
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 1392
+              },
+              "lagMs": 23.42,
+              "jitter": 2.557
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 646.3
+              },
+              "lagMs": 26.15,
+              "jitter": 2.379
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 139.2
+              },
+              "lagMs": 35.65,
+              "jitter": 1.626
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 64.63
+              },
+              "lagMs": 51.35,
+              "jitter": 1.244
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 30
+              },
+              "lagMs": 68.9,
+              "jitter": 0.962
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 13.92
+              },
+              "lagMs": 103.2,
+              "jitter": 0.7925
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 6.463
+              },
+              "lagMs": 142.8,
+              "jitter": 0.7181
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 3
+              },
+              "lagMs": 183.4,
+              "jitter": 0.6985
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 1.392
+              },
+              "lagMs": 251.3,
+              "jitter": 0.6778
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 0.6463
+              },
+              "lagMs": 469,
+              "jitter": 0.6313
+            },
+            {
+              "params": {
+                "linearAccelerationNoiseMm": 0.3
+              },
+              "lagMs": 949.8,
+              "jitter": 0.6101
+            }
+          ],
+          "chosen": {
+            "params": {
+              "rotationNoiseRad": 0.002578,
+              "translationNoiseMm": [
+                0.7827,
+                0.2611,
+                1.77
+              ],
+              "angularAccelerationNoise": 0.6463,
+              "linearAccelerationNoiseMm": 139.2
+            },
+            "metrics": {
+              "still": {
+                "positionPx": 0.01898,
+                "rotationDeg": 0.01875
+              },
+              "recStatic": {
+                "positionPx": 1.626,
+                "rotationDeg": 0.2824
+              },
+              "blinkShiftPx": 4.306,
+              "stepLagMs": 35.65,
+              "stepLagMaxMs": 52.9,
+              "stepOvershootPercent": 37.34,
+              "stepErrorRmsPx": 12.23,
+              "delayMs": {
+                "ramp-x": 4.91,
+                "ramp-x-60": 12.03,
+                "ramp-x-30": 24.08,
+                "sine-roll": 25.66,
+                "sine-roll-slow": 109.1
+              },
+              "constantVelocityLagMs": {
+                "ramp-x": 2.669,
+                "ramp-x-60": 9.135,
+                "ramp-x-30": 22.25
+              },
+              "errorRms": {
+                "ramp-x": 3.418,
+                "ramp-x-60": 1.292,
+                "ramp-x-30": 1.042,
+                "sine-roll": 0.6798,
+                "sine-roll-slow": 0.4141
+              }
+            }
+          },
+          "chosenAtGridEdge": []
+        },
+        "chosen": {
+          "params": {
+            "rotationNoiseRad": 0.002578,
+            "translationNoiseMm": [
+              0.7827,
+              0.2611,
+              1.77
+            ],
+            "angularAccelerationNoise": 0.6463,
+            "linearAccelerationNoiseMm": 139.2
+          },
+          "metrics": {
+            "still": {
+              "positionPx": 0.01898,
+              "rotationDeg": 0.01875
+            },
+            "recStatic": {
+              "positionPx": 1.626,
+              "rotationDeg": 0.2824
+            },
+            "blinkShiftPx": 4.306,
+            "stepLagMs": 35.65,
+            "stepLagMaxMs": 52.9,
+            "stepOvershootPercent": 37.34,
+            "stepErrorRmsPx": 12.23,
+            "delayMs": {
+              "ramp-x": 4.91,
+              "ramp-x-60": 12.03,
+              "ramp-x-30": 24.08,
+              "sine-roll": 25.66,
+              "sine-roll-slow": 109.1
+            },
+            "constantVelocityLagMs": {
+              "ramp-x": 2.669,
+              "ramp-x-60": 9.135,
+              "ramp-x-30": 22.25
+            },
+            "errorRms": {
+              "ramp-x": 3.418,
+              "ramp-x-60": 1.292,
+              "ramp-x-30": 1.042,
+              "sine-roll": 0.6798,
+              "sine-roll-slow": 0.4141
+            }
+          }
+        }
+      }
+    }
+  ],
+  "replayCheck": {
+    "measuredAt": "2026-11-25T03:31:16.808Z",
+    "commit": "3605593722b6b1db08bb7c32cdc82f633f239d27",
+    "command": "node eval/harness/poseFilterReplayCheck.mjs --runs pose-filter-off,pose-filter-kalman,pose-filter",
+    "method": "Each run replayed through the swept One Euro and Kalman operating points for its numFaces, and without a filter, as the sweep replays (eval/harness/poseReplay.mjs). reproductionErrorPx: largest distance between what a filtered run drew and the replay of that filter at its swept point.",
+    "runs": [
+      {
+        "label": "pose-filter-off",
+        "commit": "a2068549db1b4f57f29faa1195708f312c142fcd",
+        "numFaces": 2,
+        "poseFilter": "off",
+        "reproductionErrorPx": null,
+        "oneEuro": {
+          "positionJitterPx": 1.209,
+          "rotationJitterDeg": 0.335,
+          "worstJitterRatio": 3.35,
+          "positionLagMs": 36.75,
+          "rotationLagMs": 49.26,
+          "stepOvershootPercent": 9.298,
+          "blinkShiftPx": 4.884
+        },
+        "kalman": {
+          "positionJitterPx": 1.597,
+          "rotationJitterDeg": 0.2905,
+          "worstJitterRatio": 3.195,
+          "positionLagMs": 36.75,
+          "rotationLagMs": 20.57,
+          "stepOvershootPercent": 37.88,
+          "blinkShiftPx": 6.649
+        },
+        "none": {
+          "positionJitterPx": 1.637,
+          "rotationJitterDeg": 0.7479,
+          "worstJitterRatio": 7.479,
+          "positionLagMs": 29.76,
+          "rotationLagMs": 33.71,
+          "stepOvershootPercent": 0.6133,
+          "blinkShiftPx": 4.939
+        }
+      },
+      {
+        "label": "pose-filter-kalman",
+        "commit": "709133da9627b70cd093824297d4f98ad50bb01c",
+        "numFaces": 2,
+        "poseFilter": "kalman",
+        "reproductionErrorPx": 1.271e-13,
+        "oneEuro": {
+          "positionJitterPx": 1.448,
+          "rotationJitterDeg": 0.3655,
+          "worstJitterRatio": 3.655,
+          "positionLagMs": 36.35,
+          "rotationLagMs": 51.2,
+          "stepOvershootPercent": 9.884,
+          "blinkShiftPx": 4.936
+        },
+        "kalman": {
+          "positionJitterPx": 1.918,
+          "rotationJitterDeg": 0.3169,
+          "worstJitterRatio": 3.836,
+          "positionLagMs": 35.5,
+          "rotationLagMs": 18.29,
+          "stepOvershootPercent": 36.65,
+          "blinkShiftPx": 6.658
+        },
+        "none": {
+          "positionJitterPx": 1.65,
+          "rotationJitterDeg": 0.7658,
+          "worstJitterRatio": 7.658,
+          "positionLagMs": 34.65,
+          "rotationLagMs": 23.93,
+          "stepOvershootPercent": 0.6279,
+          "blinkShiftPx": 4.939
+        }
+      },
+      {
+        "label": "pose-filter",
+        "commit": "6b02e1227ccb1d38ba0b3501f65ba85483d1427d",
+        "numFaces": 2,
+        "poseFilter": "one-euro",
+        "reproductionErrorPx": 1.271e-13,
+        "oneEuro": {
+          "positionJitterPx": 1.158,
+          "rotationJitterDeg": 0.3341,
+          "worstJitterRatio": 3.341,
+          "positionLagMs": 36.78,
+          "rotationLagMs": 50.95,
+          "stepOvershootPercent": 8.059,
+          "blinkShiftPx": 4.864
+        },
+        "kalman": {
+          "positionJitterPx": 1.538,
+          "rotationJitterDeg": 0.2844,
+          "worstJitterRatio": 3.076,
+          "positionLagMs": 35.5,
+          "rotationLagMs": 20.11,
+          "stepOvershootPercent": 36.36,
+          "blinkShiftPx": 6.567
+        },
+        "none": {
+          "positionJitterPx": 1.639,
+          "rotationJitterDeg": 0.7709,
+          "worstJitterRatio": 7.709,
+          "positionLagMs": 35.35,
+          "rotationLagMs": 31.23,
+          "stepOvershootPercent": 0.6133,
+          "blinkShiftPx": 4.939
+        }
+      }
+    ]
+  }
+}

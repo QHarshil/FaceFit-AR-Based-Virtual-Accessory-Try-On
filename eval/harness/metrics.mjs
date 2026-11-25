@@ -115,6 +115,26 @@ export const rotationJitter = (quats, window = 9) => {
   return { rmsFromMean: fromMean, rmsHighPass: highPass, rmsStep: n > 1 ? Math.sqrt(step / (n - 1)) : 0 };
 };
 
+// Jitter of what each render drew, renders being { t, centerPx, quat }. A
+// render is dropped when the newest pose sample at or before it is not in
+// `keep`, so the blink mask of the pose samples carries over in time.
+export const renderedJitter = (renders, poseTimes, keep) => {
+  const kept = new Set(keep);
+  let k = -1;
+  const shown = renders.filter((r) => {
+    while (k + 1 < poseTimes.length && poseTimes[k + 1] <= r.t) k += 1;
+    return k >= 0 && kept.has(k);
+  });
+  if (shown.length < 3) return null;
+  const window = windowSamples(shown.map((r) => r.t));
+  return {
+    samples: shown.length,
+    windowSamples: window,
+    centerPx: pointJitter(shown.map((r) => r.centerPx), window),
+    rotationDeg: rotationJitter(shown.map((r) => r.quat), window),
+  };
+};
+
 // Odd number of samples spanning about `spanMs` at the sampling interval of
 // `times`, so a moving-average window covers the same time at 30 Hz and 60 Hz.
 export const windowSamples = (times, spanMs = 150) => {
@@ -210,9 +230,30 @@ export const solverSummary = (events) => {
     gated: gated.length,
     gatedShare: poses.length ? gated.length / poses.length : null,
     gateReasons: reasons,
+    // Most faces the landmarker reported in one frame; runs before it was probed have none.
+    maxFaceCount: poses.some((e) => e.faceCount != null) ? Math.max(...poses.map((e) => e.faceCount ?? 0)) : null,
     rmsReprojectionPx: spread(solved.map((e) => e.rmsReprojectionPx)),
     rmsReprojectionMm: spread(solved.map((e) => e.rmsReprojectionMm)),
     inliers: { ...summarize(inliers), min: inliers.length ? Math.min(...inliers) : null },
+  };
+};
+
+// Which face the overlay followed on a clip with the user in the left half of
+// the video and a bystander in the right half: the tracked face by its nose
+// bridge landmark in each pose sample, and the overlay by the bridge anchor
+// in each render (page NDC of the unmirrored page, the video's own layout).
+export const twoFaceSummary = (events) => {
+  const poses = events.filter((e) => e.stage === 'glassesPose');
+  const tracked = poses.filter((e) => e.landmarks);
+  const renders = events.filter((e) => e.stage === 'renderedPose');
+  return {
+    poseSamples: poses.length,
+    bothFacesDetectedShare: poses.length ? poses.filter((e) => e.faceCount >= 2).length / poses.length : null,
+    trackedSamples: tracked.length,
+    trackedOnBystander: tracked.filter((e) => e.landmarks[slot(LANDMARK.noseBridge)][0] >= 0.5).length,
+    trackIds: [...new Set(tracked.map((e) => e.trackId))],
+    renders: renders.length,
+    rendersOnBystander: renders.filter((e) => e.centerNdc[0] >= 0).length,
   };
 };
 

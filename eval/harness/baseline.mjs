@@ -4,11 +4,14 @@
 //   node eval/harness/baseline.mjs --source recordings
 //   node eval/harness/baseline.mjs --source recordings --allow-dirty   (writes to eval/.cache only)
 //   node eval/harness/baseline.mjs --source recordings --clips <dir> --label <name>
-//   node eval/harness/baseline.mjs --source recordings --num-faces 2 --label <name>
+//   node eval/harness/baseline.mjs --source recordings --num-faces 1 --label <name>
+//   node eval/harness/baseline.mjs --source recordings --pose-filter off --label <name>
 //
 // --clips reads the Y4M clips from another checkout. --label is the key under
-// `runs` in results.json (default: baseline-<source>). --num-faces sets
-// VITE_NUM_FACES for the build (default 1, the app's default).
+// `runs` in results.json (default: baseline-<source>) and names the folder of
+// raw runs in eval/.cache/runs. --num-faces sets VITE_NUM_FACES for the build
+// (default 2, the app's default). --pose-filter sets VITE_POSE_FILTER (off,
+// one-euro or kalman; default: the app's).
 //
 // Builds the production bundle, serves it with `vite preview` (which sends the
 // production CSP) and the catalog API on a fresh PGlite database seeded from
@@ -23,9 +26,11 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { cpus, totalmem } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONDITIONS, PRODUCT_ZOOMS, PRODUCTS, RECORDED } from './conditions.mjs';
-import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, outsideBlinks, pointJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
+import { CONDITIONS, FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDED, TWO_FACE, motionPeriodFrames, motionTruth } from './conditions.mjs';
+import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, ndcToPx, outsideBlinks, pointJitter, renderedJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, twoFaceSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
+import { frameSamples, mediaTimeMismatchShare, motionMetrics, presentationRate, presentedFrames, readCenterX, readLineAngle, renderedSamples } from './motionMetrics.mjs';
 import { offDeviceRequests, sawWorkerFetch } from './network.mjs';
+import { assertHeadUnchanged, dirtyPaths, gitIn, startCommit } from './provenance.mjs';
 import { runCondition, selfTestWorkerGuard } from './run.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -42,29 +47,39 @@ const arg = (name, fallback) => {
 const source = arg('source', 'recordings');
 const label = arg('label', `baseline-${source}`);
 const allowDirty = process.argv.includes('--allow-dirty');
-const numFaces = Number(arg('num-faces', '1'));
+const numFaces = Number(arg('num-faces', '2'));
 if (!Number.isInteger(numFaces) || numFaces < 1) {
   console.error('--num-faces takes a positive integer');
   process.exit(1);
 }
+const poseFilter = arg('pose-filter');
+if (poseFilter !== undefined && !['off', 'one-euro', 'kalman'].includes(poseFilter)) {
+  console.error('--pose-filter takes off, one-euro or kalman');
+  process.exit(1);
+}
 // The clip directory is machine-specific, so the recorded command omits its value.
 const commandArgs = process.argv.slice(2).map((a, i, all) => (all[i - 1] === '--clips' ? '<dir>' : a));
-const git = (...args) => execFileSync('git', ['-C', REPO, ...args], { encoding: 'utf8' }).trim();
+const git = gitIn(REPO);
 
-const dirty = git('status', '--porcelain').split('\n').filter((line) => line && !line.endsWith('eval/results.json'));
+const dirty = dirtyPaths(git);
 if (dirty.length && !allowDirty) {
   console.error(`working tree is dirty; commit first or pass --allow-dirty\n${dirty.join('\n')}`);
   process.exit(1);
 }
+// The build below is from this commit, whatever HEAD is when the run ends.
+const commit = startCommit(git);
 
 const clipDir = arg('clips') ? resolve(arg('clips')) : join(EVAL, '.cache', 'clips', source);
-const runDir = join(EVAL, '.cache', 'runs', source);
+const runDir = join(EVAL, '.cache', 'runs', label);
 const screenDir = join(EVAL, '.cache', 'screens', source);
 for (const dir of [runDir, screenDir]) mkdirSync(dir, { recursive: true });
 
 const FRONTEND = join(REPO, 'frontend');
 console.log('building frontend');
-execFileSync('npm', ['run', 'build'], { cwd: FRONTEND, env: { ...process.env, VITE_API_URL: API_URL, VITE_NUM_FACES: String(numFaces) }, stdio: 'ignore' });
+const buildEnv = { ...process.env, VITE_API_URL: API_URL, VITE_NUM_FACES: String(numFaces) };
+if (poseFilter) buildEnv.VITE_POSE_FILTER = poseFilter;
+else delete buildEnv.VITE_POSE_FILTER;
+execFileSync('npm', ['run', 'build'], { cwd: FRONTEND, env: buildEnv, stdio: 'ignore' });
 
 const startPreview = async () => {
   const preview = spawn(process.execPath, [join(FRONTEND, 'node_modules', 'vite', 'bin', 'vite.js'), 'preview', '--port', String(WEB_PORT), '--strictPort'], {
@@ -126,7 +141,7 @@ try {
 }
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
-const conditions = [...CONDITIONS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED].filter((c) => existsSync(clipOf(c)));
+const conditions = [...CONDITIONS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED, ...MOTION, ...TWO_FACE].filter((c) => existsSync(clipOf(c)));
 const runs = {};
 let environment;
 let guardSelfTest;
@@ -140,6 +155,7 @@ try {
       warmupSeconds: condition.warmupSeconds,
       measureSeconds: condition.measureSeconds,
       screenshot: join(screenDir, `${condition.id}.png`),
+      frameCode: condition.motion ? FRAME_CODE : null,
     });
     writeFileSync(join(runDir, `${condition.id}.json`), JSON.stringify(run));
     environment = run.environment;
@@ -212,17 +228,28 @@ const jitterOf = (allGeometry, run) => {
     smoothedCenterPx: pointJitter(geometry.map((g) => g.renderedCenter), window),
     rawRotationDeg: rotationJitter(poses.map((e) => e.targetQuat), window),
     smoothedRotationDeg: rotationJitter(poses.map((e) => e.smoothedQuat), window),
+    rendered: renderedJitterOf(allPoses, blinks, run),
   };
 };
 
-const summary = { latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null };
+// Jitter of what each render drew, with the same blink mask in time.
+const renderedJitterOf = (allPoses, blinks, run) => renderedJitter(
+  run.events.filter((e) => e.stage === 'renderedPose').map((e) => ({ t: e.t, centerPx: ndcToPx(e.centerNdc, run.environment.viewport), quat: e.quat })),
+  allPoses.map((e) => e.t),
+  outsideBlinks(allPoses.length, blinks),
+);
+
+const summary = { latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null, motion: null, twoFace: null };
 const geometry = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, geometryOf(run)]));
 const medianOf = (id, key) => median(geometry[id].map((g) => g[key]));
 
 const solver = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, solverSummary(run.events)]));
-const allSamples = Object.values(solver).reduce((sum, s) => sum + s.samples, 0);
+// The motion and two-face clips are kept out of the overall share so it stays
+// comparable with runs before them; their own shares are under byCondition.
+const stillSolver = Object.entries(solver).filter(([id]) => ![...MOTION, ...TWO_FACE].some((m) => m.id === id)).map(([, s]) => s);
+const allSamples = stillSolver.reduce((sum, s) => sum + s.samples, 0);
 summary.solver = {
-  gatedShare: allSamples ? Object.values(solver).reduce((sum, s) => sum + s.gated, 0) / allSamples : null,
+  gatedShare: allSamples ? stillSolver.reduce((sum, s) => sum + s.gated, 0) / allSamples : null,
   byCondition: solver,
 };
 
@@ -314,17 +341,53 @@ if (runs['rec-blink']) {
   };
 }
 
+// Motion clips: the overlay at each render against the frame on screen, the
+// filtered pose of each processed frame and the face's own landmarks against
+// that frame's truth.
+summary.motion = Object.fromEntries(MOTION.filter((c) => runs[c.id]).map((condition) => {
+  const run = runs[condition.id];
+  const { viewport, video } = run.environment;
+  const truthOf = (index) => motionTruth(condition.motion, index);
+  const clipFrames = condition.clipSeconds * FRAME.fps;
+  const frames = presentedFrames(run.events, run.frameCodes, clipFrames);
+  const fps = presentationRate(frames, clipFrames);
+  const roll = condition.motion.axis === 'roll';
+  const renderRead = roll ? (e) => readLineAngle(viewport)(e.endsNdc) : (e) => readCenterX(viewport)(e.centerNdc);
+  const smoothedRead = roll ? (e) => readLineAngle(viewport)(e.smoothedEndsNdc) : (e) => readCenterX(viewport)(e.smoothedNdc);
+  const faceRead = (e) => {
+    const g = sampleGeometry(e, video, viewport);
+    return roll ? g.faceAngle : g.noseBridge[0];
+  };
+  const series = (samples) => motionMetrics(samples, frames, condition, fps, truthOf);
+  return [condition.id, {
+    motion: condition.motion,
+    unit: roll ? 'deg' : 'px',
+    presentedFrames: frames.length,
+    framesPerSecond: fps,
+    periodFrames: motionPeriodFrames(condition.motion),
+    mediaTimeMismatchShare: mediaTimeMismatchShare(frames, FRAME.fps, clipFrames),
+    gatedShare: solver[condition.id].gatedShare,
+    rendered: series(renderedSamples(run.events, frames, truthOf, renderRead)),
+    smoothed: series(frameSamples(run.events, frames, truthOf, smoothedRead)),
+    face: series(frameSamples(run.events, frames, truthOf, faceRead)),
+  }];
+}));
+
+// Two-face clips: whether the overlay stayed on the user while a bystander was in view.
+summary.twoFace = Object.fromEntries(TWO_FACE.filter((c) => runs[c.id]).map((c) => [c.id, twoFaceSummary(runs[c.id].events)]));
+
 // The pose settings the app reported with its first pose sample.
 const firstPose = Object.values(runs).flatMap((run) => run.events).find((e) => e.stage === 'glassesPose' && e.focalPx != null);
+const filterDescription = (setting) => (setting && setting !== 'off' ? `${setting} pose filter, renders predict to the newest presented frame` : 'no temporal filter');
 const poseDescription = firstPose
-  ? `solveHeadPose on the 33 rigid landmarks, ${(2 * Math.atan(firstPose.frameSize[0] / 2 / firstPose.focalPx) * 180 / Math.PI).toFixed(1)} deg horizontal FOV assumed, overlay hidden above ${firstPose.gateMaxRmsMm} mm reprojection RMS, no temporal filter`
+  ? `solveHeadPose on the 33 rigid landmarks, ${(2 * Math.atan(firstPose.frameSize[0] / 2 / firstPose.focalPx) * 180 / Math.PI).toFixed(1)} deg horizontal FOV assumed, overlay hidden above ${firstPose.gateMaxRmsMm} mm reprojection RMS, ${filterDescription(firstPose.poseFilter)}`
   : 'no pose samples';
 
 const tasksVisionVersion = JSON.parse(readFileSync(join(FRONTEND, 'node_modules', '@mediapipe', 'tasks-vision', 'package.json'), 'utf8')).version;
 const delegates = [...new Set(Object.values(runs).map((run) => run.delegate))];
 const entry = roundAll({
   measuredAt: new Date().toISOString(),
-  commit: git('rev-parse', 'HEAD'),
+  commit,
   dirty: dirty.length > 0,
   command: `node eval/harness/baseline.mjs ${commandArgs.join(' ')}`.trim(),
   pipeline: `@mediapipe/tasks-vision ${tasksVisionVersion} FaceLandmarker, VIDEO mode, numFaces ${numFaces}, ${delegates.join('/')} delegate, module worker at camera rate, self-hosted; ${poseDescription}`,
@@ -339,7 +402,7 @@ const entry = roundAll({
     cameraFps: environment.cameraFps,
     perceptionDelegate: delegates.join('/'),
   },
-  input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise' : 'webcam recordings (eval/fixtures/recordings); sweeps from the first frame of static.mp4 with synthetic transforms and noise',
+  input: source === 'standin' ? 'still portrait (public domain), synthetic transforms and noise; two-face clip of the portrait twice side by side' : 'webcam recordings (eval/fixtures/recordings); sweeps and motion clips from the first frame of static.mp4 with synthetic transforms and noise',
   conditions: Object.fromEntries(conditions.map((c) => [c.id, { group: c.group, measureSeconds: c.measureSeconds, samples: geometry[c.id].length, gated: solver[c.id].gated, pageErrors: runs[c.id].errors.length, requests: network[c.id].requests, blockedOffOriginAttempts: network[c.id].blocked.length }])),
   network: {
     requests: Object.values(network).reduce((sum, n) => sum + n.requests, 0),
@@ -365,6 +428,12 @@ const entry = roundAll({
   summary,
 });
 
+try {
+  assertHeadUnchanged(git, commit);
+} catch (error) {
+  console.error(`${error.message}; results not written`);
+  process.exit(1);
+}
 const out = allowDirty && dirty.length ? join(EVAL, '.cache', 'results-dirty.json') : RESULTS;
 const results = existsSync(out) ? JSON.parse(readFileSync(out, 'utf8')) : { runs: {} };
 results.runs[label] = entry;

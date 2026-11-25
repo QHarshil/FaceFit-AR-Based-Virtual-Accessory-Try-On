@@ -22,12 +22,21 @@ export interface LandmarkFrame {
   width: number;
   height: number;
   /**
-   * First detected face as interleaved x, y, z. x and y are normalized to the
-   * frame width and height; z uses roughly the same scale as x, smaller is
-   * closer to the camera. Empty when `faceCount` is 0.
+   * The tracked face (perception/faceSelection.ts) as interleaved x, y, z. x
+   * and y are normalized to the frame width and height; z uses roughly the
+   * same scale as x, smaller is closer to the camera. Empty when no face is
+   * tracked in this frame: none was detected, or the tracked face was missed
+   * while others were found.
    */
   landmarks: Float32Array;
+  /** Faces detected in the frame, the tracked one included. */
   faceCount: number;
+  /**
+   * Identity of the tracked face, null when the frame has none. It changes
+   * when the selection moves to another face, so state kept for one face (the
+   * pose filter, the solver's warm start) is not carried to the next.
+   */
+  trackId: number | null;
 }
 
 export const hasFace = (frame: LandmarkFrame): boolean =>
