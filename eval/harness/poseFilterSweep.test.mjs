@@ -237,13 +237,26 @@ test('docs/pose-filter.svg regenerates byte for byte from the committed sweep', 
   assert.equal(renderPlot(detail), readFileSync(new URL('../../docs/pose-filter.svg', import.meta.url), 'utf8'));
 });
 
-test('the recommended point keeps every lag under the target, the 30 px/s ramp included, off the grid edges', () => {
+// The app ships the One Euro point for numFaces 2, not the sweep's Kalman
+// recommendation (docs/pose-filter.md); the frontend's overlayPose test checks
+// ONE_EURO_OPTIONS equals this point.
+const SHIPPED = { filter: 'oneEuro', numFaces: 2 };
+
+// The target is 50 ms for every lag. In replay the shipped point's worst is
+// the slow roll at 49.3 ms, 0.7 ms under it. Live (runs["pose-filter"]) the
+// slow roll measured 51.0 ms, 1.0 ms over, and docs/pose-filter.md says so;
+// this test checks the replay, which the sweep selects on.
+test('the shipped One Euro point keeps every replayed lag under the 50 ms target, off the grid edges', () => {
   const summary = JSON.parse(readFileSync(new URL('../results.json', import.meta.url), 'utf8')).runs[SWEEP_KEY];
-  const { filter, numFaces } = summary.recommended;
-  const point = summary.configurations.find((c) => c.numFaces === numFaces)[filter];
-  assert.ok(point.chosen.metrics.delayMs['ramp-x-30'] < TARGETS.lagMs, `${point.chosen.metrics.delayMs['ramp-x-30']} ms on ramp-x-30`);
-  assert.ok(point.positionLagMs < TARGETS.lagMs);
-  assert.ok(point.rotationLagMs < TARGETS.lagMs);
+  const point = summary.configurations.find((c) => c.numFaces === SHIPPED.numFaces)[SHIPPED.filter];
+  assert.equal(TARGETS.lagMs, 50);
+  const lags = { 'step-x': point.chosen.metrics.stepLagMs, ...point.chosen.metrics.delayMs };
+  assert.deepEqual(Object.keys(lags).sort(), ['ramp-x', 'ramp-x-30', 'ramp-x-60', 'sine-roll', 'sine-roll-slow', 'step-x']);
+  for (const [clip, lagMs] of Object.entries(lags)) {
+    assert.ok(lagMs < TARGETS.lagMs, `${lagMs} ms on ${clip}, ${(lagMs - TARGETS.lagMs).toFixed(1)} ms over the target`);
+  }
+  assert.equal(point.positionLagMs, Math.max(lags['step-x'], lags['ramp-x'], lags['ramp-x-60'], lags['ramp-x-30']));
+  assert.equal(point.rotationLagMs, Math.max(lags['sine-roll'], lags['sine-roll-slow']));
   assert.deepEqual(point.chosenAtGridEdge, { rotation: [], translation: [] });
 });
 
