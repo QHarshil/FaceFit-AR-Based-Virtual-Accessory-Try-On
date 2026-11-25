@@ -13505,6 +13505,573 @@
           }
         }
       }
+    },
+    "two-face": {
+      "measuredAt": "2026-11-25T04:07:22.099Z",
+      "commit": "1dc87592871e04a4a899036612e4fd5d6a3a2c0f",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source standin --clips <dir> --label two-face",
+      "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, GPU delegate, module worker at camera rate, self-hosted; solveHeadPose on the 33 rigid landmarks, 60.0 deg horizontal FOV assumed, overlay hidden above 6 mm reprojection RMS, one-euro pose filter, renders predict to the newest presented frame",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "26.6.2",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.545,
+        "perceptionDelegate": "GPU"
+      },
+      "input": "still portrait (public domain), synthetic transforms and noise; two-face clip of the portrait twice side by side",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 302,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        },
+        "product2": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 93,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 19,
+          "blockedOffOriginAttempts": 0
+        },
+        "product3": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 14,
+          "blockedOffOriginAttempts": 0
+        },
+        "product4": {
+          "group": "product",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "two-face": {
+          "group": "twoFace",
+          "measureSeconds": 8,
+          "samples": 241,
+          "gated": 0,
+          "pageErrors": 2,
+          "requests": 13,
+          "blockedOffOriginAttempts": 0
+        }
+      },
+      "network": {
+        "requests": 91,
+        "offDeviceRequests": 0,
+        "cspViolations": 0,
+        "blockedOffOriginAttempts": 0,
+        "blockedOffOriginUrls": [],
+        "check": "every request from the page and its worker, in the measured conditions and the CPU fallback run, went to localhost (eval/harness/network.mjs)",
+        "workerGuardSelfTest": {
+          "fetch": "blocked",
+          "xhr": "blocked",
+          "usageLogBlockedAfterSeconds": 60.248,
+          "blocked": [
+            "fetch https://guard-selftest.invalid/fetch",
+            "xhr https://guard-selftest.invalid/xhr",
+            "fetch https://odml.pa.googleapis.com/v1/log"
+          ],
+          "offDeviceRequests": []
+        }
+      },
+      "cpuFallback": {
+        "condition": "still",
+        "forcedFailure": "first delegate (GPU) failed by the harness after its loader ran (eval/harness/run.mjs failFirstDelegate)",
+        "delegate": "CPU",
+        "latency": {
+          "captureMs": {
+            "n": 303,
+            "p50": 0,
+            "p95": 0.1
+          },
+          "resultMs": {
+            "n": 302,
+            "p50": 0.2,
+            "p95": 0.3
+          },
+          "mainThreadPerFrameMs": {
+            "n": 302,
+            "p50": 0.3,
+            "p95": 0.4
+          },
+          "inferenceMs": {
+            "n": 302,
+            "p50": 13.7,
+            "p95": 14.3
+          },
+          "frameToLandmarksMs": {
+            "n": 302,
+            "p50": 13.85,
+            "p95": 14.495
+          },
+          "poseMs": {
+            "n": 302,
+            "p50": 0.2,
+            "p95": 0.3
+          },
+          "renderCpuMs": {
+            "n": 605,
+            "p50": 0.1,
+            "p95": 0.2
+          },
+          "captureIntervalMs": {
+            "n": 302,
+            "p50": 33.3,
+            "p95": 34
+          },
+          "inferenceIntervalMs": {
+            "n": 301,
+            "p50": 33.3,
+            "p95": 34.6
+          },
+          "renderIntervalMs": {
+            "n": 604,
+            "p50": 16.7,
+            "p95": 17.4
+          },
+          "pipelineMs": {
+            "n": 302,
+            "p50": 16.75,
+            "p95": 17.5
+          },
+          "pipelineStepsMs": {
+            "frameToPost": {
+              "n": 302,
+              "p50": 0,
+              "p95": 0.1,
+              "mean": 0.034
+            },
+            "queue": {
+              "n": 302,
+              "p50": 0.1,
+              "p95": 0.2,
+              "mean": 0.139
+            },
+            "inference": {
+              "n": 302,
+              "p50": 13.7,
+              "p95": 14.3,
+              "mean": 13.543
+            },
+            "delivery": {
+              "n": 302,
+              "p50": 0,
+              "p95": 0,
+              "mean": -0.038
+            },
+            "resultToRender": {
+              "n": 302,
+              "p50": 2.9,
+              "p95": 4.995,
+              "mean": 3.097
+            }
+          },
+          "ratesHz": {
+            "capture": 30.3,
+            "inference": 30.2,
+            "render": 60.5
+          },
+          "framesDropped": 0
+        }
+      },
+      "summary": {
+        "latency": {
+          "still": {
+            "captureMs": {
+              "n": 303,
+              "p50": 0.1,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 302,
+              "p50": 0.4,
+              "p95": 0.5
+            },
+            "mainThreadPerFrameMs": {
+              "n": 302,
+              "p50": 0.4,
+              "p95": 0.6
+            },
+            "inferenceMs": {
+              "n": 302,
+              "p50": 16.1,
+              "p95": 18.3
+            },
+            "frameToLandmarksMs": {
+              "n": 302,
+              "p50": 16.3,
+              "p95": 18.5
+            },
+            "poseMs": {
+              "n": 302,
+              "p50": 0.3,
+              "p95": 0.5
+            },
+            "renderCpuMs": {
+              "n": 605,
+              "p50": 0.1,
+              "p95": 0.3
+            },
+            "captureIntervalMs": {
+              "n": 302,
+              "p50": 33.3,
+              "p95": 34
+            },
+            "inferenceIntervalMs": {
+              "n": 301,
+              "p50": 33.4,
+              "p95": 36.6
+            },
+            "renderIntervalMs": {
+              "n": 604,
+              "p50": 16.7,
+              "p95": 17.4
+            },
+            "pipelineMs": {
+              "n": 302,
+              "p50": 17.15,
+              "p95": 33.7
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 302,
+                "p50": 0.05,
+                "p95": 0.1,
+                "mean": 0.053
+              },
+              "queue": {
+                "n": 302,
+                "p50": 0.2,
+                "p95": 0.2,
+                "mean": 0.153
+              },
+              "inference": {
+                "n": 302,
+                "p50": 16.1,
+                "p95": 18.3,
+                "mean": 14.967
+              },
+              "delivery": {
+                "n": 302,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": -0.003
+              },
+              "resultToRender": {
+                "n": 302,
+                "p50": 6.15,
+                "p95": 16.6,
+                "mean": 7.744
+              }
+            },
+            "ratesHz": {
+              "capture": 30.3,
+              "inference": 30.2,
+              "render": 60.5
+            },
+            "framesDropped": 0
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 302,
+            "blinksMasked": 0,
+            "windowSamples": 5,
+            "interocularPx": 209.444,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.377,
+              "rmsHighPass": 0.342,
+              "rmsStep": 0.543
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 1.377,
+              "rmsHighPass": 1.264,
+              "rmsStep": 1.976
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.714,
+              "rmsHighPass": 0.456,
+              "rmsStep": 0.676
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.377,
+              "rmsHighPass": 0.343,
+              "rmsStep": 0.53
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.147,
+              "rmsHighPass": 0.064,
+              "rmsStep": 0.095
+            },
+            "rendered": {
+              "samples": 603,
+              "windowSamples": 9,
+              "centerPx": {
+                "rmsFromMean": 0.926,
+                "rmsHighPass": 0.689,
+                "rmsStep": 0.761
+              },
+              "rotationDeg": {
+                "rmsFromMean": 0.154,
+                "rmsHighPass": 0.07,
+                "rmsStep": 0.075
+              }
+            }
+          }
+        },
+        "solver": {
+          "gatedShare": 0,
+          "byCondition": {
+            "still": {
+              "samples": 302,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 302,
+                "p50": 9.656,
+                "p95": 11.24,
+                "p99": 11.401,
+                "max": 11.479
+              },
+              "rmsReprojectionMm": {
+                "n": 302,
+                "p50": 4.176,
+                "p95": 4.821,
+                "p99": 4.886,
+                "max": 4.906
+              },
+              "inliers": {
+                "n": 302,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "product2": {
+              "samples": 93,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 93,
+                "p50": 9.658,
+                "p95": 11.029,
+                "p99": 11.227,
+                "max": 11.409
+              },
+              "rmsReprojectionMm": {
+                "n": 93,
+                "p50": 4.181,
+                "p95": 4.731,
+                "p99": 4.814,
+                "max": 4.883
+              },
+              "inliers": {
+                "n": 93,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "product3": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 9.789,
+                "p95": 11.031,
+                "p99": 11.231,
+                "max": 11.409
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.232,
+                "p95": 4.732,
+                "p99": 4.816,
+                "max": 4.883
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "product4": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 9.789,
+                "p95": 11.031,
+                "p99": 11.231,
+                "max": 11.409
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.232,
+                "p95": 4.732,
+                "p99": 4.816,
+                "max": 4.883
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "two-face": {
+              "samples": 241,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 2,
+              "rmsReprojectionPx": {
+                "n": 241,
+                "p50": 3.785,
+                "p95": 4.797,
+                "p99": 4.923,
+                "max": 4.963
+              },
+              "rmsReprojectionMm": {
+                "n": 241,
+                "p50": 2.795,
+                "p95": 3.501,
+                "p99": 3.593,
+                "max": 3.611
+              },
+              "inliers": {
+                "n": 241,
+                "p50": 30,
+                "p95": 33,
+                "min": 27
+              }
+            }
+          }
+        },
+        "roll": null,
+        "registration": {
+          "gainX": null,
+          "gainY": null,
+          "offsetPxByCondition": {
+            "still": [
+              -0.17,
+              -11.115
+            ]
+          },
+          "interocularPx": 209.444
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 336.601,
+            "renderedWidthPx": 356.342,
+            "renderedOverFace": 1.059
+          }
+        },
+        "scaleByProduct": {
+          "product1": {
+            "renderedOverFace": {
+              "still": 1.059
+            },
+            "maxChangeFromStillPercent": null
+          },
+          "product2": {
+            "renderedOverFace": {
+              "still": 1.005
+            },
+            "maxChangeFromStillPercent": null
+          },
+          "product3": {
+            "renderedOverFace": {
+              "still": 1.069
+            },
+            "maxChangeFromStillPercent": null
+          },
+          "product4": {
+            "renderedOverFace": {
+              "still": 0.962
+            },
+            "maxChangeFromStillPercent": null
+          }
+        },
+        "products": {
+          "product1": {
+            "renderedOverFace": 1.059,
+            "centerMinusNoseBridgePx": [
+              -0.17,
+              -11.115
+            ]
+          },
+          "product2": {
+            "renderedOverFace": 1.005,
+            "centerMinusNoseBridgePx": [
+              -0.148,
+              -11.045
+            ]
+          },
+          "product3": {
+            "renderedOverFace": 1.069,
+            "centerMinusNoseBridgePx": [
+              -0.14,
+              -11.036
+            ]
+          },
+          "product4": {
+            "renderedOverFace": 0.962,
+            "centerMinusNoseBridgePx": [
+              -0.144,
+              -11.058
+            ]
+          }
+        },
+        "blink": null,
+        "motion": {},
+        "twoFace": {
+          "two-face": {
+            "poseSamples": 241,
+            "bothFacesDetectedShare": 1,
+            "trackedSamples": 241,
+            "trackedOnBystander": 0,
+            "trackIds": [
+              1
+            ],
+            "renders": 483,
+            "rendersOnBystander": 0
+          }
+        }
+      }
     }
   }
 }
