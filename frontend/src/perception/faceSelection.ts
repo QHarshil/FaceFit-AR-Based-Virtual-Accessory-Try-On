@@ -7,11 +7,11 @@ const NOSE_TIP = 4;
 
 /**
  * A face continues the track when its centre is within this many face sizes
- * of the tracked face's last centre. Two faces side by side are at least a
- * face width apart, 155 mm on the canonical face (landmarks 127 to 356) or
- * 1.7 sizes, so a neighbour never matches; a head moving half a metre per
- * second covers 0.2 sizes per frame at 30 Hz, so the tracked face still
- * matches after a few missed frames.
+ * of the tracked face's last centre. Two faces side by side at one depth are
+ * at least a face width apart, 155 mm on the canonical face (landmarks 127 to
+ * 356) or 1.7 sizes, so a neighbour does not match; a head moving half a
+ * metre per second covers 0.2 sizes per frame at 30 Hz, so the tracked face
+ * still matches after a few missed frames.
  */
 export const MATCH_RADIUS = 0.75;
 
@@ -20,9 +20,9 @@ export const MAX_SIZE_CHANGE = 1.5;
 
 /**
  * Frames the tracked face may go unmatched before another face can take the
- * overlay: half a second at 30 Hz. Missed detections in fast motion and a
- * hand passing in front of the face are shorter, and over them the overlay
- * stays hidden instead of moving to a bystander.
+ * overlay: half a second at 30 Hz. Over a shorter miss, such as a detection
+ * lost in fast motion or a hand passing the face, the overlay stays hidden
+ * instead of moving to a bystander.
  */
 export const MAX_MISSED_FRAMES = 15;
 
