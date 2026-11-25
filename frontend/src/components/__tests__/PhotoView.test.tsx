@@ -16,11 +16,13 @@ vi.mock('../../tracking/photo', async () => {
 
 const { default: PhotoView } = await import('../PhotoView');
 
-const bitmap = (width: number, height: number) =>
-  ({ width, height, close: vi.fn() }) as unknown as ImageBitmap;
+const bitmap = (width: number, height: number) => {
+  const close = vi.fn<() => void>();
+  return { image: { width, height, close } as unknown as ImageBitmap, close };
+};
 
 const canvasSize = () => {
-  const canvas = screen.getByRole('img', { name: 'Your photo' }) as HTMLCanvasElement;
+  const canvas = screen.getByRole<HTMLCanvasElement>('img', { name: 'Your photo' });
   return [canvas.width, canvas.height];
 };
 
@@ -39,19 +41,19 @@ describe('PhotoView', () => {
 
   it('draws the photo at its decoded size and releases the decoded copy', async () => {
     render(<PhotoView photo={new Blob(['a'])} />);
-    const image = bitmap(640, 800);
+    const { image, close } = bitmap(640, 800);
     await act(async () => {
       decodes[0]?.resolve(image);
       await Promise.resolve();
     });
     expect(canvasSize()).toEqual([640, 800]);
-    expect(image.close).toHaveBeenCalled();
+    expect(close).toHaveBeenCalled();
   });
 
   it('clears the last photo while the next decodes, and when it fails to decode', async () => {
     const view = render(<PhotoView photo={new Blob(['a'])} />);
     await act(async () => {
-      decodes[0]?.resolve(bitmap(640, 800));
+      decodes[0]?.resolve(bitmap(640, 800).image);
       await Promise.resolve();
     });
     expect(canvasSize()).toEqual([640, 800]);

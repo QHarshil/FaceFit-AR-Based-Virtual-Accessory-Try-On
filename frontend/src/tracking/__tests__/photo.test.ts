@@ -57,7 +57,9 @@ const controlledClient = () => {
       finishReady = () => resolve('GPU');
     }),
     submit: vi.fn(),
-    detectImage: vi.fn((_image: ImageBitmap) => settleOnStop<LandmarkFrame>(() => {})),
+    detectImage: vi.fn<(image: ImageBitmap) => Promise<LandmarkFrame>>(() =>
+      settleOnStop<LandmarkFrame>(() => {}),
+    ),
     stop: vi.fn(() => {
       pending.forEach((reject) => reject(new PerceptionError('worker', 'stopped')));
     }),
