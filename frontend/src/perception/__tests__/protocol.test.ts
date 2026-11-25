@@ -53,6 +53,14 @@ describe('LandmarkFrame', () => {
     expect(isLandmarkFrame({ ...emptyFrame(), trackId: 3 })).toBe(false);
   });
 
+  it('accepts a luminance from 0 to 255 and rejects anything else', () => {
+    expect(isLandmarkFrame({ ...emptyFrame(), luminance: 0 })).toBe(true);
+    expect(isLandmarkFrame({ ...faceFrame(), luminance: 255 })).toBe(true);
+    for (const luminance of [-1, 256, Number.NaN, '40', null]) {
+      expect(isLandmarkFrame({ ...emptyFrame(), luminance })).toBe(false);
+    }
+  });
+
   it('reads interleaved points by index', () => {
     const frame = faceFrame();
     const n = frame.landmarks.length;

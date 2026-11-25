@@ -18,6 +18,7 @@ const API_FAILURES: readonly ApiFailure[] = [
   'invalid_response',
 ];
 const PRODUCT_IDS = [1, 2_147_483_647];
+const SESSION_PRODUCT_IDS = [null, ...PRODUCT_IDS];
 
 // A Record over every builder, so a new builder does not compile until it has cases.
 const CASES: Record<TelemetryEventName, TelemetryEvent[]> = {
@@ -27,14 +28,20 @@ const CASES: Record<TelemetryEventName, TelemetryEvent[]> = {
   productLoadFailed: [null, ...PRODUCT_IDS].flatMap((id) =>
     API_FAILURES.map((failure) => telemetryEvents.productLoadFailed(id, failure)),
   ),
-  cameraStarted: PRODUCT_IDS.map(telemetryEvents.cameraStarted),
-  cameraError: [...CAMERA_FAILURES, 'ended' as const].map((failure) =>
-    telemetryEvents.cameraError(1, failure),
+  cameraStarted: SESSION_PRODUCT_IDS.map(telemetryEvents.cameraStarted),
+  cameraError: SESSION_PRODUCT_IDS.flatMap((id) =>
+    [...CAMERA_FAILURES, 'ended' as const].map((failure) =>
+      telemetryEvents.cameraError(id, failure),
+    ),
   ),
-  trackingError: PERCEPTION_FAILURES.map((failure) => telemetryEvents.trackingError(1, failure)),
-  renderError: RENDER_FAILURES.map((failure) => telemetryEvents.renderError(1, failure)),
-  faceDetectedChanged: [true, false].map((detected) =>
-    telemetryEvents.faceDetectedChanged(1, detected),
+  trackingError: SESSION_PRODUCT_IDS.flatMap((id) =>
+    PERCEPTION_FAILURES.map((failure) => telemetryEvents.trackingError(id, failure)),
+  ),
+  renderError: SESSION_PRODUCT_IDS.flatMap((id) =>
+    RENDER_FAILURES.map((failure) => telemetryEvents.renderError(id, failure)),
+  ),
+  faceDetectedChanged: SESSION_PRODUCT_IDS.flatMap((id) =>
+    [true, false].map((detected) => telemetryEvents.faceDetectedChanged(id, detected)),
   ),
 };
 

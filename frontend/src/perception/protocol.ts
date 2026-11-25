@@ -94,11 +94,17 @@ const isVideoFrame = (value: unknown): value is VideoFrame =>
 
 export const isLandmarkFrame = (value: unknown): value is LandmarkFrame => {
   if (!isRecord(value)) return false;
-  const { timestampMs, width, height, landmarks, faceCount, trackId } = value;
+  const { timestampMs, width, height, landmarks, faceCount, trackId, luminance } = value;
   if (!isFiniteNumber(timestampMs) || !isFiniteNumber(width) || !isFiniteNumber(height)) {
     return false;
   }
   if (!Number.isInteger(faceCount) || (faceCount as number) < 0) return false;
+  if (
+    luminance !== undefined &&
+    !(isFiniteNumber(luminance) && luminance >= 0 && luminance <= 255)
+  ) {
+    return false;
+  }
   if (!(landmarks instanceof Float32Array)) return false;
   if (landmarks.length === 0) return trackId === null;
   return (

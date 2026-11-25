@@ -11,6 +11,7 @@ import {
   type VideoLandmarker,
   type WasmFileset,
 } from '../landmarkerService';
+import { LUMINANCE_SAMPLE_INTERVAL } from '../luminance';
 import type { WorkerResponse } from '../protocol';
 import { LANDMARK_COUNT } from '../types';
 
@@ -406,6 +407,45 @@ describe('landmarker service frames', () => {
       { type: 'error', code: 'inference', detail: 'graph failed', frameId: 4 },
     ]);
     expect(frame.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('samples brightness every LUMINANCE_SAMPLE_INTERVAL frames, after posting, on the next result', async () => {
+    const measured: number[] = [];
+    const h = harness({
+      measureLuminance: vi.fn(() => {
+        measured.push(h.posted.length);
+        return 30;
+      }),
+    });
+    const service = await ready(h);
+
+    for (let i = 0; i < LUMINANCE_SAMPLE_INTERVAL + 2; i += 1) {
+      await service.handle({ type: 'frame', frameId: i, timestampMs: i * 33, frame: videoFrame() });
+    }
+
+    // The first frame is sampled after its result is posted, then every interval.
+    expect(measured).toEqual([1, LUMINANCE_SAMPLE_INTERVAL + 1]);
+    const luminance = h.posted.map((m) => (m.type === 'result' ? m.landmarkFrame.luminance : 'x'));
+    const carried = luminance.flatMap((value, i) => (value === undefined ? [] : [[i, value]]));
+    expect(carried).toEqual([
+      [1, 30],
+      [LUMINANCE_SAMPLE_INTERVAL + 1, 30],
+    ]);
+  });
+
+  it('keeps tracking when brightness cannot be measured', async () => {
+    const measureLuminance = vi.fn(() => {
+      throw new Error('cannot draw this frame');
+    });
+    const h = harness({ measureLuminance });
+    const service = await ready(h);
+
+    for (let i = 0; i < LUMINANCE_SAMPLE_INTERVAL * 2; i += 1) {
+      await service.handle({ type: 'frame', frameId: i, timestampMs: i * 33, frame: videoFrame() });
+    }
+
+    expect(h.posted.every((m) => m.type === 'result')).toBe(true);
+    expect(measureLuminance).toHaveBeenCalledTimes(1);
   });
 
   it('closes and rejects a frame that arrives before the model is ready', async () => {
