@@ -95,11 +95,13 @@ describe('photo pose', () => {
     horizontalFovDeg: DEFAULT_HORIZONTAL_FOV_DEG,
   })!;
 
-  it.each([
-    [{ rotation: rotationFromDegrees(0, 0, 0), translationMm: [0, 0, 500] }],
-    [{ rotation: rotationFromDegrees(-6, 15, 4), translationMm: [30, -20, 650] }],
-  ] as [HeadPose][])('recovers a known pose from a noisy still within bounds', (truth) => {
-    const stream = createPoseStream();
+  // Accuracy over fields of view is in geometry/__tests__/stillPose.test.ts.
+  it('draws the pose solved for the photo, unfiltered', () => {
+    const truth: HeadPose = {
+      rotation: rotationFromDegrees(-6, 15, 4),
+      translationMm: [30, -20, 650],
+    };
+    const stream = createPoseStream('one-euro');
     const frame = syntheticLandmarkFrame(truth, photoIntrinsics, {
       sigmaPx: 0.6,
       gaussian: seededGaussian(7),
@@ -109,10 +111,6 @@ describe('photo pose', () => {
     const pose = stream.poseForRender()?.pose;
     expect(pose).toBeDefined();
     if (!pose) return;
-    const [x, y, z] = pose.translationMm;
-    const [tx, ty, tz] = truth.translationMm;
-    expect(Math.hypot(x - tx, y - ty)).toBeLessThan(3);
-    expect(Math.abs(z - tz)).toBeLessThan(0.03 * tz);
     expect((angleBetweenRotations(pose.rotation, truth.rotation) * 180) / Math.PI).toBeLessThan(2);
   });
 

@@ -5,6 +5,7 @@ import type { HeadPose } from '@facefit/cv';
 import { createOverlayPose, type RenderPose } from '../filtering/overlayPose';
 import type { PoseFilterSetting } from '../filtering/poseFilterSetting';
 import { createHeadPoseTracker, type HeadPoseEstimate } from '../geometry/headPose';
+import { solveStillPose } from '../geometry/stillPose';
 import { hasFace, type LandmarkFrame } from '../perception/types';
 import {
   createFaceStatusTracker,
@@ -117,7 +118,7 @@ export const createPoseStream = (setting?: PoseFilterSetting): PoseStream => {
     },
     showStill(frame) {
       reset();
-      const estimate = tracker.update(frame);
+      const { estimate } = solveStillPose(frame);
       // Nothing to smooth in one frame, and no newer frame to go stale against.
       still = estimate.trusted ? { pose: estimate.fit.pose, timestampMs: frame.timestampMs } : null;
       updateListeners.forEach((listener) => {
