@@ -7,19 +7,19 @@ import { sendTelemetry } from '../utils/telemetry';
 
 const CAPABILITIES = [
   {
-    title: 'Robust Landmark Tracking',
+    title: 'Landmarks in a worker',
     description:
-      'MediaPipe Face Mesh delivers 468 3D landmarks per frame, making it possible to align eyewear accurately without training a bespoke model.',
+      'MediaPipe FaceLandmarker returns 478 landmarks per frame, irises included. It runs in a Web Worker on the GPU from self-hosted files, so the page stays responsive.',
   },
   {
-    title: 'Geometric Pose Estimation',
+    title: 'Head pose from geometry',
     description:
-      'Three.js applies pose matrices derived from inter-eye vectors and forehead anchors, stabilising virtual frames as the user rotates.',
+      'EPnP and Levenberg-Marquardt fit a canonical face model to weighted rigid landmarks. Outliers are rejected by residual, and the frame hides when the fit is poor.',
   },
   {
-    title: 'Reproducible Delivery',
+    title: 'Private by design',
     description:
-      'A React SPA and Node.js API run inside Docker containers, so experiments can be repeated on any machine with the same configuration.',
+      'Video, landmarks and measurements stay in the browser. A Content Security Policy blocks connections to other hosts, and the measurement harness fails a run that makes one.',
   },
 ];
 
@@ -134,11 +134,12 @@ function Home() {
   return (
     <div className="home-container">
       <header className="hero">
-        <div className="hero-context">Applied computer vision prototype</div>
+        <div className="hero-context">On-device AR try-on</div>
         <h1 className="hero-title">FaceFit AR</h1>
         <p className="hero-subtitle">
-          Browser-based eyewear try-on that couples MediaPipe landmark extraction with lightweight
-          pose estimation and Three.js rendering.
+          Try on eyewear in the browser. A head-pose solver recovers where your face is in 3D, and
+          Three.js draws each frame with the camera&apos;s own projection. Video never leaves your
+          device.
         </p>
         <div className="hero-cta">
           <button
@@ -161,8 +162,8 @@ function Home() {
       <section className="products-section">
         <h2 className="section-title">Select a Frame</h2>
         <p className="section-subtitle">
-          Each item is served by the Express API and rendered in the AR viewport with its associated
-          GLB model.
+          Each frame is a normalized model with nominal dimensions in millimetres, seated on the
+          nose bridge by its anchor points.
         </p>
         <div className="products-grid">
           {loading &&
