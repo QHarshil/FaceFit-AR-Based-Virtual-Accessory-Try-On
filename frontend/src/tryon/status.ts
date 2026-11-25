@@ -162,7 +162,7 @@ export const STATUS_VIEWS: Record<TryOnStatus, StatusView> = {
   trackingUnsupported: view(
     'error',
     'Face tracking does not run in this browser',
-    'Try a recent Chrome, Edge, Firefox or Safari.',
+    'Try a recent Chrome or Edge.',
     [HOME],
   ),
   captureUnsupported: view(
@@ -205,7 +205,7 @@ export const STATUS_VIEWS: Record<TryOnStatus, StatusView> = {
   multipleFaces: view(
     'info',
     'More than one face in view',
-    'The frame stays on the first face it found.',
+    'The frame stays on the largest face it found.',
     [USE_PHOTO, HOME],
   ),
   faceLost: view('warning', 'Face not found', 'Move back into view.', [USE_PHOTO, HOME]),

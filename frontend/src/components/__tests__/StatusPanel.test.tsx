@@ -87,6 +87,20 @@ describe('StatusPanel', () => {
       announcement: 'Could not load the 3D frame. Check your connection and try again.',
       buttons: [['Try again', 'RETRY_OVERLAY']],
     },
+    {
+      status: 'trackingUnsupported',
+      region: 'alert',
+      title: 'Face tracking does not run in this browser',
+      announcement: 'Face tracking does not run in this browser. Try a recent Chrome or Edge.',
+      buttons: [],
+    },
+    {
+      status: 'multipleFaces',
+      region: 'status',
+      title: 'More than one face in view',
+      announcement: 'More than one face in view. The frame stays on the largest face it found.',
+      buttons: [['Use a photo', 'USE_PHOTO']],
+    },
   ] as const)(
     'shows the $status copy, announcement and recovery',
     async ({ status, region, title, announcement, buttons }) => {
@@ -97,7 +111,7 @@ describe('StatusPanel', () => {
         await userEvent.click(screen.getByRole('button', { name: label }));
         expect(onSend).toHaveBeenLastCalledWith(event);
       }
-      expect(screen.getAllByRole('button')).toHaveLength(buttons.length);
+      expect(screen.queryAllByRole('button')).toHaveLength(buttons.length);
       expect(screen.getByRole('link', { name: 'Back to catalogue' })).toHaveAttribute('href', '/');
     },
   );
