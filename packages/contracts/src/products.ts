@@ -1,3 +1,4 @@
+import './zodConfig.js';
 import { z } from 'zod';
 
 export const MAX_PRODUCT_ID = 2_147_483_647;

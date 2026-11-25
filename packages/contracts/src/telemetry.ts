@@ -1,3 +1,4 @@
+import './zodConfig.js';
 import { z } from 'zod';
 import { productId } from './products.js';
 
