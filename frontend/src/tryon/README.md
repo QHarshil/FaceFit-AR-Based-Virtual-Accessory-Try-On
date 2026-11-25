@@ -10,7 +10,7 @@
   - `visibility`: `visible`, `hidden`.
   - `camera`: `active` (`requesting`, `streaming`, `paused`), `denied`, `missing`, `busy`, `unsupported`, `failed`, `ended`. `missing` and `ended` retry on a device change; `ended` also retries when the page is shown again.
   - `perception`: `active` (`loading`, `running`, `paused`), `restarting`, `failed` (`modelFetch`, `wasmFetch`, `unsupported`, `captureUnsupported`, `crashed`). A crashed worker restarts after `PERCEPTION_RESTART_DELAY_MS`, at most `MAX_PERCEPTION_RESTARTS` times, then waits for the user.
-  - `running` holds the face states: `searching`, `tracking`, `multiple`, `lowLight`, `lost`. They come from `faceStatus.ts`, which debounces the worker's face counts and frame brightness. Low light is a mean luma below 40 of 255 on two samples in a row, reported only while no face is tracked.
+  - `running` holds the face states: `searching`, `tracking`, `multiple`, `lowLight`, `lost`. They come from `faceStatus.ts`, which debounces the worker's face counts and frame brightness. Low light is a mean luma below 40 of 255 on two samples in a row, reported only while no face is tracked. The threshold of 40 is chosen, not measured against low-light footage.
 - `session.source.photo`: `choosing`, `detecting`, `showing`, `noFace`, `failed`.
 
 A hidden page moves `camera` and `perception` to `paused`, which stops the camera track, so the browser's camera indicator goes off, and stops sending frames. Showing the page asks for the same camera again from `requesting`; a refusal or a missing device ends in `denied` or `missing`.

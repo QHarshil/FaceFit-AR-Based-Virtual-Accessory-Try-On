@@ -54,10 +54,14 @@ facefit-ar/
 │   ├── src/
 │   │   ├── components/
 │   │   │   └── ARTryOn.tsx # Three.js scene and pose
-│   │   └── pages/
-│   │       ├── Home.tsx    # Product gallery
-│   │       └── TryOn.tsx   # AR interface
+│   │   ├── pages/
+│   │   │   ├── Home.tsx    # Product gallery
+│   │   │   └── TryOn.tsx   # AR interface
+│   │   └── tryon/         # Try-on statechart, status and recovery
 │   └── public/models/     # GLBs copied from assets/out at build
+├── packages/
+│   ├── contracts/         # API and telemetry schemas shared by backend and frontend
+│   └── cv/                # Head-pose geometry: intrinsics, PnP, pose filters
 ├── docker-compose.yml
 └── start.sh
 ```

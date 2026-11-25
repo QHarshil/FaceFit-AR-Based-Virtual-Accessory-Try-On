@@ -31,7 +31,7 @@ node benchmark/gate-report.mjs                              # gate's hidden shar
 npm test
 ```
 
-Raw runs, warmup events included, go to `.cache/runs/<label>/`.
+Raw runs, warmup events included, go to `.cache/runs/<label>/`. The pose filter sweep and its method are in [docs/pose-filter.md](../docs/pose-filter.md).
 
 ## Browser tests
 
@@ -40,7 +40,7 @@ Raw runs, warmup events included, go to `.cache/runs/<label>/`.
 ```sh
 node fixtures/build.mjs --source standin     # still.y4m and portrait.jpg in .cache/clips/standin
 npm run e2e                                  # FACEFIT_STANDIN_DIR=<dir> reads them from another checkout
-``` The pose filter sweep and its method are in [docs/pose-filter.md](../docs/pose-filter.md).
+```
 
 ## Conditions
 

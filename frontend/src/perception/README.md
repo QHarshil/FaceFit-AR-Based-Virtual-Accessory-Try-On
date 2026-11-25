@@ -33,7 +33,7 @@ Frames cross as transferred `VideoFrame`s. A `VideoFrame` is created synchronous
 
 ## Errors
 
-Failures surface as `PerceptionError` codes; `tracking/errorMessages.ts` maps them to the try-on error screen.
+Failures surface as `PerceptionError` codes. `tracking/failures.ts` maps them to the try-on's perception failures, and `tryon/status.ts` gives each its message and recovery action.
 
 | Code          | Cause                                                                                                      |
 | ------------- | ---------------------------------------------------------------------------------------------------------- |
