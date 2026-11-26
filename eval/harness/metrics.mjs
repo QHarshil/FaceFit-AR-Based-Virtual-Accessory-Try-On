@@ -40,7 +40,10 @@ export const landmarkToPx = ([x, y], [videoW, videoH], [vw, vh]) => {
 };
 
 // Least-squares slope and intercept of y on x.
+// A null or non-finite value, such as the median of a condition that showed no
+// pose, gives a null fit. Treated as 0 it would add a point on the identity line.
 export const linearFit = (xs, ys) => {
+  if (xs.length < 2 || ![...xs, ...ys].every(Number.isFinite)) return { slope: null, intercept: null };
   const n = xs.length;
   const mx = xs.reduce((s, v) => s + v, 0) / n;
   const my = ys.reduce((s, v) => s + v, 0) / n;

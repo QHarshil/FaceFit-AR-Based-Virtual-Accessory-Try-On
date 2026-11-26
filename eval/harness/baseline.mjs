@@ -32,7 +32,7 @@ import { cpus, release, totalmem, type } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gateProblems } from './gate.mjs';
-import { CONDITIONS, FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDED, TWO_FACE, motionPeriodFrames, motionTruth } from './conditions.mjs';
+import { FRAME, FRAME_CODE, MOTION, PRODUCT_ZOOMS, PRODUCTS, RECORDED, TWO_FACE, motionPeriodFrames, motionTruth, sweepsOf } from './conditions.mjs';
 import { blinkShift, findBlinks, latency, linearFit, maxChangeFromStillPercent, median, ndcToPx, outsideBlinks, pointJitter, renderedJitter, rotationJitter, sampleGeometry, shownPoses, solverSummary, twoFaceSummary, windowSamples, wrapLineAngle } from './metrics.mjs';
 import { frameSamples, mediaTimeMismatchShare, motionMetrics, presentationRate, presentedFrames, readCenterX, readLineAngle, renderedSamples } from './motionMetrics.mjs';
 import { offDeviceRequests, sawWorkerFetch, waitForLocalServer } from './network.mjs';
@@ -136,8 +136,9 @@ try {
 }
 
 const clipOf = (c) => join(clipDir, `${c.clip || c.id}.y4m`);
-const conditions = (gate ? [...CONDITIONS] : [...CONDITIONS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED, ...MOTION, ...TWO_FACE]).filter((c) => existsSync(clipOf(c)));
-if (gate && conditions.length !== CONDITIONS.length) {
+const SWEEPS = sweepsOf(source);
+const conditions = (gate ? [...SWEEPS] : [...SWEEPS, ...PRODUCTS, ...PRODUCT_ZOOMS, ...RECORDED, ...MOTION, ...TWO_FACE]).filter((c) => existsSync(clipOf(c)));
+if (gate && conditions.length !== SWEEPS.length) {
   console.error(`--gate needs every sweep clip in ${clipDir}; run node eval/fixtures/build.mjs --source standin`);
   process.exit(1);
 }
@@ -243,9 +244,11 @@ const renderedJitterOf = (allPoses, blinks, run) => renderedJitter(
   outsideBlinks(allPoses.length, blinks),
 );
 
-const summary = { latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null, motion: null, twoFace: null };
+const summary = { shownSamples: null, latency: {}, jitter: {}, solver: {}, roll: null, registration: null, scale: null, scaleByProduct: null, products: null, blink: null, motion: null, twoFace: null };
 const geometry = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, geometryOf(run)]));
 const medianOf = (id, key) => median(geometry[id].map((g) => g[key]));
+// Shown poses per condition: a median over none is null, so the gate reads this first.
+summary.shownSamples = Object.fromEntries(Object.entries(geometry).map(([id, g]) => [id, g.length]));
 
 const solver = Object.fromEntries(Object.entries(runs).map(([id, run]) => [id, solverSummary(run.events)]));
 // The motion and two-face clips are kept out of the overall share so it stays
@@ -263,7 +266,7 @@ for (const id of ['still', 'rec-static']) {
   summary.jitter[id] = jitterOf(geometry[id], runs[id]);
 }
 
-const rollIds = ['still', ...CONDITIONS.filter((c) => c.group === 'roll').map((c) => c.id)].filter((id) => runs[id]);
+const rollIds = ['still', ...SWEEPS.filter((c) => c.group === 'roll').map((c) => c.id)].filter((id) => runs[id]);
 if (rollIds.length > 2) {
   const face = rollIds.map((id) => medianOf(id, 'faceAngle'));
   const rendered = rollIds.map((id, i) => face[i] + wrapLineAngle(medianOf(id, 'renderedAngle') - face[i]));
@@ -282,7 +285,7 @@ if (rollIds.length > 2) {
   };
 }
 
-const axisIds = (axis) => ['still', ...CONDITIONS.filter((c) => c.group === 'translate' && c[axis] !== 0).map((c) => c.id)].filter((id) => runs[id]);
+const axisIds = (axis) => ['still', ...SWEEPS.filter((c) => c.group === 'translate' && c[axis] !== 0).map((c) => c.id)].filter((id) => runs[id]);
 if (runs.still) {
   const gain = (ids, k) => linearFit(
     ids.map((id) => median(geometry[id].map((g) => g.noseBridge[k]))),
@@ -295,7 +298,7 @@ if (runs.still) {
     offsetPxByCondition: Object.fromEntries([...new Set([...axisIds('dx'), ...axisIds('dy')])].map((id) => [id, offsetAt(id)])),
     interocularPx: medianOf('still', 'interocular'),
   };
-  const zoomIds = ['still', ...CONDITIONS.filter((c) => c.group === 'zoom').map((c) => c.id)].filter((id) => runs[id]);
+  const zoomIds = ['still', ...SWEEPS.filter((c) => c.group === 'zoom').map((c) => c.id)].filter((id) => runs[id]);
   summary.scale = Object.fromEntries(zoomIds.map((id) => [id, {
     faceWidthPx: medianOf(id, 'faceWidth'),
     renderedWidthPx: medianOf(id, 'renderedWidth'),
@@ -306,7 +309,7 @@ if (runs.still) {
 // Rendered width over face width at each zoom, per product.
 const ratioAt = (id) => (geometry[id].length ? medianOf(id, 'renderedWidth') / medianOf(id, 'faceWidth') : null);
 const zoomIdsOf = (productId) => (productId === 1
-  ? { 'zoom0.75': 'zoom0.75', still: 'still', 'zoom1.33': 'zoom1.33' }
+  ? { still: 'still', ...Object.fromEntries(SWEEPS.filter((c) => c.group === 'zoom').map((c) => [`zoom${c.zoom}`, c.id])) }
   : { 'zoom0.75': `product${productId}-zoom0.75`, still: `product${productId}`, 'zoom1.33': `product${productId}-zoom1.33` });
 summary.scaleByProduct = Object.fromEntries([1, 2, 3, 4].map((productId) => {
   const ratios = Object.fromEntries(Object.entries(zoomIdsOf(productId)).filter(([, id]) => runs[id]).map(([zoom, id]) => [zoom, ratioAt(id)]));

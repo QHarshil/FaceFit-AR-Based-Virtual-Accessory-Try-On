@@ -1,5 +1,6 @@
 {
   "basis": "Stand-in sweep on the CPU delegate, Apple M4 Pro, Chromium 159, run label standin-cpu in results.json (second run, clean tree). Measured: roll slope 1.006, gain x 0.996, gain y 0.986 (from 4 and 17 samples, so wider), rendered over face 1.059 at the still clip and 3.5 percent at most across zoom, a gated share of 0.18 averaged over conditions and 0 over still, roll and dx, bridge offset 0.072 of the interocular distance. Slopes and gains have truth 1 and get 10 percent (15 percent for gain y); the rest get 1.4 to 2.3 times, the mean gated share 1.7 times, the measured value. Timing is not gated: runner hardware changes it without a code change. A rehearsal on an emulated x86 Linux container with 2 CPUs and SwiftShader gave the same metrics (roll 1.008, gain 0.998 and 0.984, rendered over face 1.056, offsets within 15.3 px) from a tenth of the samples per condition, which is why the gated share is averaged over conditions and not pooled over samples.",
+  "minShownSamples": 5,
   "metrics": {
     "roll.renderedPerFaceDeg": {
       "min": 0.9,

@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONDITIONS, FRAME, FRAME_CODE, MOTION, RECORDED, TWO_FACE, motionExpression } from '../harness/conditions.mjs';
+import { FRAME, FRAME_CODE, MOTION, RECORDED, TWO_FACE, motionExpression, sweepsOf } from '../harness/conditions.mjs';
 
 const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -73,8 +73,8 @@ const sweepFilter = ({ center, window }, { roll, dx, dy, zoom }) => {
   ].join(',');
 };
 
-const buildSweeps = (still, framing, outDir) => {
-  for (const condition of CONDITIONS) {
+const buildSweeps = (still, framing, outDir, source) => {
+  for (const condition of sweepsOf(source)) {
     const out = join(outDir, `${condition.id}.y4m`);
     ffmpeg([
       '-loop', '1', '-framerate', String(FRAME.fps), '-t', String(condition.clipSeconds), '-i', still,
@@ -178,12 +178,12 @@ mkdirSync(outDir, { recursive: true });
 if (source === 'standin') {
   const portrait = fetchStandin(outDir);
   if (only === 'motion') throw new Error('--only motion needs --source recordings');
-  if (only === 'all') buildSweeps(portrait, STANDIN, outDir);
+  if (only === 'all') buildSweeps(portrait, STANDIN, outDir, source);
   buildTwoFace(portrait, outDir);
 } else if (source === 'recordings') {
   if (only === 'two-face') throw new Error('--only two-face needs --source standin');
   const still = firstFrame(join(RECORDINGS, 'static.mp4'), outDir);
-  if (only === 'all') buildSweeps(still, { center: [FRAME.width / 2, FRAME.height / 2], window: [FRAME.width, FRAME.height] }, outDir);
+  if (only === 'all') buildSweeps(still, { center: [FRAME.width / 2, FRAME.height / 2], window: [FRAME.width, FRAME.height] }, outDir, source);
   buildMotion(still, outDir);
   if (only === 'all') buildRecorded(outDir);
 } else {
