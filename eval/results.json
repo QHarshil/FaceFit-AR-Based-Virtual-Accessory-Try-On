@@ -17783,12 +17783,12 @@
       "overBudget": []
     },
     "page-load": {
-      "measuredAt": "2026-11-25T22:42:19.895Z",
-      "commit": "26f6830ba85653795421e38c12a9d85257d60513",
+      "measuredAt": "2026-11-26T02:22:12.437Z",
+      "commit": "e3e84274821441afbfab16e2614b4e1df255406b",
       "dirty": false,
       "command": "node eval/perf/pageLoad.mjs --write --label page-load",
       "kind": "lab",
-      "method": "median of 5 cold loads per page in Playwright Chromium; LCP, CLS and FCP from web-vitals; TBT from long tasks after FCP within 10000 ms; the try-on reads the stand-in clip as its camera",
+      "method": "median of 5 cold loads per page in Playwright Chromium; LCP, CLS and FCP from web-vitals; TBT from long tasks after FCP within 10000 ms; the try-on reads the stand-in clip as its camera, and overlayMs and clsToOverlay are taken at its first renderedPose event; lab numbers",
       "throttle": {
         "cpuSlowdown": 4,
         "latencyMs": 40,
@@ -17807,20 +17807,36 @@
       },
       "medians": {
         "catalogue": {
-          "lcpMs": 532,
+          "lcpMs": 544,
           "cls": 0,
-          "fcpMs": 532,
+          "fcpMs": 544,
           "tbtMs": 0
         },
         "tryOn": {
-          "lcpMs": 620,
+          "lcpMs": 624,
           "cls": 0.0296,
-          "fcpMs": 544,
-          "tbtMs": 0
+          "fcpMs": 552,
+          "tbtMs": 0,
+          "overlayMs": 17302.8,
+          "clsToOverlay": 0.0296
         }
       },
       "runs": {
         "catalogue": [
+          {
+            "lcpMs": 600,
+            "cls": 0,
+            "fcpMs": 600,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 568,
+            "cls": 0,
+            "fcpMs": 568,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
           {
             "lcpMs": 540,
             "cls": 0,
@@ -17836,67 +17852,62 @@
             "longTasks": 1
           },
           {
-            "lcpMs": 528,
+            "lcpMs": 544,
             "cls": 0,
-            "fcpMs": 528,
-            "tbtMs": 0,
-            "longTasks": 1
-          },
-          {
-            "lcpMs": 524,
-            "cls": 0,
-            "fcpMs": 524,
-            "tbtMs": 0,
-            "longTasks": 1
-          },
-          {
-            "lcpMs": 532,
-            "cls": 0,
-            "fcpMs": 532,
+            "fcpMs": 544,
             "tbtMs": 0,
             "longTasks": 1
           }
         ],
         "tryOn": [
           {
-            "lcpMs": 620,
+            "overlayMs": 17397.900000095367,
+            "clsToOverlay": 0.031680615713198974,
+            "lcpMs": 704,
+            "cls": 0.031680615713198974,
+            "fcpMs": 580,
+            "tbtMs": 0,
+            "longTasks": 2
+          },
+          {
+            "overlayMs": 17302.800000071526,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 636,
+            "cls": 0.029612070719401043,
+            "fcpMs": 552,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "overlayMs": 17302.800000071526,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 624,
             "cls": 0.029612070719401043,
             "fcpMs": 548,
             "tbtMs": 0,
             "longTasks": 1
           },
           {
-            "lcpMs": 624,
-            "cls": 0.029612070719401043,
-            "fcpMs": 544,
-            "tbtMs": 0,
-            "longTasks": 1
-          },
-          {
-            "lcpMs": 612,
-            "cls": 0.029612070719401043,
-            "fcpMs": 544,
-            "tbtMs": 0,
-            "longTasks": 1
-          },
-          {
-            "lcpMs": 620,
-            "cls": 0.029612070719401043,
-            "fcpMs": 536,
-            "tbtMs": 0,
-            "longTasks": 1
-          },
-          {
+            "overlayMs": 17293.400000095367,
+            "clsToOverlay": 0.029612070719401043,
             "lcpMs": 616,
             "cls": 0.029612070719401043,
-            "fcpMs": 544,
+            "fcpMs": 548,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "overlayMs": 17300.5,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 624,
+            "cls": 0.029612070719401043,
+            "fcpMs": 552,
             "tbtMs": 0,
             "longTasks": 1
           }
         ]
       },
       "budgets": {
-        "basis": "Lab numbers, not field data: median of five cold loads in Chromium 159 with a 4x CPU slowdown and a 9 Mbit/s, 40 ms link. Measured on an Apple M4 Pro (run page-load in results.json) and in an emulated x86 Linux container with 2 CPUs: catalogue LCP 544 and 552 ms, try-on LCP 604 and 624 ms, CLS 0.030 and 0.028 on the try-on and 0 on the catalogue, TBT 0 ms. The budgets sit under the web.dev good thresholds (LCP 2500 ms, CLS 0.1, TBT 200 ms) with at least twice the measured LCP and three times the measured CLS, so a slower runner does not fail a build and a regression of that size does.",
         "catalogue": {
           "maxLcpMs": 1500,
           "maxCls": 0.1,
@@ -17905,7 +17916,9 @@
         "tryOn": {
           "maxLcpMs": 1500,
           "maxCls": 0.1,
-          "maxTbtMs": 150
+          "maxTbtMs": 150,
+          "maxOverlayMs": 40000,
+          "maxClsToOverlay": 0.1
         }
       },
       "overBudget": []
