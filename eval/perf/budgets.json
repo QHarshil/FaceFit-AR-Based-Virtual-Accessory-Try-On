@@ -50,7 +50,9 @@
     "tryOn": {
       "maxLcpMs": 1500,
       "maxCls": 0.1,
-      "maxTbtMs": 150
+      "maxTbtMs": 150,
+      "maxOverlayMs": 40000,
+      "maxClsToOverlay": 0.1
     }
   }
 }
