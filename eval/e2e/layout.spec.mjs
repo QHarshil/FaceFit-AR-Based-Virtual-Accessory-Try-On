@@ -4,13 +4,16 @@
 // the frame and the crop offset moves every point. The harness cannot see a
 // wrong offset: at 1280x720 the crop is the identity.
 //
-// Three checks per viewport, on the stand-in face:
-//  1. the CSS the projection assumes (cover, mirror, canvas filling the page);
+// Four checks per viewport, on the stand-in face:
+//  1. the video and the canvas compute the same `object-fit: cover`, mirror and
+//     `object-position`, read from the page at check time and again after the
+//     screenshots;
 //  2. the bridge point the app reports drawing, against the face's bridge
-//     landmark mapped through the cover crop and mirror by this test;
+//     landmark mapped through a transform this test builds from that computed
+//     CSS, so a CSS change moves the expected point;
 //  3. the glasses as pixels: the box around what the overlay adds to a
-//     screenshot, against the same landmark, so a CSS fault the probe cannot
-//     see (the canvas laid out differently from the video) also fails.
+//     screenshot, against the same landmark;
+//  4. the glasses' left and right edges against the interocular distance.
 //
 // Tolerance: TOLERANCE_IOD of the interocular distance on screen. The
 // rendered bridge anchor is not on landmark 168 even where the crop is the
@@ -27,19 +30,27 @@ import { PRODUCTS, assertStayedOnDevice, countEvents, expect, status, test } fro
 const TOLERANCE_IOD = 0.1;
 // The landmarks the probe reports, in order (frontend/src/rendering/overlayProbe.ts).
 const PROBE_LANDMARKS = [1, 10, 33, 133, 145, 159, 168, 234, 263, 362, 374, 386, 454];
+const HALF_FRAME_IOD = [0.8, 0.95];
 const NOSE_BRIDGE = 168;
 const EYE_OUTER = [33, 263];
 
-const mapThroughCover = ([u, v], [videoW, videoH], [viewW, viewH]) => {
+// `position` is the computed `object-position` as [x, y] in CSS pixels or
+// percent, so the expected point follows the CSS the page has at check time.
+const offsetOf = ({ value, unit }, free) => (unit === '%' ? (free * value) / 100 : value);
+
+const mapThroughCover = ([u, v], [videoW, videoH], [viewW, viewH], position) => {
   const scale = Math.max(viewW / videoW, viewH / videoH);
-  const x = u * videoW * scale + (viewW - videoW * scale) / 2;
-  const y = v * videoH * scale + (viewH - videoH * scale) / 2;
+  const x = u * videoW * scale + offsetOf(position[0], viewW - videoW * scale);
+  const y = v * videoH * scale + offsetOf(position[1], viewH - videoH * scale);
   // The video and the canvas are mirrored, so screen x runs the other way.
   return [viewW - x, y];
 };
 
 // Probe NDC is of the unmirrored page; the screen shows it mirrored.
 const ndcToScreen = ([x, y], [viewW, viewH]) => [viewW - ((x + 1) / 2) * viewW, ((1 - y) / 2) * viewH];
+
+const parsePosition = (text) =>
+  text.split(' ').map((part) => ({ value: Number.parseFloat(part), unit: part.endsWith('%') ? '%' : 'px' }));
 
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 
@@ -83,6 +94,27 @@ const changedBox = async (context, before, after, dpr) => {
   }
 };
 
+const readLooks = (page) =>
+  page.evaluate(() => {
+    const look = (element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return { fit: style.objectFit, position: style.objectPosition, transform: style.transform, box: [box.left, box.top, box.width, box.height] };
+    };
+    return { video: look(document.querySelector('video')), canvas: look(document.querySelector('canvas.overlay-canvas')) };
+  });
+
+// The CSS the projection assumes. The canvas has to compute the video's fit and
+// position, or the glasses are laid out differently from the face under them.
+const expectCoverLayout = ({ video, canvas }, view, when) => {
+  for (const [name, look] of [['video', video], ['canvas', canvas]]) {
+    expect(look.fit, `${name} object-fit ${when}`).toBe('cover');
+    expect(look.transform, `${name} transform ${when}`).toBe('matrix(-1, 0, 0, 1, 0, 0)');
+    expect(look.box, `${name} box ${when}`).toEqual([0, 0, view[0], view[1]]);
+  }
+  expect(canvas.position, `canvas object-position against the video's ${when}`).toBe(video.position);
+};
+
 test('the rendered frame lands on the face under the cover crop and mirror', async ({ app }, testInfo) => {
   const { page, context } = app;
   await page.goto(`/try-on/${PRODUCTS[0].id}`);
@@ -94,20 +126,12 @@ test('the rendered frame lands on the face under the cover crop and mirror', asy
     const trusted = window.__events.filter((e) => e.stage === 'glassesPose' && !e.gated && e.landmarks && e.centerNdc === undefined && e.smoothedNdc);
     const rendered = window.__events.filter((e) => e.stage === 'renderedPose');
     const video = document.querySelector('video');
-    const canvas = document.querySelector('canvas.overlay-canvas');
-    const look = (element) => {
-      const style = getComputedStyle(element);
-      const box = element.getBoundingClientRect();
-      return { fit: style.objectFit, transform: style.transform, box: [box.left, box.top, box.width, box.height] };
-    };
     return {
       pose: trusted.at(-1),
       rendered: rendered.at(-1),
       video: [video.videoWidth, video.videoHeight],
       view: [window.innerWidth, window.innerHeight],
       dpr: window.devicePixelRatio,
-      videoLook: look(video),
-      canvasLook: look(canvas),
     };
   });
   expect(frame.pose, 'a trusted pose').toBeTruthy();
@@ -115,15 +139,13 @@ test('the rendered frame lands on the face under the cover crop and mirror', asy
   const { view, dpr } = frame;
   testInfo.annotations.push({ type: 'viewport', description: `${view.join('x')} at DPR ${dpr}, camera ${frame.video.join('x')}` });
 
-  // 1. The CSS the projection assumes.
-  for (const look of [frame.videoLook, frame.canvasLook]) {
-    expect(look.fit).toBe('cover');
-    expect(look.transform).toBe('matrix(-1, 0, 0, 1, 0, 0)');
-    expect(look.box).toEqual([0, 0, view[0], view[1]]);
-  }
+  // 1. The CSS the projection assumes, and the mapping built from it.
+  const looks = await readLooks(page);
+  expectCoverLayout(looks, view, 'before the check');
+  const position = parsePosition(looks.video.position);
 
   const onScreen = (landmark) =>
-    mapThroughCover(frame.pose.landmarks[PROBE_LANDMARKS.indexOf(landmark)], frame.video, view);
+    mapThroughCover(frame.pose.landmarks[PROBE_LANDMARKS.indexOf(landmark)], frame.video, view, position);
   const bridge = onScreen(NOSE_BRIDGE);
   const interocular = distance(...EYE_OUTER.map(onScreen));
   const tolerance = TOLERANCE_IOD * interocular;
@@ -150,9 +172,27 @@ test('the rendered frame lands on the face under the cover crop and mirror', asy
     await page.waitForFunction((count) => window.__events.filter((e) => e.stage === 'renderedPose').length > count, renders, { timeout: 10_000 });
     box = await changedBox(context, before, await page.screenshot(), dpr);
   }
+  // The layout is read again after the screenshots, so a style set once the
+  // first read is done still fails.
+  expectCoverLayout(await readLooks(page), view, 'after the screenshots');
   expect(Number.isFinite(box.minX), 'the overlay changed no pixels').toBe(true);
   const middleX = (box.minX + box.maxX) / 2;
   expect(Math.abs(middleX - bridge[0]), `glasses span x ${box.minX}..${box.maxX}, bridge at ${bridge[0]}`).toBeLessThan(tolerance);
   expect(box.minY - tolerance, `glasses start at y ${box.minY}`).toBeLessThan(bridge[1]);
   expect(box.maxY + tolerance, `glasses end at y ${box.maxY}`).toBeGreaterThan(bridge[1]);
+
+  // The glasses' width follows the face's scale: half the frame is 0.8 to 0.95
+  // of the interocular distance on either side of the bridge. The 1280x720 run
+  // measures 1.743 of it (364.0 px of 208.9), the landscape run 1.754. The
+  // phone viewport clips the frame at the screen edge (389.7 of 390 px), so
+  // each edge is held to the band the clip leaves, which fails when the face
+  // is off by more than the tolerance in x.
+  const clip = (x) => Math.min(Math.max(x, 0), view[0]);
+  const [leftLow, leftHigh] = [clip(bridge[0] - HALF_FRAME_IOD[1] * interocular), clip(bridge[0] - HALF_FRAME_IOD[0] * interocular)];
+  const [rightLow, rightHigh] = [clip(bridge[0] + HALF_FRAME_IOD[0] * interocular), clip(bridge[0] + HALF_FRAME_IOD[1] * interocular)];
+  expect(box.minX, `glasses left edge ${box.minX} outside ${leftLow}..${leftHigh}`).toBeGreaterThan(leftLow - tolerance);
+  expect(box.minX, `glasses left edge ${box.minX} outside ${leftLow}..${leftHigh}`).toBeLessThan(leftHigh + tolerance);
+  expect(box.maxX, `glasses right edge ${box.maxX} outside ${rightLow}..${rightHigh}`).toBeGreaterThan(rightLow - tolerance);
+  expect(box.maxX, `glasses right edge ${box.maxX} outside ${rightLow}..${rightHigh}`).toBeLessThan(rightHigh + tolerance);
+  testInfo.annotations.push({ type: 'glasses', description: `${(box.maxX - box.minX).toFixed(1)} px wide at ${box.minX.toFixed(1)}..${box.maxX.toFixed(1)}` });
 });
