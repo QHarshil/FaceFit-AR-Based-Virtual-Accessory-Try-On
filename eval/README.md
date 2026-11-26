@@ -35,16 +35,16 @@ Raw runs, warmup events included, go to `.cache/runs/<label>/`. The pose filter 
 
 ## Browser tests
 
-Playwright Test (`playwright.config.mjs`) runs the production build under `vite preview` with its CSP. The API is answered by route handlers. Every test checks that no request left localhost and the CSP reported nothing. CI runs one job per engine and uploads the HTML report, with traces and screenshots, when a test fails.
+Playwright Test (`playwright.config.mjs`) runs the production build under `vite preview` with its CSP. The API is answered by route handlers. Every test checks that no request left localhost and the CSP reported nothing, including the keyboard spec. CI runs one job per engine and uploads the HTML report, with traces and screenshots, when a test fails.
 
 | Spec | What it covers | Engines |
 |------|----------------|---------|
-| `chromium.spec.mjs` | tracking with axe on the catalogue and try-on, a product request that fails on the network, a missing face model, a lost WebGL context, a hidden tab | Chromium |
+| `chromium.spec.mjs` | tracking with axe on the catalogue and try-on, a product request that fails on the network, an unknown product told apart from a network failure, a missing face model, a lost WebGL context, a hidden tab | Chromium |
 | `cross-browser.spec.mjs` | catalogue, credits, the 404 page, an unknown product, keyboard entry to a frame, the camera starting, "3D rendering is off" when WebGL is missing, axe on each | all three |
 | `denied.spec.mjs` | a blocked camera, the photo fallback, axe | all three |
 | `accessibility.spec.mjs` | axe on the catalogue, the 404 page and the try-on while tracking, searching (a grey canvas as the camera), model failed, product not found, camera denied and photo showing; serious and critical violations fail | Chromium |
-| `layout.spec.mjs` | the rendered glasses against the face's bridge landmark, mapped through the `object-fit: cover` crop and the mirror, at 1280x720 DPR 1 (the control, `chromium-desktop`), 390x844 DPR 3 (`chromium-phone`) and 844x390 DPR 2 with the face 160 px right of centre (`chromium-landscape`). Checks the CSS the projection assumes, the point the app reports drawing, and the pixels the overlay adds to a screenshot. The tolerance is 0.1 of the interocular distance on screen, from the 0.053 to 0.061 the runs measure; the justification is in the spec's header | Chromium |
-| `keyboard.spec.mjs` | Tab from the catalogue into a frame, to every recovery action of a blocked camera, into photo mode and back, and out to the catalogue; each stop shows a focus ring and Tab never sticks | Chromium |
+| `layout.spec.mjs` | the rendered glasses against the face's bridge landmark, mapped through the `object-fit: cover` crop and the mirror, at 1280x720 DPR 1 (the control, `chromium-desktop`), 390x844 DPR 3 (`chromium-phone`) and 844x390 DPR 2 with the face 160 px right of centre (`chromium-landscape`). Checks that the video and the canvas compute the same `object-fit` and `object-position`, the point the app reports drawing against a transform built from that computed CSS, the pixels the overlay adds to a screenshot, and the glasses' edges against the interocular distance. The tolerance is 0.1 of the interocular distance on screen, from the 0.053 to 0.061 the runs measure; the justification is in the spec's header | Chromium |
+| `keyboard.spec.mjs` | Tab from the catalogue into a frame, to every recovery action of a blocked camera, into photo mode and back, and out to the catalogue; each stop shows a focus ring, one Tab cycle reaches every focusable element on the page, and Tab never sticks | Chromium |
 
 The camera and WebGL differ by engine, and the specs run what each one supports. A test that cannot run says why, in the test and in the report, instead of passing:
 

@@ -46,7 +46,7 @@ Each row has an expected result. Mark pass or fail and write down what you saw w
 | # | Step | Expected |
 |---|------|----------|
 | 16 | Switch to another app for 10 seconds and return | The camera indicator turns off while away; the page shows "Paused", then "Tracking" within a few seconds of return |
-| 17 | Lock the screen for 10 seconds and unlock | The same as step 19 |
+| 17 | Lock the screen for 10 seconds and unlock | The same as step 16 |
 | 18 | Receive a call or start another camera app, then return | "The camera is in use" or "The camera disconnected" with "Try again"; "Try again" recovers once the other app lets go |
 
 ## Low light
