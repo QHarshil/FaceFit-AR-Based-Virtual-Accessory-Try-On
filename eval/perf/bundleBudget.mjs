@@ -17,16 +17,19 @@ const EVAL = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EVAL, '..');
 export const BUDGETS = join(EVAL, 'perf', 'budgets.json');
 
-// The asset classes a budget names. A JS file that matches none is `otherJs`,
+// The asset classes a budget names. A script that matches none is `otherJs`,
 // so a split chunk shows up as a failure instead of escaping the budget.
+// `.mjs` counts as a script, and a second `index-*.js` raises `mainJs` past its
+// `files` count.
 export const CLASSES = [
   ['mainJs', /^assets\/index-[^/]+\.js$/],
   ['workerJs', /^assets\/landmarker\.worker-[^/]+\.js$/],
   ['css', /\.css$/],
   ['wasm', /\.wasm$/],
-  ['wasmLoaderJs', /^mediapipe\/.*\.js$/],
+  ['wasmLoaderJs', /^mediapipe\/.*\.m?js$/],
   ['model', /\.task$/],
-  ['otherJs', /\.js$/],
+  ['glb', /\.glb$/],
+  ['otherJs', /\.m?js$/],
 ];
 
 const walk = (dir) =>
@@ -55,12 +58,29 @@ export const measureBundle = (dist) => {
   return sizes;
 };
 
-/** Problems, one line each, for every class over its `maxRawBytes` or `maxBrotliBytes`. */
+const LIMIT_KEYS = {
+  files: (size) => size.files.length,
+  minRawBytes: (size) => size.rawBytes,
+  maxRawBytes: (size) => size.rawBytes,
+  maxBrotliBytes: (size) => size.brotliBytes,
+};
+
+/**
+ * Problems, one line each, for every class whose file count is not `files`,
+ * whose raw size is under `minRawBytes` or over `maxRawBytes`, or whose brotli
+ * size is over `maxBrotliBytes`. A class with no files measures 0, so a
+ * missing model or WASM fails its minimum and its count.
+ */
 export const overBudget = (sizes, budgets) =>
   Object.entries(budgets).flatMap(([cls, limits]) =>
-    Object.entries(limits).flatMap(([key, max]) => {
-      const measured = sizes[cls]?.[key.replace(/^max/, '').replace(/^./, (c) => c.toLowerCase())];
-      return measured > max ? [`${cls} ${key}: ${measured} > ${max}`] : [];
+    Object.entries(limits).flatMap(([key, limit]) => {
+      const measure = LIMIT_KEYS[key];
+      if (!measure) return [`${cls} ${key}: not a budget key`];
+      const size = sizes[cls] ?? { files: [], rawBytes: 0, gzipBytes: 0, brotliBytes: 0 };
+      const measured = measure(size);
+      if (key === 'files') return measured === limit ? [] : [`${cls} files: ${measured} != ${limit} (${size.files.join(', ') || 'none'})`];
+      if (key === 'minRawBytes') return measured < limit ? [`${cls} ${key}: ${measured} < ${limit}`] : [];
+      return measured > limit ? [`${cls} ${key}: ${measured} > ${limit}`] : [];
     }),
   );
 

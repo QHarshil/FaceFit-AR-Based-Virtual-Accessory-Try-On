@@ -1,28 +1,42 @@
 {
-  "basis": "Sizes of the build at commit 2213a09 plus 10%, rounded up to 100 bytes, for the JS and CSS the app ships. The wasm, its loader and the model are pinned by SHA-256 in frontend/scripts/vendor-mediapipe.mjs, so their budget is the exact size. A JS file outside these classes fails the otherJs budget.",
+  "basis": "Sizes of the build at commit 26f6830 plus 10%, rounded up to 100 bytes, for the JS, CSS and GLBs the app ships. The wasm, its loader and the model are pinned by SHA-256 in frontend/scripts/vendor-mediapipe.mjs, so their budget is the exact size, as a minimum and a maximum. Each class also names how many files it has, so an extra chunk, a .mjs chunk or a missing file fails even when its size fits. A script outside these classes fails the otherJs budget.",
   "budgets": {
     "mainJs": {
+      "files": 1,
       "maxRawBytes": 1223000,
-      "maxBrotliBytes": 280300
+      "maxBrotliBytes": 280200
     },
     "workerJs": {
+      "files": 1,
       "maxRawBytes": 175700,
       "maxBrotliBytes": 44300
     },
     "css": {
+      "files": 1,
       "maxRawBytes": 10900,
       "maxBrotliBytes": 2600
     },
     "wasm": {
+      "files": 1,
+      "minRawBytes": 14665738,
       "maxRawBytes": 14665738
     },
     "wasmLoaderJs": {
+      "files": 1,
+      "minRawBytes": 336662,
       "maxRawBytes": 336662
     },
     "model": {
+      "files": 1,
+      "minRawBytes": 3758596,
       "maxRawBytes": 3758596
     },
+    "glb": {
+      "files": 4,
+      "maxRawBytes": 2235700
+    },
     "otherJs": {
+      "files": 0,
       "maxRawBytes": 0
     }
   },
