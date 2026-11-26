@@ -16833,8 +16833,8 @@
       }
     },
     "standin-cpu": {
-      "measuredAt": "2026-11-25T22:40:30.836Z",
-      "commit": "26f6830ba85653795421e38c12a9d85257d60513",
+      "measuredAt": "2026-11-26T02:19:46.878Z",
+      "commit": "20ee6e384af4f6342722c71e255a6797daf7eb55",
       "dirty": false,
       "command": "node eval/harness/baseline.mjs --source standin --gate --write --label standin-cpu",
       "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, CPU delegate, module worker at camera rate, self-hosted; solveHeadPose on the 33 rigid landmarks, 60.0 deg horizontal FOV assumed, overlay hidden above 6 mm reprojection RMS, one-euro pose filter, renders predict to the newest presented frame",
@@ -16842,7 +16842,7 @@
         "cpu": "Apple M4 Pro",
         "memoryGB": 24,
         "os": "Darwin 25.6.0",
-        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.0.0 Safari/537.36",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
         "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
         "viewport": [
           1280,
@@ -16852,7 +16852,7 @@
           1280,
           720
         ],
-        "cameraFps": 30.917,
+        "cameraFps": 30.467,
         "perceptionDelegate": "CPU"
       },
       "input": "still portrait (public domain), synthetic transforms and noise",
@@ -16956,24 +16956,6 @@
           "requests": 16,
           "blockedOffOriginAttempts": 0
         },
-        "dy-120": {
-          "group": "translate",
-          "measureSeconds": 3,
-          "samples": 3,
-          "gated": 87,
-          "pageErrors": 1,
-          "requests": 16,
-          "blockedOffOriginAttempts": 0
-        },
-        "dy120": {
-          "group": "translate",
-          "measureSeconds": 3,
-          "samples": 30,
-          "gated": 61,
-          "pageErrors": 1,
-          "requests": 16,
-          "blockedOffOriginAttempts": 0
-        },
         "zoom0.75": {
           "group": "zoom",
           "measureSeconds": 3,
@@ -16983,11 +16965,29 @@
           "requests": 16,
           "blockedOffOriginAttempts": 0
         },
-        "zoom1.33": {
+        "dy-60": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy60": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom1.15": {
           "group": "zoom",
           "measureSeconds": 3,
-          "samples": 0,
-          "gated": 91,
+          "samples": 91,
+          "gated": 0,
           "pageErrors": 1,
           "requests": 16,
           "blockedOffOriginAttempts": 0
@@ -17002,10 +17002,27 @@
         "check": "every request from the page and its worker, in the measured conditions, went to localhost (eval/harness/network.mjs)"
       },
       "summary": {
+        "shownSamples": {
+          "still": 302,
+          "roll-15": 92,
+          "roll-10": 91,
+          "roll-5": 91,
+          "roll5": 91,
+          "roll10": 91,
+          "roll15": 91,
+          "dx-320": 91,
+          "dx-160": 91,
+          "dx160": 91,
+          "dx320": 91,
+          "zoom0.75": 91,
+          "dy-60": 91,
+          "dy60": 91,
+          "zoom1.15": 91
+        },
         "latency": {
           "still": {
             "captureMs": {
-              "n": 302,
+              "n": 303,
               "p50": 0,
               "p95": 0.1
             },
@@ -17021,13 +17038,13 @@
             },
             "inferenceMs": {
               "n": 302,
-              "p50": 11.8,
+              "p50": 12,
               "p95": 13.3
             },
             "frameToLandmarksMs": {
               "n": 302,
-              "p50": 11.9,
-              "p95": 13.5
+              "p50": 12.1,
+              "p95": 13.495
             },
             "poseMs": {
               "n": 302,
@@ -17035,28 +17052,28 @@
               "p95": 0.3
             },
             "renderCpuMs": {
-              "n": 604,
+              "n": 605,
               "p50": 0.1,
               "p95": 0.2
             },
             "captureIntervalMs": {
-              "n": 301,
+              "n": 302,
               "p50": 33.3,
-              "p95": 34.2
+              "p95": 34.295
             },
             "inferenceIntervalMs": {
               "n": 301,
               "p50": 33.3,
-              "p95": 35.1
+              "p95": 34.8
             },
             "renderIntervalMs": {
-              "n": 603,
+              "n": 604,
               "p50": 16.7,
-              "p95": 17.4
+              "p95": 17.5
             },
             "pipelineMs": {
               "n": 302,
-              "p50": 16.9,
+              "p50": 16.8,
               "p95": 17.7
             },
             "pipelineStepsMs": {
@@ -17068,33 +17085,33 @@
               },
               "queue": {
                 "n": 302,
-                "p50": 0,
-                "p95": 0.1,
-                "mean": 0.032
+                "p50": 0.1,
+                "p95": 0.2,
+                "mean": 0.139
               },
               "inference": {
                 "n": 302,
-                "p50": 11.8,
+                "p50": 12,
                 "p95": 13.3,
-                "mean": 11.911
+                "mean": 12.122
               },
               "delivery": {
                 "n": 302,
-                "p50": 0.1,
-                "p95": 0.1,
-                "mean": 0.066
+                "p50": 0,
+                "p95": 0,
+                "mean": -0.034
               },
               "resultToRender": {
                 "n": 302,
-                "p50": 5,
-                "p95": 5.7,
-                "mean": 4.825
+                "p50": 4.7,
+                "p95": 5.6,
+                "mean": 4.55
               }
             },
             "ratesHz": {
-              "capture": 30.2,
+              "capture": 30.3,
               "inference": 30.2,
-              "render": 60.4
+              "render": 60.5
             },
             "framesDropped": 0
           }
@@ -17116,9 +17133,9 @@
               "rmsStep": 1.781
             },
             "smoothedCenterPx": {
-              "rmsFromMean": 0.675,
-              "rmsHighPass": 0.405,
-              "rmsStep": 0.62
+              "rmsFromMean": 0.674,
+              "rmsHighPass": 0.404,
+              "rmsStep": 0.618
             },
             "rawRotationDeg": {
               "rmsFromMean": 0.55,
@@ -17128,26 +17145,26 @@
             "smoothedRotationDeg": {
               "rmsFromMean": 0.285,
               "rmsHighPass": 0.121,
-              "rmsStep": 0.188
+              "rmsStep": 0.189
             },
             "rendered": {
               "samples": 603,
               "windowSamples": 9,
               "centerPx": {
-                "rmsFromMean": 0.835,
-                "rmsHighPass": 0.595,
-                "rmsStep": 0.683
+                "rmsFromMean": 0.834,
+                "rmsHighPass": 0.594,
+                "rmsStep": 0.681
               },
               "rotationDeg": {
                 "rmsFromMean": 0.293,
-                "rmsHighPass": 0.125,
-                "rmsStep": 0.138
+                "rmsHighPass": 0.126,
+                "rmsStep": 0.139
               }
             }
           }
         },
         "solver": {
-          "gatedShare": 0.152,
+          "gatedShare": 0,
           "byCondition": {
             "still": {
               "samples": 302,
@@ -17266,14 +17283,14 @@
               "rmsReprojectionPx": {
                 "n": 91,
                 "p50": 9.793,
-                "p95": 11.612,
+                "p95": 11.419,
                 "p99": 11.615,
                 "max": 11.615
               },
               "rmsReprojectionMm": {
                 "n": 91,
                 "p50": 4.204,
-                "p95": 4.935,
+                "p95": 4.863,
                 "p99": 4.936,
                 "max": 4.936
               },
@@ -17446,64 +17463,6 @@
                 "min": 31
               }
             },
-            "dy-120": {
-              "samples": 90,
-              "gated": 87,
-              "gatedShare": 0.967,
-              "gateReasons": {
-                "reprojection": 87
-              },
-              "maxFaceCount": 1,
-              "rmsReprojectionPx": {
-                "n": 90,
-                "p50": 14.084,
-                "p95": 14.962,
-                "p99": 15.39,
-                "max": 15.39
-              },
-              "rmsReprojectionMm": {
-                "n": 90,
-                "p50": 5.937,
-                "p95": 6.252,
-                "p99": 6.421,
-                "max": 6.421
-              },
-              "inliers": {
-                "n": 90,
-                "p50": 33,
-                "p95": 33,
-                "min": 31
-              }
-            },
-            "dy120": {
-              "samples": 91,
-              "gated": 61,
-              "gatedShare": 0.67,
-              "gateReasons": {
-                "reprojection": 61
-              },
-              "maxFaceCount": 1,
-              "rmsReprojectionPx": {
-                "n": 91,
-                "p50": 13.477,
-                "p95": 14.834,
-                "p99": 14.854,
-                "max": 14.854
-              },
-              "rmsReprojectionMm": {
-                "n": 91,
-                "p50": 5.776,
-                "p95": 6.289,
-                "p99": 6.31,
-                "max": 6.31
-              },
-              "inliers": {
-                "n": 91,
-                "p50": 33,
-                "p95": 33,
-                "min": 30
-              }
-            },
             "zoom0.75": {
               "samples": 91,
               "gated": 0,
@@ -17531,33 +17490,85 @@
                 "min": 27
               }
             },
-            "zoom1.33": {
+            "dy-60": {
               "samples": 91,
-              "gated": 91,
-              "gatedShare": 1,
-              "gateReasons": {
-                "reprojection": 91
-              },
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
               "maxFaceCount": 1,
               "rmsReprojectionPx": {
                 "n": 91,
-                "p50": 19.461,
-                "p95": 20.968,
-                "p99": 21.507,
-                "max": 21.507
+                "p50": 11.736,
+                "p95": 12.572,
+                "p99": 12.65,
+                "max": 12.65
               },
               "rmsReprojectionMm": {
                 "n": 91,
-                "p50": 6.291,
-                "p95": 6.733,
-                "p99": 6.867,
-                "max": 6.867
+                "p50": 5.015,
+                "p95": 5.34,
+                "p99": 5.376,
+                "max": 5.376
               },
               "inliers": {
                 "n": 91,
                 "p50": 33,
                 "p95": 33,
-                "min": 33
+                "min": 31
+              }
+            },
+            "dy60": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 7.859,
+                "p95": 9.546,
+                "p99": 11.281,
+                "max": 11.281
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.456,
+                "p95": 4.146,
+                "p99": 4.833,
+                "max": 4.833
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 30,
+                "p95": 31.5,
+                "min": 29
+              }
+            },
+            "zoom1.15": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 13.147,
+                "p95": 14.331,
+                "p99": 15.257,
+                "max": 15.257
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.953,
+                "p95": 5.345,
+                "p99": 5.683,
+                "max": 5.683
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
               }
             }
           }
@@ -17582,13 +17593,13 @@
             14.225
           ],
           "renderedAngleDeg": [
-            -0.383,
-            -15.835,
-            -10.823,
+            -0.384,
+            -15.834,
+            -10.822,
             -5.479,
-            4.649,
-            9.364,
-            14.507
+            4.648,
+            9.363,
+            14.508
           ],
           "renderedPerFaceDeg": 1.006,
           "eulerPitchPerFaceRollDeg": 0.019,
@@ -17596,36 +17607,36 @@
           "eulerRollPerFaceRollDeg": -1.005
         },
         "registration": {
-          "gainX": 0.996,
-          "gainY": 0.986,
+          "gainX": 0.995,
+          "gainY": 1.037,
           "offsetPxByCondition": {
             "still": [
-              0.044,
-              -11.749
+              0.043,
+              -11.735
             ],
             "dx-320": [
-              2.381,
-              -8.868
+              2.392,
+              -8.838
             ],
             "dx-160": [
-              0.761,
-              -8.298
+              0.768,
+              -8.329
             ],
             "dx160": [
-              -0.325,
-              -9.413
+              -0.379,
+              -9.43
             ],
             "dx320": [
-              -0.498,
-              -9.64
+              -0.474,
+              -9.646
             ],
-            "dy-120": [
-              -1.217,
-              -12.044
+            "dy-60": [
+              -0.538,
+              -13.543
             ],
-            "dy120": [
-              -1.127,
-              -15.126
+            "dy60": [
+              -0.808,
+              -9.191
             ]
           },
           "interocularPx": 210.703
@@ -17633,28 +17644,28 @@
         "scale": {
           "still": {
             "faceWidthPx": 334.4,
-            "renderedWidthPx": 354.168,
+            "renderedWidthPx": 354.171,
             "renderedOverFace": 1.059
           },
           "zoom0.75": {
             "faceWidthPx": 253.439,
-            "renderedWidthPx": 258.869,
+            "renderedWidthPx": 258.886,
             "renderedOverFace": 1.021
           },
-          "zoom1.33": {
-            "faceWidthPx": null,
-            "renderedWidthPx": null,
-            "renderedOverFace": null
+          "zoom1.15": {
+            "faceWidthPx": 388.661,
+            "renderedWidthPx": 414.858,
+            "renderedOverFace": 1.067
           }
         },
         "scaleByProduct": {
           "product1": {
             "renderedOverFace": {
-              "zoom0.75": 1.021,
               "still": 1.059,
-              "zoom1.33": null
+              "zoom0.75": 1.021,
+              "zoom1.15": 1.067
             },
-            "maxChangeFromStillPercent": 3.558
+            "maxChangeFromStillPercent": 3.553
           },
           "product2": {
             "renderedOverFace": {},
