@@ -17692,8 +17692,8 @@
       }
     },
     "bundle-size": {
-      "measuredAt": "2026-11-25T22:38:31.869Z",
-      "commit": "26f6830ba85653795421e38c12a9d85257d60513",
+      "measuredAt": "2026-11-26T02:23:25.113Z",
+      "commit": "aae841ce23f778bfa0dfb2463c52ac968905a4fc",
       "dirty": false,
       "command": "node eval/perf/bundleBudget.mjs --write --label bundle-size",
       "input": "frontend production build (npm run build) with VITE_API_URL unset; sizes of the files in dist, brotli quality 11 and gzip level 9",
@@ -17747,6 +17747,17 @@
           "gzipBytes": 3331700,
           "brotliBytes": 3147397
         },
+        "glb": {
+          "files": [
+            "models/oval-wire-sunglasses.glb",
+            "models/pixel-shades.glb",
+            "models/rectangular-acetate.glb",
+            "models/round-wire-glasses.glb"
+          ],
+          "rawBytes": 2032384,
+          "gzipBytes": 1671361,
+          "brotliBytes": 1631161
+        },
         "otherJs": {
           "files": [],
           "rawBytes": 0,
@@ -17756,27 +17767,41 @@
       },
       "budgets": {
         "mainJs": {
+          "files": 1,
           "maxRawBytes": 1223000,
-          "maxBrotliBytes": 280300
+          "maxBrotliBytes": 280200
         },
         "workerJs": {
+          "files": 1,
           "maxRawBytes": 175700,
           "maxBrotliBytes": 44300
         },
         "css": {
+          "files": 1,
           "maxRawBytes": 10900,
           "maxBrotliBytes": 2600
         },
         "wasm": {
+          "files": 1,
+          "minRawBytes": 14665738,
           "maxRawBytes": 14665738
         },
         "wasmLoaderJs": {
+          "files": 1,
+          "minRawBytes": 336662,
           "maxRawBytes": 336662
         },
         "model": {
+          "files": 1,
+          "minRawBytes": 3758596,
           "maxRawBytes": 3758596
         },
+        "glb": {
+          "files": 4,
+          "maxRawBytes": 2235700
+        },
         "otherJs": {
+          "files": 0,
           "maxRawBytes": 0
         }
       },
