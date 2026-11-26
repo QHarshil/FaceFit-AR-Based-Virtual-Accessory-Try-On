@@ -69,31 +69,32 @@ Real phones are covered by the manual [device checklist](../docs/device-checklis
 
 ## Registration gate
 
-`node harness/baseline.mjs --source standin --gate` runs the stand-in's sweep conditions (`still`, `roll±5/10/15`, `dx±160/320`, `dy±120`, `zoom0.75/1.33`) on the CPU delegate and fails when a registration metric leaves its limit in `harness/gate.json`. CI runs it on every change. It forces the CPU delegate in every condition, so runner hardware without a GPU measures the same path, and it skips the guard self-test and the CPU fallback run. It writes results only with `--write`.
+`node harness/baseline.mjs --source standin --gate` runs the stand-in's sweep conditions (`still`, `roll±5/10/15`, `dx±160/320`, `dy±60`, `zoom0.75/1.15`) on the CPU delegate and fails when a registration metric leaves its limit in `harness/gate.json`. CI runs it on every change. It forces the CPU delegate in every condition, so runner hardware without a GPU measures the same path, and it skips the guard self-test and the CPU fallback run. It writes results only with `--write`.
 
 | Metric | Limit | Why |
 |--------|-------|-----|
 | `roll.renderedPerFaceDeg` | 0.9 to 1.1 | truth is 1; a mirrored roll gives -1 |
-| `registration.gainX`, `gainY` | 0.9 to 1.1, 0.85 to 1.15 | truth is 1; gain y rests on the few unflagged samples of the two `dy` clips |
+| `registration.gainX`, `gainY` | 0.9 to 1.1 | truth is 1 |
 | `scale.still.renderedOverFace` | 0.95 to 1.15 | rendered frame width over face contour width |
 | `scaleByProduct.product1.maxChangeFromStillPercent` | at most 8 | that ratio must not change with zoom |
-| gated share, averaged over conditions | at most 0.3 | share of samples where the app hid the overlay in each condition; averaged so a slow runner's sample counts do not skew it |
+| gated share, averaged over conditions | at most 0.1 | share of samples where the app hid the overlay in each condition; averaged so a slow runner's sample counts do not skew it |
 | core gated share (still, roll, dx) | at most 0.02 | these conditions are never gated on the stand-in |
+| shown poses per condition a metric uses | at least 5 | a condition with no shown pose has no median; it fails by name instead of reading as 0 |
 | bridge offset over interocular distance | at most 0.12 | rendered bridge anchor against landmark 168 |
 
-The limits come from the `standin-cpu` run in `results.json` (basis in `gate.json`). The stand-in's `zoom1.33` and `dy` clips are gated by the solver at most samples, which is why the overall gated share is not zero and the core share is gated separately. Timing metrics (`inferenceMs`, `pipelineMs`, rates) are not gated: runner hardware changes them without a code change.
+The limits come from the `standin-cpu` run in `results.json` (basis in `gate.json`). The solver gates the stand-in's `dy±120` and `zoom1.33` clips at most samples, with a reprojection RMS of 5.8 to 6.3 mm against its 6 mm gate, so the stand-in sweep uses `dy±60` and `zoom1.15` instead. The recordings sweep keeps the larger ones. Timing metrics (`inferenceMs`, `pipelineMs`, rates) are not gated: runner hardware changes them without a code change.
 
 ## Bundle budget
 
-`node perf/bundleBudget.mjs --dist ../frontend/dist` (`npm run bundle`) reports the raw, gzip and brotli size of the main JS, worker JS, CSS, WASM, WASM loader and face model in the production build, and exits 1 over a limit in `perf/budgets.json`. CI runs it after the frontend build. Any JS file outside the named classes counts against `otherJs`, whose budget is zero, so a new chunk fails until the budget is set on purpose. `--write --label <name>` records the sizes in `results.json` from a clean tree.
+`node perf/bundleBudget.mjs --dist ../frontend/dist` (`npm run bundle`) reports the raw, gzip and brotli size of the main JS, worker JS, CSS, WASM, WASM loader, face model and product GLBs in the production build, and exits 1 over a limit in `perf/budgets.json`. CI runs it after the frontend build. Any JS file outside the named classes counts against `otherJs`, whose budget is zero, so a new chunk fails until the budget is set on purpose. `--write --label <name>` records the sizes in `results.json` from a clean tree.
 
-The JS and CSS budgets are the measured size plus 10 percent. The WASM, its loader and the model are pinned by SHA-256 in `frontend/scripts/vendor-mediapipe.mjs`, so their budget is the exact size.
+The JS, CSS and GLB budgets are the measured size plus 10 percent. The WASM, its loader and the model are pinned by SHA-256 in `frontend/scripts/vendor-mediapipe.mjs`, so their budget is the exact size, as a minimum and a maximum: a missing file or a Git LFS pointer fails. Each class also states its file count, so an extra chunk or a `.mjs` file fails even when it fits the size.
 
 ## Page-load budget
 
 `node perf/pageLoad.mjs` loads the catalogue and the try-on five times each in a fresh Chromium context on the production build, with a 4x CPU slowdown and a 9 Mbit/s, 40 ms link applied through the DevTools protocol. It takes the median of each metric and exits 1 over a budget in `perf/budgets.json`. These are lab numbers from one machine and one throttling profile, not field data. CI runs it in its own job. `--write --label <name>` records the runs in `results.json` from a clean tree.
 
-LCP, CLS and FCP come from the [`web-vitals`](https://github.com/GoogleChrome/web-vitals) library. It has no TBT, so the script sums the part of each long task over 50 ms that starts after first contentful paint, within the first 10 seconds, as Lighthouse does. The try-on reads the stand-in clip as its camera. The budgets sit under the web.dev good thresholds with at least twice the measured LCP; the basis is in `budgets.json`.
+LCP, CLS and FCP come from the [`web-vitals`](https://github.com/GoogleChrome/web-vitals) library. It has no TBT, so the script sums the part of each long task over 50 ms that starts after first contentful paint, within the first 10 seconds, as Lighthouse does. The try-on reads the stand-in clip as its camera, and its page is also timed to the first frame the overlay draws and to the CLS accumulated by then, since LCP and the first shifts happen while the camera and the model load. The budgets sit under the web.dev good thresholds with at least twice the measured value; the basis is in `budgets.json`.
 
 ## Conditions
 
@@ -101,8 +102,8 @@ LCP, CLS and FCP come from the [`web-vitals`](https://github.com/GoogleChrome/we
 |----|-------|----------|
 | `still` | first frame of `static.mp4` with temporal noise | 10 s |
 | `roll±5/10/15` | still frame rotated by a known angle | 3 s each |
-| `dx±160/320`, `dy±120` | still frame shifted by known output pixels | 3 s each |
-| `zoom0.75`, `zoom1.33` | still frame scaled | 3 s each |
+| `dx±160/320`, `dy±120` | still frame shifted by known output pixels; the stand-in sweep uses `dy±60` | 3 s each |
+| `zoom0.75`, `zoom1.33` | still frame scaled; the stand-in sweep uses `zoom0.75` and `zoom1.15` | 3 s each |
 | `product2` to `product4` | `still` clip with the other catalog models | 3 s each |
 | `product2-zoom0.75` to `product4-zoom1.33` | zoom clips with the other catalog models | 3 s each |
 | `rec-static`, `rec-blink` | recordings as captured | 10 s each |
