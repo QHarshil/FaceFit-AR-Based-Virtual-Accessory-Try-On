@@ -35,12 +35,66 @@ Raw runs, warmup events included, go to `.cache/runs/<label>/`. The pose filter 
 
 ## Browser tests
 
-`e2e/tryOn.e2e.mjs` runs the try-on's failure modes in headless Chrome with the stand-in portrait as the camera: tracking with axe on the catalogue and try-on, a product request that fails on the network, an unknown product, a missing face model, a lost WebGL context, a hidden tab, and a blocked camera with the photo fallback. The API is answered by route handlers; the production build runs under `vite preview` with its CSP. Headless Chrome reports every tab as visible, so the hidden-tab test sets `document.visibilityState` and fires `visibilitychange`.
+Playwright Test (`playwright.config.mjs`) runs the production build under `vite preview` with its CSP. The API is answered by route handlers. Every test checks that no request left localhost and the CSP reported nothing, including the keyboard spec. CI runs one job per engine and uploads the HTML report, with traces and screenshots, when a test fails.
+
+| Spec | What it covers | Engines |
+|------|----------------|---------|
+| `chromium.spec.mjs` | tracking with axe on the catalogue and try-on, a product request that fails on the network, an unknown product told apart from a network failure, a missing face model, a lost WebGL context, a hidden tab | Chromium |
+| `cross-browser.spec.mjs` | catalogue, credits, the 404 page, an unknown product, keyboard entry to a frame, the camera starting, "3D rendering is off" when WebGL is missing, axe on each | all three |
+| `denied.spec.mjs` | a blocked camera, the photo fallback, axe | all three |
+| `accessibility.spec.mjs` | axe on the catalogue, the 404 page and the try-on while tracking, searching (a grey canvas as the camera), model failed, product not found, camera denied and photo showing; serious and critical violations fail | Chromium |
+| `layout.spec.mjs` | the rendered glasses against the face's bridge landmark, mapped through the `object-fit: cover` crop and the mirror, at 1280x720 DPR 1 (the control, `chromium-desktop`), 390x844 DPR 3 (`chromium-phone`) and 844x390 DPR 2 with the face 160 px right of centre (`chromium-landscape`). Checks that the video and the canvas compute the same `object-fit` and `object-position`, the point the app reports drawing against a transform built from that computed CSS, the pixels the overlay adds to a screenshot, and the glasses' edges against the interocular distance. The tolerance is 0.1 of the interocular distance on screen, from the 0.053 to 0.061 the runs measure; the justification is in the spec's header | Chromium |
+| `keyboard.spec.mjs` | Tab from the catalogue into a frame, to every recovery action of a blocked camera, into photo mode and back, and out to the catalogue; each stop shows a focus ring, one Tab cycle reaches every focusable element on the page, and Tab never sticks | Chromium |
+
+The camera and WebGL differ by engine, and the specs run what each one supports. A test that cannot run says why, in the test and in the report, instead of passing:
+
+| Engine | Camera | Skipped or changed, and why |
+|--------|--------|-----------------------------|
+| Chromium | the stand-in portrait as a fake camera, so the face is tracked | nothing |
+| Firefox | its generated stream (`media.navigator.streams.fake`), which holds no face, so the try-on stops at `searching` | axe on the photo view: it crashes Playwright's Firefox 159 page with axe-core 4.14.1 (the blocked-camera view is fine). On a runner where Firefox has no WebGL (the arm64 Linux container the jobs were rehearsed in had none) every test that needs the overlay skips, and the test that forces WebGL off still runs. |
+| WebKit | none: Playwright WebKit has no fake camera and cannot grant the permission, so `getUserMedia` is denied | the camera-granted test, and keyboard entry to a frame, because WebKit leaves buttons out of the Tab order unless a system setting is on. Where workers have no WebGL (WebKit on Linux), photo detection cannot run, and the test asserts the app reports "Could not read this photo" instead of showing the photo. |
+
+A blocked camera is real in each engine: Chromium with no permission granted (`chromium-denied`), Firefox with `permissions.default.camera` set to block (`firefox-denied`), WebKit by default. The hidden-tab test sets `document.visibilityState` and fires `visibilitychange`, since headless browsers report every tab as visible.
 
 ```sh
 node fixtures/build.mjs --source standin     # still.y4m and portrait.jpg in .cache/clips/standin
-npm run e2e                                  # FACEFIT_STANDIN_DIR=<dir> reads them from another checkout
+npx playwright install chromium firefox webkit
+npm run e2e -- --project chromium --project chromium-denied --project chromium-desktop --project chromium-phone --project chromium-landscape
+npm run e2e -- --project firefox --project firefox-denied --project webkit
 ```
+
+Real phones are covered by the manual [device checklist](../docs/device-checklist.md): permission prompts, rotation, a hidden tab and low light need hardware no headless browser has.
+
+`FACEFIT_STANDIN_DIR=<dir>` reads the clips from another checkout. `FACEFIT_CHROME=chrome` runs an installed Chrome instead of Playwright's Chromium.
+
+## Registration gate
+
+`node harness/baseline.mjs --source standin --gate` runs the stand-in's sweep conditions (`still`, `roll±5/10/15`, `dx±160/320`, `dy±60`, `zoom0.75/1.15`) on the CPU delegate and fails when a registration metric leaves its limit in `harness/gate.json`. CI runs it on every change. It forces the CPU delegate in every condition, so runner hardware without a GPU measures the same path, and it skips the guard self-test and the CPU fallback run. It writes results only with `--write`.
+
+| Metric | Limit | Why |
+|--------|-------|-----|
+| `roll.renderedPerFaceDeg` | 0.9 to 1.1 | truth is 1; a mirrored roll gives -1 |
+| `registration.gainX`, `gainY` | 0.9 to 1.1 | truth is 1 |
+| `scale.still.renderedOverFace` | 0.95 to 1.15 | rendered frame width over face contour width |
+| `scaleByProduct.product1.maxChangeFromStillPercent` | at most 8 | that ratio must not change with zoom |
+| gated share, averaged over conditions | at most 0.1 | share of samples where the app hid the overlay in each condition; averaged so a slow runner's sample counts do not skew it |
+| core gated share (still, roll, dx) | at most 0.02 | these conditions are never gated on the stand-in |
+| shown poses per condition a metric uses | at least 5 | a condition with no shown pose has no median; it fails by name instead of reading as 0 |
+| bridge offset over interocular distance | at most 0.12 | rendered bridge anchor against landmark 168 |
+
+The limits come from the `standin-cpu` run in `results.json` (basis in `gate.json`). The solver gates the stand-in's `dy±120` and `zoom1.33` clips at most samples, with a reprojection RMS of 5.8 to 6.3 mm against its 6 mm gate, so the stand-in sweep uses `dy±60` and `zoom1.15` instead. The recordings sweep keeps the larger ones. Timing metrics (`inferenceMs`, `pipelineMs`, rates) are not gated: runner hardware changes them without a code change.
+
+## Bundle budget
+
+`node perf/bundleBudget.mjs --dist ../frontend/dist` (`npm run bundle`) reports the raw, gzip and brotli size of the main JS, worker JS, CSS, WASM, WASM loader, face model and product GLBs in the production build, and exits 1 over a limit in `perf/budgets.json`. CI runs it after the frontend build. Any JS file outside the named classes counts against `otherJs`, whose budget is zero, so a new chunk fails until the budget is set on purpose. `--write --label <name>` records the sizes in `results.json` from a clean tree.
+
+The JS, CSS and GLB budgets are the measured size plus 10 percent. The WASM, its loader and the model are pinned by SHA-256 in `frontend/scripts/vendor-mediapipe.mjs`, so their budget is the exact size, as a minimum and a maximum: a missing file or a Git LFS pointer fails. Each class also states its file count, so an extra chunk or a `.mjs` file fails even when it fits the size.
+
+## Page-load budget
+
+`node perf/pageLoad.mjs` loads the catalogue and the try-on five times each in a fresh Chromium context on the production build, with a 4x CPU slowdown and a 9 Mbit/s, 40 ms link applied through the DevTools protocol. It takes the median of each metric and exits 1 over a budget in `perf/budgets.json`. These are lab numbers from one machine and one throttling profile, not field data. CI runs it in its own job. `--write --label <name>` records the runs in `results.json` from a clean tree.
+
+LCP, CLS and FCP come from the [`web-vitals`](https://github.com/GoogleChrome/web-vitals) library. It has no TBT, so the script sums the part of each long task over 50 ms that starts after first contentful paint, within the first 10 seconds, as Lighthouse does. The try-on reads the stand-in clip as its camera, and its page is also timed to the first frame the overlay draws and to the CLS accumulated by then, since LCP and the first shifts happen while the camera and the model load. The budgets sit under the web.dev good thresholds with at least twice the measured value; the basis is in `budgets.json`.
 
 ## Conditions
 
@@ -48,8 +102,8 @@ npm run e2e                                  # FACEFIT_STANDIN_DIR=<dir> reads t
 |----|-------|----------|
 | `still` | first frame of `static.mp4` with temporal noise | 10 s |
 | `roll±5/10/15` | still frame rotated by a known angle | 3 s each |
-| `dx±160/320`, `dy±120` | still frame shifted by known output pixels | 3 s each |
-| `zoom0.75`, `zoom1.33` | still frame scaled | 3 s each |
+| `dx±160/320`, `dy±120` | still frame shifted by known output pixels; the stand-in sweep uses `dy±60` | 3 s each |
+| `zoom0.75`, `zoom1.33` | still frame scaled; the stand-in sweep uses `zoom0.75` and `zoom1.15` | 3 s each |
 | `product2` to `product4` | `still` clip with the other catalog models | 3 s each |
 | `product2-zoom0.75` to `product4-zoom1.33` | zoom clips with the other catalog models | 3 s each |
 | `rec-static`, `rec-blink` | recordings as captured | 10 s each |

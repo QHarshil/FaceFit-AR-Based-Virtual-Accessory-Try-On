@@ -13,6 +13,19 @@ export const CONDITIONS = [
   ...[0.75, 1.33].map((zoom) => ({ ...base, id: `zoom${zoom}`, group: 'zoom', zoom })),
 ];
 
+// Conditions the stand-in's solver gates at most samples: its reprojection
+// RMS is 5.8 to 6.3 mm against the 6 mm gate (eval/results.json run
+// standin-cpu, summary.solver). They stay in the recordings' sweeps, where the
+// owner's face passes, and are replaced on the stand-in by smaller ones.
+const STANDIN_GATED = new Set(['dy-120', 'dy120', 'zoom1.33']);
+export const STANDIN_EXTRA = [
+  ...[-60, 60].map((dy) => ({ ...base, id: `dy${dy}`, group: 'translate', dy })),
+  { ...base, id: 'zoom1.15', group: 'zoom', zoom: 1.15 },
+];
+
+/** The sweep conditions that source runs: every one, except on the stand-in. */
+export const sweepsOf = (source) => (source === 'standin' ? [...CONDITIONS.filter((c) => !STANDIN_GATED.has(c.id)), ...STANDIN_EXTRA] : CONDITIONS);
+
 // Remaining catalog models on the still clip, for per-model fit.
 export const PRODUCTS = [2, 3, 4].map((productId) => ({ ...base, id: `product${productId}`, group: 'product', clip: 'still', productId }));
 

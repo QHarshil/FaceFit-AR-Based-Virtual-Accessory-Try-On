@@ -5,12 +5,15 @@
   "scripts": {
     "fixtures": "node fixtures/build.mjs",
     "baseline": "node harness/baseline.mjs",
-    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs scale/*.test.mjs",
-    "e2e": "node --test e2e/*.e2e.mjs"
+    "test": "node --test harness/*.test.mjs benchmark/*.test.mjs datasets/*.test.mjs scale/*.test.mjs perf/*.test.mjs",
+    "e2e": "playwright test",
+    "bundle": "node perf/bundleBudget.mjs --dist ../frontend/dist"
   },
   "devDependencies": {
     "@mediapipe/tasks-vision": "1.2.3",
+    "@playwright/test": "1.65.1",
     "axe-core": "4.14.1",
-    "playwright-core": "1.65.1"
+    "playwright-core": "1.65.1",
+    "web-vitals": "6.2.3"
   }
 }

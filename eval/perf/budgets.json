@@ -1,0 +1,58 @@
+{
+  "basis": "Sizes of the build at commit 26f6830 plus 10%, rounded up to 100 bytes, for the JS, CSS and GLBs the app ships. The wasm, its loader and the model are pinned by SHA-256 in frontend/scripts/vendor-mediapipe.mjs, so their budget is the exact size, as a minimum and a maximum. Each class also names how many files it has, so an extra chunk, a .mjs chunk or a missing file fails even when its size fits. A script outside these classes fails the otherJs budget.",
+  "budgets": {
+    "mainJs": {
+      "files": 1,
+      "maxRawBytes": 1223000,
+      "maxBrotliBytes": 280200
+    },
+    "workerJs": {
+      "files": 1,
+      "maxRawBytes": 175700,
+      "maxBrotliBytes": 44300
+    },
+    "css": {
+      "files": 1,
+      "maxRawBytes": 10900,
+      "maxBrotliBytes": 2600
+    },
+    "wasm": {
+      "files": 1,
+      "minRawBytes": 14665738,
+      "maxRawBytes": 14665738
+    },
+    "wasmLoaderJs": {
+      "files": 1,
+      "minRawBytes": 336662,
+      "maxRawBytes": 336662
+    },
+    "model": {
+      "files": 1,
+      "minRawBytes": 3758596,
+      "maxRawBytes": 3758596
+    },
+    "glb": {
+      "files": 4,
+      "maxRawBytes": 2235700
+    },
+    "otherJs": {
+      "files": 0,
+      "maxRawBytes": 0
+    }
+  },
+  "pageLoad": {
+    "basis": "Lab numbers, not field data: median of five cold loads in Chromium 159 with a 4x CPU slowdown and a 9 Mbit/s, 40 ms link, measured on an Apple M4 Pro (run page-load in results.json). Catalogue LCP 544 ms. Try-on LCP 624 ms, CLS 0.0296, first overlay 17.3 s after navigation, CLS 0.0296 by then. TBT 0 ms on both. The LCP and TBT budgets sit under the web.dev good thresholds (LCP 2500 ms, CLS 0.1, TBT 200 ms) at 2.4 times the measured LCP, and the CLS budgets at 3.4 times the measured CLS. The first-overlay budget is 2.3 times the measured time. A slower runner does not fail a build and a regression of that size does.",
+    "catalogue": {
+      "maxLcpMs": 1500,
+      "maxCls": 0.1,
+      "maxTbtMs": 150
+    },
+    "tryOn": {
+      "maxLcpMs": 1500,
+      "maxCls": 0.1,
+      "maxTbtMs": 150,
+      "maxOverlayMs": 40000,
+      "maxClsToOverlay": 0.1
+    }
+  }
+}

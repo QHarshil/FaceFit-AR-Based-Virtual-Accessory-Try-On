@@ -16831,6 +16831,1122 @@
         },
         "twoFace": {}
       }
+    },
+    "standin-cpu": {
+      "measuredAt": "2026-11-26T02:19:46.878Z",
+      "commit": "20ee6e384af4f6342722c71e255a6797daf7eb55",
+      "dirty": false,
+      "command": "node eval/harness/baseline.mjs --source standin --gate --write --label standin-cpu",
+      "pipeline": "@mediapipe/tasks-vision 1.2.3 FaceLandmarker, VIDEO mode, numFaces 2, CPU delegate, module worker at camera rate, self-hosted; solveHeadPose on the 33 rigid landmarks, 60.0 deg horizontal FOV assumed, overlay hidden above 6 mm reprojection RMS, one-euro pose filter, renders predict to the newest presented frame",
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "Darwin 25.6.0",
+        "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+        "webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+        "viewport": [
+          1280,
+          720
+        ],
+        "video": [
+          1280,
+          720
+        ],
+        "cameraFps": 30.467,
+        "perceptionDelegate": "CPU"
+      },
+      "input": "still portrait (public domain), synthetic transforms and noise",
+      "conditions": {
+        "still": {
+          "group": "still",
+          "measureSeconds": 10,
+          "samples": 302,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 92,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll-5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll5": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll10": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "roll15": {
+          "group": "roll",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx-160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx160": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dx320": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom0.75": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy-60": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "dy60": {
+          "group": "translate",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        },
+        "zoom1.15": {
+          "group": "zoom",
+          "measureSeconds": 3,
+          "samples": 91,
+          "gated": 0,
+          "pageErrors": 1,
+          "requests": 16,
+          "blockedOffOriginAttempts": 0
+        }
+      },
+      "network": {
+        "requests": 240,
+        "offDeviceRequests": 0,
+        "cspViolations": 0,
+        "blockedOffOriginAttempts": 0,
+        "blockedOffOriginUrls": [],
+        "check": "every request from the page and its worker, in the measured conditions, went to localhost (eval/harness/network.mjs)"
+      },
+      "summary": {
+        "shownSamples": {
+          "still": 302,
+          "roll-15": 92,
+          "roll-10": 91,
+          "roll-5": 91,
+          "roll5": 91,
+          "roll10": 91,
+          "roll15": 91,
+          "dx-320": 91,
+          "dx-160": 91,
+          "dx160": 91,
+          "dx320": 91,
+          "zoom0.75": 91,
+          "dy-60": 91,
+          "dy60": 91,
+          "zoom1.15": 91
+        },
+        "latency": {
+          "still": {
+            "captureMs": {
+              "n": 303,
+              "p50": 0,
+              "p95": 0.1
+            },
+            "resultMs": {
+              "n": 302,
+              "p50": 0.2,
+              "p95": 0.3
+            },
+            "mainThreadPerFrameMs": {
+              "n": 302,
+              "p50": 0.3,
+              "p95": 0.4
+            },
+            "inferenceMs": {
+              "n": 302,
+              "p50": 12,
+              "p95": 13.3
+            },
+            "frameToLandmarksMs": {
+              "n": 302,
+              "p50": 12.1,
+              "p95": 13.495
+            },
+            "poseMs": {
+              "n": 302,
+              "p50": 0.2,
+              "p95": 0.3
+            },
+            "renderCpuMs": {
+              "n": 605,
+              "p50": 0.1,
+              "p95": 0.2
+            },
+            "captureIntervalMs": {
+              "n": 302,
+              "p50": 33.3,
+              "p95": 34.295
+            },
+            "inferenceIntervalMs": {
+              "n": 301,
+              "p50": 33.3,
+              "p95": 34.8
+            },
+            "renderIntervalMs": {
+              "n": 604,
+              "p50": 16.7,
+              "p95": 17.5
+            },
+            "pipelineMs": {
+              "n": 302,
+              "p50": 16.8,
+              "p95": 17.7
+            },
+            "pipelineStepsMs": {
+              "frameToPost": {
+                "n": 302,
+                "p50": 0,
+                "p95": 0.1,
+                "mean": 0.037
+              },
+              "queue": {
+                "n": 302,
+                "p50": 0.1,
+                "p95": 0.2,
+                "mean": 0.139
+              },
+              "inference": {
+                "n": 302,
+                "p50": 12,
+                "p95": 13.3,
+                "mean": 12.122
+              },
+              "delivery": {
+                "n": 302,
+                "p50": 0,
+                "p95": 0,
+                "mean": -0.034
+              },
+              "resultToRender": {
+                "n": 302,
+                "p50": 4.7,
+                "p95": 5.6,
+                "mean": 4.55
+              }
+            },
+            "ratesHz": {
+              "capture": 30.3,
+              "inference": 30.2,
+              "render": 60.5
+            },
+            "framesDropped": 0
+          }
+        },
+        "jitter": {
+          "still": {
+            "samples": 302,
+            "blinksMasked": 0,
+            "windowSamples": 5,
+            "interocularPx": 210.703,
+            "landmarkNoseBridgePx": {
+              "rmsFromMean": 0.413,
+              "rmsHighPass": 0.368,
+              "rmsStep": 0.572
+            },
+            "rawCenterPx": {
+              "rmsFromMean": 1.236,
+              "rmsHighPass": 1.11,
+              "rmsStep": 1.781
+            },
+            "smoothedCenterPx": {
+              "rmsFromMean": 0.674,
+              "rmsHighPass": 0.404,
+              "rmsStep": 0.618
+            },
+            "rawRotationDeg": {
+              "rmsFromMean": 0.55,
+              "rmsHighPass": 0.479,
+              "rmsStep": 0.767
+            },
+            "smoothedRotationDeg": {
+              "rmsFromMean": 0.285,
+              "rmsHighPass": 0.121,
+              "rmsStep": 0.189
+            },
+            "rendered": {
+              "samples": 603,
+              "windowSamples": 9,
+              "centerPx": {
+                "rmsFromMean": 0.834,
+                "rmsHighPass": 0.594,
+                "rmsStep": 0.681
+              },
+              "rotationDeg": {
+                "rmsFromMean": 0.293,
+                "rmsHighPass": 0.126,
+                "rmsStep": 0.139
+              }
+            }
+          }
+        },
+        "solver": {
+          "gatedShare": 0,
+          "byCondition": {
+            "still": {
+              "samples": 302,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 302,
+                "p50": 9.999,
+                "p95": 10.793,
+                "p99": 11.107,
+                "max": 11.496
+              },
+              "rmsReprojectionMm": {
+                "n": 302,
+                "p50": 4.336,
+                "p95": 4.661,
+                "p99": 4.781,
+                "max": 4.938
+              },
+              "inliers": {
+                "n": 302,
+                "p50": 33,
+                "p95": 33,
+                "min": 30
+              }
+            },
+            "roll-15": {
+              "samples": 92,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 92,
+                "p50": 11.088,
+                "p95": 13.48,
+                "p99": 13.765,
+                "max": 13.765
+              },
+              "rmsReprojectionMm": {
+                "n": 92,
+                "p50": 4.801,
+                "p95": 5.762,
+                "p99": 5.876,
+                "max": 5.876
+              },
+              "inliers": {
+                "n": 92,
+                "p50": 32,
+                "p95": 33,
+                "min": 28
+              }
+            },
+            "roll-10": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 9.552,
+                "p95": 10.969,
+                "p99": 11.752,
+                "max": 11.752
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.148,
+                "p95": 4.73,
+                "p99": 5.052,
+                "max": 5.052
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 31,
+                "p95": 33,
+                "min": 30
+              }
+            },
+            "roll-5": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 10.069,
+                "p95": 11.045,
+                "p99": 11.385,
+                "max": 11.385
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.367,
+                "p95": 4.756,
+                "p99": 4.881,
+                "max": 4.881
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 33,
+                "p95": 33,
+                "min": 31
+              }
+            },
+            "roll5": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 9.793,
+                "p95": 11.419,
+                "p99": 11.615,
+                "max": 11.615
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.204,
+                "p95": 4.863,
+                "p99": 4.936,
+                "max": 4.936
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "roll10": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 11.004,
+                "p95": 11.908,
+                "p99": 11.92,
+                "max": 11.92
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.728,
+                "p95": 5.097,
+                "p99": 5.105,
+                "max": 5.105
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 33,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "roll15": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 11.192,
+                "p95": 11.909,
+                "p99": 11.986,
+                "max": 11.986
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.835,
+                "p95": 5.108,
+                "p99": 5.142,
+                "max": 5.142
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 33,
+                "p95": 33,
+                "min": 32
+              }
+            },
+            "dx-320": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 7.992,
+                "p95": 8.884,
+                "p99": 8.907,
+                "max": 8.907
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.565,
+                "p95": 3.95,
+                "p99": 3.951,
+                "max": 3.951
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 32
+              }
+            },
+            "dx-160": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 7.631,
+                "p95": 9.384,
+                "p99": 9.954,
+                "max": 9.954
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.358,
+                "p95": 4.101,
+                "p99": 4.333,
+                "max": 4.333
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 31,
+                "p95": 33,
+                "min": 27
+              }
+            },
+            "dx160": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 8.067,
+                "p95": 9.933,
+                "p99": 10.206,
+                "max": 10.206
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.55,
+                "p95": 4.314,
+                "p99": 4.429,
+                "max": 4.429
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            },
+            "dx320": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 8.42,
+                "p95": 9.002,
+                "p99": 9.219,
+                "max": 9.219
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.742,
+                "p95": 3.984,
+                "p99": 4.082,
+                "max": 4.082
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 33,
+                "p95": 33,
+                "min": 31
+              }
+            },
+            "zoom0.75": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 4.843,
+                "p95": 5.232,
+                "p99": 5.377,
+                "max": 5.377
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 2.799,
+                "p95": 3.012,
+                "p99": 3.087,
+                "max": 3.087
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 29,
+                "p95": 30,
+                "min": 27
+              }
+            },
+            "dy-60": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 11.736,
+                "p95": 12.572,
+                "p99": 12.65,
+                "max": 12.65
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 5.015,
+                "p95": 5.34,
+                "p99": 5.376,
+                "max": 5.376
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 33,
+                "p95": 33,
+                "min": 31
+              }
+            },
+            "dy60": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 7.859,
+                "p95": 9.546,
+                "p99": 11.281,
+                "max": 11.281
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 3.456,
+                "p95": 4.146,
+                "p99": 4.833,
+                "max": 4.833
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 30,
+                "p95": 31.5,
+                "min": 29
+              }
+            },
+            "zoom1.15": {
+              "samples": 91,
+              "gated": 0,
+              "gatedShare": 0,
+              "gateReasons": {},
+              "maxFaceCount": 1,
+              "rmsReprojectionPx": {
+                "n": 91,
+                "p50": 13.147,
+                "p95": 14.331,
+                "p99": 15.257,
+                "max": 15.257
+              },
+              "rmsReprojectionMm": {
+                "n": 91,
+                "p50": 4.953,
+                "p95": 5.345,
+                "p99": 5.683,
+                "max": 5.683
+              },
+              "inliers": {
+                "n": 91,
+                "p50": 32,
+                "p95": 33,
+                "min": 29
+              }
+            }
+          }
+        },
+        "roll": {
+          "conditions": [
+            "still",
+            "roll-15",
+            "roll-10",
+            "roll-5",
+            "roll5",
+            "roll10",
+            "roll15"
+          ],
+          "faceAngleDeg": [
+            -0.886,
+            -15.765,
+            -11.013,
+            -6.026,
+            4.369,
+            9.154,
+            14.225
+          ],
+          "renderedAngleDeg": [
+            -0.384,
+            -15.834,
+            -10.822,
+            -5.479,
+            4.648,
+            9.363,
+            14.508
+          ],
+          "renderedPerFaceDeg": 1.006,
+          "eulerPitchPerFaceRollDeg": 0.019,
+          "eulerYawPerFaceRollDeg": -0.041,
+          "eulerRollPerFaceRollDeg": -1.005
+        },
+        "registration": {
+          "gainX": 0.995,
+          "gainY": 1.037,
+          "offsetPxByCondition": {
+            "still": [
+              0.043,
+              -11.735
+            ],
+            "dx-320": [
+              2.392,
+              -8.838
+            ],
+            "dx-160": [
+              0.768,
+              -8.329
+            ],
+            "dx160": [
+              -0.379,
+              -9.43
+            ],
+            "dx320": [
+              -0.474,
+              -9.646
+            ],
+            "dy-60": [
+              -0.538,
+              -13.543
+            ],
+            "dy60": [
+              -0.808,
+              -9.191
+            ]
+          },
+          "interocularPx": 210.703
+        },
+        "scale": {
+          "still": {
+            "faceWidthPx": 334.4,
+            "renderedWidthPx": 354.171,
+            "renderedOverFace": 1.059
+          },
+          "zoom0.75": {
+            "faceWidthPx": 253.439,
+            "renderedWidthPx": 258.886,
+            "renderedOverFace": 1.021
+          },
+          "zoom1.15": {
+            "faceWidthPx": 388.661,
+            "renderedWidthPx": 414.858,
+            "renderedOverFace": 1.067
+          }
+        },
+        "scaleByProduct": {
+          "product1": {
+            "renderedOverFace": {
+              "still": 1.059,
+              "zoom0.75": 1.021,
+              "zoom1.15": 1.067
+            },
+            "maxChangeFromStillPercent": 3.553
+          },
+          "product2": {
+            "renderedOverFace": {},
+            "maxChangeFromStillPercent": null
+          },
+          "product3": {
+            "renderedOverFace": {},
+            "maxChangeFromStillPercent": null
+          },
+          "product4": {
+            "renderedOverFace": {},
+            "maxChangeFromStillPercent": null
+          }
+        },
+        "products": null,
+        "blink": null,
+        "motion": {},
+        "twoFace": {}
+      },
+      "gate": {
+        "limits": "eval/harness/gate.json",
+        "delegate": "CPU forced in every condition",
+        "problems": []
+      }
+    },
+    "bundle-size": {
+      "measuredAt": "2026-11-26T02:23:25.113Z",
+      "commit": "aae841ce23f778bfa0dfb2463c52ac968905a4fc",
+      "dirty": false,
+      "command": "node eval/perf/bundleBudget.mjs --write --label bundle-size",
+      "input": "frontend production build (npm run build) with VITE_API_URL unset; sizes of the files in dist, brotli quality 11 and gzip level 9",
+      "node": "v25.1.0",
+      "sizes": {
+        "mainJs": {
+          "files": [
+            "assets/index-BkspGann.js"
+          ],
+          "rawBytes": 1111774,
+          "gzipBytes": 304588,
+          "brotliBytes": 254680
+        },
+        "workerJs": {
+          "files": [
+            "assets/landmarker.worker-CYxCvvJs.js"
+          ],
+          "rawBytes": 159709,
+          "gzipBytes": 47332,
+          "brotliBytes": 40247
+        },
+        "css": {
+          "files": [
+            "assets/index-Cif3f7n-.css"
+          ],
+          "rawBytes": 9841,
+          "gzipBytes": 2697,
+          "brotliBytes": 2327
+        },
+        "wasm": {
+          "files": [
+            "mediapipe/tasks-vision/1.2.3/vision_wasm_module_internal.wasm"
+          ],
+          "rawBytes": 14665738,
+          "gzipBytes": 4143214,
+          "brotliBytes": 2891319
+        },
+        "wasmLoaderJs": {
+          "files": [
+            "mediapipe/tasks-vision/1.2.3/vision_wasm_module_internal.js"
+          ],
+          "rawBytes": 336662,
+          "gzipBytes": 81039,
+          "brotliBytes": 67153
+        },
+        "model": {
+          "files": [
+            "mediapipe/face_landmarker/float16/1/face_landmarker.task"
+          ],
+          "rawBytes": 3758596,
+          "gzipBytes": 3331700,
+          "brotliBytes": 3147397
+        },
+        "glb": {
+          "files": [
+            "models/oval-wire-sunglasses.glb",
+            "models/pixel-shades.glb",
+            "models/rectangular-acetate.glb",
+            "models/round-wire-glasses.glb"
+          ],
+          "rawBytes": 2032384,
+          "gzipBytes": 1671361,
+          "brotliBytes": 1631161
+        },
+        "otherJs": {
+          "files": [],
+          "rawBytes": 0,
+          "gzipBytes": 0,
+          "brotliBytes": 0
+        }
+      },
+      "budgets": {
+        "mainJs": {
+          "files": 1,
+          "maxRawBytes": 1223000,
+          "maxBrotliBytes": 280200
+        },
+        "workerJs": {
+          "files": 1,
+          "maxRawBytes": 175700,
+          "maxBrotliBytes": 44300
+        },
+        "css": {
+          "files": 1,
+          "maxRawBytes": 10900,
+          "maxBrotliBytes": 2600
+        },
+        "wasm": {
+          "files": 1,
+          "minRawBytes": 14665738,
+          "maxRawBytes": 14665738
+        },
+        "wasmLoaderJs": {
+          "files": 1,
+          "minRawBytes": 336662,
+          "maxRawBytes": 336662
+        },
+        "model": {
+          "files": 1,
+          "minRawBytes": 3758596,
+          "maxRawBytes": 3758596
+        },
+        "glb": {
+          "files": 4,
+          "maxRawBytes": 2235700
+        },
+        "otherJs": {
+          "files": 0,
+          "maxRawBytes": 0
+        }
+      },
+      "overBudget": []
+    },
+    "page-load": {
+      "measuredAt": "2026-11-26T02:22:12.437Z",
+      "commit": "e3e84274821441afbfab16e2614b4e1df255406b",
+      "dirty": false,
+      "command": "node eval/perf/pageLoad.mjs --write --label page-load",
+      "kind": "lab",
+      "method": "median of 5 cold loads per page in Playwright Chromium; LCP, CLS and FCP from web-vitals; TBT from long tasks after FCP within 10000 ms; the try-on reads the stand-in clip as its camera, and overlayMs and clsToOverlay are taken at its first renderedPose event; lab numbers",
+      "throttle": {
+        "cpuSlowdown": 4,
+        "latencyMs": 40,
+        "downloadBitsPerSecond": 9000000,
+        "uploadBitsPerSecond": 1500000
+      },
+      "hardware": {
+        "cpu": "Apple M4 Pro",
+        "memoryGB": 24,
+        "os": "Darwin 25.6.0",
+        "browser": "Chromium 159.0.8154.6",
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "medians": {
+        "catalogue": {
+          "lcpMs": 544,
+          "cls": 0,
+          "fcpMs": 544,
+          "tbtMs": 0
+        },
+        "tryOn": {
+          "lcpMs": 624,
+          "cls": 0.0296,
+          "fcpMs": 552,
+          "tbtMs": 0,
+          "overlayMs": 17302.8,
+          "clsToOverlay": 0.0296
+        }
+      },
+      "runs": {
+        "catalogue": [
+          {
+            "lcpMs": 600,
+            "cls": 0,
+            "fcpMs": 600,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 568,
+            "cls": 0,
+            "fcpMs": 568,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 540,
+            "cls": 0,
+            "fcpMs": 540,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 544,
+            "cls": 0,
+            "fcpMs": 544,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "lcpMs": 544,
+            "cls": 0,
+            "fcpMs": 544,
+            "tbtMs": 0,
+            "longTasks": 1
+          }
+        ],
+        "tryOn": [
+          {
+            "overlayMs": 17397.900000095367,
+            "clsToOverlay": 0.031680615713198974,
+            "lcpMs": 704,
+            "cls": 0.031680615713198974,
+            "fcpMs": 580,
+            "tbtMs": 0,
+            "longTasks": 2
+          },
+          {
+            "overlayMs": 17302.800000071526,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 636,
+            "cls": 0.029612070719401043,
+            "fcpMs": 552,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "overlayMs": 17302.800000071526,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 624,
+            "cls": 0.029612070719401043,
+            "fcpMs": 548,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "overlayMs": 17293.400000095367,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 616,
+            "cls": 0.029612070719401043,
+            "fcpMs": 548,
+            "tbtMs": 0,
+            "longTasks": 1
+          },
+          {
+            "overlayMs": 17300.5,
+            "clsToOverlay": 0.029612070719401043,
+            "lcpMs": 624,
+            "cls": 0.029612070719401043,
+            "fcpMs": 552,
+            "tbtMs": 0,
+            "longTasks": 1
+          }
+        ]
+      },
+      "budgets": {
+        "catalogue": {
+          "maxLcpMs": 1500,
+          "maxCls": 0.1,
+          "maxTbtMs": 150
+        },
+        "tryOn": {
+          "maxLcpMs": 1500,
+          "maxCls": 0.1,
+          "maxTbtMs": 150,
+          "maxOverlayMs": 40000,
+          "maxClsToOverlay": 0.1
+        }
+      },
+      "overBudget": []
     }
   }
 }

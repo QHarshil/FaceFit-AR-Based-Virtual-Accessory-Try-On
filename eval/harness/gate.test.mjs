@@ -1,0 +1,110 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { bridgeOffsetOverInterocular, coreGatedShare, gateProblems, meanConditionGatedShare } from './gate.mjs';
+import { linearFit } from './metrics.mjs';
+
+const limits = {
+  minShownSamples: 5,
+  metrics: {
+    'roll.renderedPerFaceDeg': { min: 0.9, max: 1.1 },
+    'registration.gainX': { min: 0.9, max: 1.1 },
+    'derived.meanConditionGatedShare': { max: 0.4 },
+    'derived.coreGatedShare': { max: 0.02 },
+    'derived.bridgeOffsetOverInterocular': { max: 0.1 },
+  },
+};
+
+const healthy = {
+  shownSamples: { still: 100, dx160: 100, 'dy-60': 50, 'zoom1.33': 0 },
+  roll: { renderedPerFaceDeg: 0.99, conditions: ['still'] },
+  registration: { gainX: 0.996, interocularPx: 200, offsetPxByCondition: { still: [1, -10], dx160: [-2, -9], 'dy-60': [0, -11] } },
+  solver: {
+    gatedShare: 0,
+    byCondition: { still: { samples: 100, gated: 0 }, dx160: { samples: 100, gated: 0 }, 'zoom1.33': { samples: 100, gated: 100 } },
+  },
+};
+
+test('a run inside every limit passes', () => {
+  assert.deepEqual(gateProblems(healthy, limits), []);
+});
+
+test('a roll that the overlay mirrors fails: a slope of -1 is far outside 0.9 to 1.1', () => {
+  const mirrored = { ...healthy, roll: { renderedPerFaceDeg: -1 } };
+  assert.deepEqual(gateProblems(mirrored, limits), ['roll.renderedPerFaceDeg: -1.0000 is below 0.9']);
+});
+
+test('a gain, a gated share and a bridge offset past their limits each fail', () => {
+  const broken = {
+    ...healthy,
+    registration: { ...healthy.registration, gainX: 0.5, offsetPxByCondition: { still: [30, 0] } },
+    solver: { gatedShare: 0.9, byCondition: { still: { samples: 100, gated: 90 }, dx160: { samples: 100, gated: 90 } } },
+  };
+  assert.deepEqual(gateProblems(broken, limits), [
+    'registration.gainX: 0.5000 is below 0.9',
+    'derived.meanConditionGatedShare: 0.9000 is above 0.4',
+    'derived.coreGatedShare: 0.9000 is above 0.02',
+    'derived.bridgeOffsetOverInterocular: 0.1500 is above 0.1',
+  ]);
+});
+
+test('the core share leaves out conditions the stand-in always gates', () => {
+  assert.equal(coreGatedShare(healthy.solver), 0);
+  assert.equal(coreGatedShare({ byCondition: {} }), null);
+});
+
+test('the mean over conditions does not depend on how many samples each one has', () => {
+  const slow = { byCondition: { still: { samples: 5, gated: 0 }, dy120: { samples: 5, gated: 5 }, zoom: { samples: 5, gated: 0 } } };
+  const fast = { byCondition: { still: { samples: 300, gated: 0 }, dy120: { samples: 5, gated: 5 }, zoom: { samples: 300, gated: 0 } } };
+  assert.equal(meanConditionGatedShare(slow), meanConditionGatedShare(fast));
+  assert.equal(meanConditionGatedShare({ byCondition: {} }), null);
+});
+
+test('a metric the run did not produce is a failure, not a pass', () => {
+  assert.deepEqual(gateProblems({ ...healthy, roll: null }, limits), ['roll.renderedPerFaceDeg: no value']);
+  assert.equal(bridgeOffsetOverInterocular(null), null);
+});
+
+test('a translate condition with no shown pose fails, and a null offset never reads as a zero one', () => {
+  const noPose = {
+    ...healthy,
+    shownSamples: { ...healthy.shownSamples, 'dy-120': 0 },
+    registration: { ...healthy.registration, offsetPxByCondition: { ...healthy.registration.offsetPxByCondition, 'dy-120': [null, null] } },
+  };
+  assert.equal(bridgeOffsetOverInterocular(noPose.registration), null);
+  assert.deepEqual(gateProblems(noPose, limits), [
+    'registration: condition dy-120 showed 0 poses, fewer than 5',
+    'derived.bridgeOffsetOverInterocular: no value',
+  ]);
+});
+
+test('a condition used by a metric needs the stated number of shown poses', () => {
+  const thin = { ...healthy, shownSamples: { ...healthy.shownSamples, dx160: 4 } };
+  assert.deepEqual(gateProblems(thin, limits), ['registration: condition dx160 showed 4 poses, fewer than 5']);
+  assert.deepEqual(gateProblems(healthy, { ...limits, minShownSamples: undefined }), ['minShownSamples: not set in the gate limits']);
+});
+
+test('a roll, scale or per-product zoom condition without poses fails by name', () => {
+  const sparse = {
+    ...healthy,
+    shownSamples: { ...healthy.shownSamples, 'roll-5': 0, 'zoom1.33': 0 },
+    roll: { renderedPerFaceDeg: 0.99, conditions: ['still', 'roll-5'] },
+    scale: { still: {}, 'zoom1.33': {} },
+    scaleByProduct: { product1: { renderedOverFace: { still: 1, 'zoom1.33': null } } },
+  };
+  assert.deepEqual(gateProblems(sparse, limits), [
+    'roll: condition roll-5 showed 0 poses, fewer than 5',
+    'scale: condition zoom1.33 showed 0 poses, fewer than 5',
+    'scaleByProduct.product1: condition zoom1.33 showed 0 poses, fewer than 5',
+  ]);
+});
+
+test('a condition with no pose samples counts as fully gated in both shares', () => {
+  const solver = { byCondition: { still: { samples: 10, gated: 0 }, dx160: { samples: 0, gated: 0 } } };
+  assert.equal(meanConditionGatedShare(solver), 0.5);
+  assert.equal(coreGatedShare({ byCondition: { dx160: { samples: 0, gated: 0 } } }), 1);
+});
+
+test('a fit given a null median has no slope, not a point on the identity line', () => {
+  assert.deepEqual(linearFit([-120, 0, 120], [null, 0, 118]), { slope: null, intercept: null });
+  assert.deepEqual(gateProblems({ ...healthy, registration: { ...healthy.registration, gainX: linearFit([0, 1], [null, 1]).slope } }, limits), ['registration.gainX: no value']);
+});

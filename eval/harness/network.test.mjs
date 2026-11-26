@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { guardOutcome, leavesDevice, offDeviceRequests, sawWorkerFetch } from './network.mjs';
+import { guardOutcome, leavesDevice, offDeviceRequests, sawWorkerFetch, waitForLocalServer } from './network.mjs';
 
 test('localhost requests on any port stay on the device', () => {
   for (const url of [
@@ -56,4 +56,25 @@ test('sawWorkerFetch finds the model request the worker makes', () => {
     true,
   );
   assert.equal(sawWorkerFetch(['http://localhost:4177/assets/index.js']), false);
+});
+
+test('a server on one loopback address is found whichever address localhost resolves to', async () => {
+  const { createServer } = await import('node:http');
+  for (const host of ['127.0.0.1', '::1']) {
+    const server = createServer((_, response) => response.end('ok'));
+    const listening = await new Promise((resolve) => {
+      server.once('error', () => resolve(false));
+      server.listen(0, host, () => resolve(true));
+    });
+    if (!listening) continue;
+    try {
+      assert.equal(await waitForLocalServer(server.address().port, { attempts: 3, delayMs: 10 }), true);
+    } finally {
+      server.close();
+    }
+  }
+});
+
+test('waiting on a port nothing listens on gives up', async () => {
+  assert.equal(await waitForLocalServer(1, { attempts: 2, delayMs: 10 }), false);
 });
